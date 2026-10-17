@@ -92,7 +92,7 @@
   #btnMenu:hover{background:#12463a;border-color:#2ee07a;color:#9df3c4}
   #powerupHud{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);
     display:flex;gap:8px;flex-wrap:wrap;justify-content:center;
-    pointer-events:none;z-index:30;max-width:90vw}
+    pointer-events:none;z-index:30;max-width:60vw}
   .pu-badge{padding:7px 12px;border-radius:10px;background:#0a141a;
     border:2px solid #ffd93d;font-size:11px;font-weight:800;letter-spacing:1px;
     color:#ffd93d;text-shadow:0 0 10px #ffd93d;animation:pulse 1s infinite}
@@ -120,6 +120,7 @@
     background:rgba(46,224,122,0.10);border:2px solid rgba(46,224,122,0.55);
     bottom:30px;pointer-events:auto;touch-action:none;
     box-shadow:inset 0 0 30px rgba(46,224,122,0.15),0 0 20px rgba(46,224,122,0.2);
+    cursor:pointer;
   }
   #joyLeft{left:30px}
   #joyRight{
@@ -172,7 +173,7 @@
     <button id="btnInsane" class="btn-diff insane">💀 SIÊU KHÓ</button>
   </div>
   <button id="btnLogout" class="panel ghost" style="padding:10px 20px;border-radius:10px;border:2px solid #26485a;background:#0e1a20;color:#cfe9d8;font-weight:800;letter-spacing:2px;cursor:pointer;margin-top:6px">ĐĂNG XUẤT</button>
-  <div class="hint">WASD/joystick trái di chuyển · Chuột/joystick phải bắn · Nhặt vòng XANH (tốt) - tránh vòng ĐỎ (xấu)</div>
+  <div class="hint">Joystick TRÁI di chuyển · Joystick PHẢI kéo để ngắm + bắn · Hoặc dùng WASD + chuột</div>
 </div>
 
 <canvas id="game" class="hidden"></canvas>
@@ -201,7 +202,7 @@
 </div>
 <div id="powerupHud" class="hidden"></div>
 
-<!-- Touch joysticks -->
+<!-- Touch joysticks (luôn hiện) -->
 <div id="touchControls" class="hidden">
   <div id="joyLeft" class="joystick"><div class="knob" id="knobLeft"></div></div>
   <div id="joyRight" class="joystick"><div class="knob" id="knobRight"></div></div>
@@ -225,9 +226,6 @@ function rand(a, b) { return a + Math.random() * (b - a); }
 function clamp(v, a, b) { return Math.max(a, Math.min(b, v)); }
 function dist(x1,y1,x2,y2){ const dx=x2-x1, dy=y2-y1; return Math.sqrt(dx*dx+dy*dy); }
 const TAU = Math.PI * 2;
-
-/* Phát hiện thiết bị cảm ứng */
-const isTouchDevice = ('ontouchstart' in window) || navigator.maxTouchPoints > 0;
 
 function hash(ix, iy, seed) {
   let h = (Math.imul(ix, 374761393) + Math.imul(iy, 668265263) +
@@ -340,7 +338,7 @@ function show(name) {
     canvasEl.classList.remove('hidden');
     hudEl.classList.remove('hidden');
     puHudEl.classList.remove('hidden');
-    if (isTouchDevice) touchControlsEl.classList.remove('hidden');
+    touchControlsEl.classList.remove('hidden');  // FIX: luôn hiện
   } else if (screens[name]) screens[name].classList.remove('hidden');
 }
 function showMenu() {
@@ -387,7 +385,9 @@ document.getElementById('btnLogout').onclick = () => {
 const touch = {
   moveX: 0, moveY: 0,
   aimX: 0, aimY: 0,
-  shooting: false
+  shooting: false,
+  moveActive: false,
+  aimActive: false
 };
 
 function setupJoystick(el, knob, onMove, onEnd) {
@@ -405,8 +405,10 @@ function setupJoystick(el, knob, onMove, onEnd) {
   const start = (e) => {
     if (activeId !== null) return;
     e.preventDefault();
+    e.stopPropagation();
     const t = e.touches ? e.touches[0] : e;
     activeId = t.identifier !== undefined ? t.identifier : 'mouse';
+    // Bắt đầu ở vị trí chạm
     move(e);
   };
   const move = (e) => {
@@ -414,6 +416,7 @@ function setupJoystick(el, knob, onMove, onEnd) {
     const t = getTouch(e);
     if (!t) return;
     e.preventDefault();
+    e.stopPropagation();
     const rect = el.getBoundingClientRect();
     const cx = rect.left + rect.width / 2;
     const cy = rect.top + rect.height / 2;
@@ -426,6 +429,7 @@ function setupJoystick(el, knob, onMove, onEnd) {
   };
   const end = (e) => {
     if (activeId === null) return;
+    e.stopPropagation();
     activeId = null;
     knob.style.transform = 'translate(-50%,-50%)';
     onEnd();
@@ -447,8 +451,8 @@ function setupJoystick(el, knob, onMove, onEnd) {
 setupJoystick(
   document.getElementById('joyLeft'),
   document.getElementById('knobLeft'),
-  (x, y) => { touch.moveX = x; touch.moveY = y; },
-  () => { touch.moveX = 0; touch.moveY = 0; }
+  (x, y) => { touch.moveX = x; touch.moveY = y; touch.moveActive = true; },
+  () => { touch.moveX = 0; touch.moveY = 0; touch.moveActive = false; }
 );
 setupJoystick(
   document.getElementById('joyRight'),
@@ -456,37 +460,22 @@ setupJoystick(
   (x, y) => {
     touch.aimX = x;
     touch.aimY = y;
-    touch.shooting = Math.hypot(x, y) > 0.25;
+    touch.aimActive = true;
+    touch.shooting = Math.hypot(x, y) > 0.15;  // FIX: threshold thấp hơn
   },
-  () => { touch.aimX = 0; touch.aimY = 0; touch.shooting = false; }
+  () => {
+    touch.aimX = 0; touch.aimY = 0;
+    touch.aimActive = false;
+    touch.shooting = false;
+  }
 );
 
 /* ============ BOT CFG ============ */
 const BOT_CFG = {
-  easy: {
-    speedBonus: 0.65, aimJitter: 0.55, shootRange: 550,
-    dodge: false, dodgeRange: 0, smart: false, lead: 0,
-    fireRate: 500, damage: 6, idealDist: 450, hp: 80,
-    name: 'BOT DỄ', color: '#7bd66b'
-  },
-  normal: {
-    speedBonus: 0.85, aimJitter: 0.25, shootRange: 700,
-    dodge: true, dodgeRange: 160, smart: false, lead: 0.3,
-    fireRate: 330, damage: 10, idealDist: 380, hp: 100,
-    name: 'BOT THƯỜNG', color: '#4dd9ff'
-  },
-  hard: {
-    speedBonus: 1.05, aimJitter: 0.13, shootRange: 850,
-    dodge: true, dodgeRange: 260, smart: true, lead: 0.6,
-    fireRate: 220, damage: 14, idealDist: 330, hp: 130,
-    name: 'BOT KHÁ', color: '#ff8c1a'
-  },
-  insane: {
-    speedBonus: 1.25, aimJitter: 0.05, shootRange: 1000,
-    dodge: true, dodgeRange: 380, smart: true, lead: 1.0,
-    fireRate: 140, damage: 18, idealDist: 300, hp: 160,
-    name: 'BOT SIÊU KHÓ', color: '#ff5b6e'
-  }
+  easy: { speedBonus: 0.65, aimJitter: 0.55, shootRange: 550, dodge: false, dodgeRange: 0, smart: false, lead: 0, fireRate: 500, damage: 6, idealDist: 450, hp: 80, name: 'BOT DỄ', color: '#7bd66b' },
+  normal: { speedBonus: 0.85, aimJitter: 0.25, shootRange: 700, dodge: true, dodgeRange: 160, smart: false, lead: 0.3, fireRate: 330, damage: 10, idealDist: 380, hp: 100, name: 'BOT THƯỜNG', color: '#4dd9ff' },
+  hard: { speedBonus: 1.05, aimJitter: 0.13, shootRange: 850, dodge: true, dodgeRange: 260, smart: true, lead: 0.6, fireRate: 220, damage: 14, idealDist: 330, hp: 130, name: 'BOT KHÁ', color: '#ff8c1a' },
+  insane: { speedBonus: 1.25, aimJitter: 0.05, shootRange: 1000, dodge: true, dodgeRange: 380, smart: true, lead: 1.0, fireRate: 140, damage: 18, idealDist: 300, hp: 160, name: 'BOT SIÊU KHÓ', color: '#ff5b6e' }
 };
 const DIFF_NAME = { easy: 'DỄ', normal: 'BÌNH THƯỜNG', hard: 'KHÁ', insane: 'SIÊU KHÓ' };
 
@@ -504,12 +493,7 @@ function makePlayer(id, name) {
     input: {x:0, y:0, aim:0, shoot:false},
     level: 1, xp: 0,
     fireRate: 180, damage: 14, bulletSpeed: 1000,
-    powerups: {
-      laser:0, bomb:0, shield:0, speed:0,
-      pierce:0, tripleshot:0,
-      curse:0, slow:0, burn:0, confuse:0,
-      freeze:0, jam:0
-    },
+    powerups: { laser:0, bomb:0, shield:0, speed:0, pierce:0, tripleshot:0, curse:0, slow:0, burn:0, confuse:0, freeze:0, jam:0 },
     shieldHp: 0, burnTick: 0, lastShoot: 0,
     levelUpFlash: 0, curseFlash: 0, pvpInvuln: 0,
     isBot: false, difficulty: null,
@@ -575,16 +559,9 @@ document.getElementById('btnHard').onclick = () => startGame('bot', 'hard');
 document.getElementById('btnInsane').onclick = () => startGame('bot', 'insane');
 
 document.getElementById('btnMenu').onclick = () => {
-  if (confirm('Thoát về menu? Tiến trình sẽ mất.')) {
-    state = null;
-    showMenu();
-  }
+  if (confirm('Thoát về menu? Tiến trình sẽ mất.')) { state = null; showMenu(); }
 };
-document.getElementById('btnToMenu').onclick = () => {
-  state = null;
-  hideOverlay();
-  showMenu();
-};
+document.getElementById('btnToMenu').onclick = () => { state = null; hideOverlay(); showMenu(); };
 document.getElementById('btnRestart').onclick = () => {
   hideOverlay();
   const mode = state ? state.mode : 'pve';
@@ -689,10 +666,7 @@ function pickPUType() {
 function spawnPowerup(x, y) {
   const type = pickPUType();
   const def = POWERUPS.find(p=>p.type===type) || POWERUPS[0];
-  state.pickups.push({
-    x, y, type, color: def.color, bad: def.bad,
-    life: 18, bob: Math.random()*Math.PI*2
-  });
+  state.pickups.push({ x, y, type, color: def.color, bad: def.bad, life: 18, bob: Math.random()*Math.PI*2 });
 }
 function applyPickup(p, k) {
   switch (k.type) {
@@ -712,22 +686,15 @@ function applyPickup(p, k) {
   }
   state.events.push('pickup');
   spawnParticles(k.x, k.y, k.color, 15, 250);
-  if (PU_BAD.includes(k.type)) {
-    p.curseFlash = 1;
-    state.events.push('curse');
-  }
+  if (PU_BAD.includes(k.type)) { p.curseFlash = 1; state.events.push('curse'); }
 }
 
-/* ============ PARTICLES / EFFECTS ============ */
+/* ============ PARTICLES ============ */
 function spawnParticles(x, y, color, count, speed) {
   for (let i = 0; i < count; i++) {
     const a = Math.random() * TAU;
     const s = speed * (0.3 + Math.random() * 0.7);
-    state.particles.push({
-      x, y, vx: Math.cos(a)*s, vy: Math.sin(a)*s,
-      life: 0.4 + Math.random()*0.4, maxLife: 0.8,
-      color, r: 2 + Math.random()*3
-    });
+    state.particles.push({ x, y, vx: Math.cos(a)*s, vy: Math.sin(a)*s, life: 0.4 + Math.random()*0.4, maxLife: 0.8, color, r: 2 + Math.random()*3 });
   }
 }
 function spawnLaser(x, y, angle, ownerId) {
@@ -795,7 +762,7 @@ function explodeBomb(x, y, ownerId) {
   playSound('boom');
 }
 
-/* ============ ENEMY TYPES (PvE) ============ */
+/* ============ ENEMIES ============ */
 const TYPES = [
   { behavior: 'chase',    hp: 22,  speed: 96, r: 15, dmg: 8,  score: 10, color: '#7bd66b', stroke: '#3d8a35', xp: 1 },
   { behavior: 'chase',    hp: 52,  speed: 72, r: 23, dmg: 15, score: 25, color: '#e8a13a', stroke: '#a86a15', xp: 2 },
@@ -833,8 +800,7 @@ function spawnEnemy() {
 
   state.enemies.push({
     x: avgX + spawnX, y: avgY + spawnY,
-    behavior: t.behavior,
-    hp: t.hp * hpScale, maxHp: t.hp * hpScale,
+    behavior: t.behavior, hp: t.hp * hpScale, maxHp: t.hp * hpScale,
     speed: t.speed * (1 + state.wave * 0.02), r: t.r, dmg: t.dmg,
     score: t.score, xp: t.xp, color: t.color, stroke: t.stroke,
     angle: 0, hitFlash: 0, seed: Math.random() * 10,
@@ -908,14 +874,11 @@ function computeBotInput(bot, player, pvx, pvy) {
   const dx = player.x - bot.x, dy = player.y - bot.y;
   const d = Math.hypot(dx, dy) || 1;
   const nx = dx / d, ny = dy / d;
-
   const bulletTime = d / bot.bulletSpeed;
   const px = player.x + pvx * bulletTime * cfg.lead;
   const py = player.y + pvy * bulletTime * cfg.lead;
-
   const jitter = (Math.random() - 0.5) * cfg.aimJitter;
   const aim = Math.atan2(py - bot.y, px - bot.x) + jitter;
-
   let mx = 0, my = 0, dodging = false;
 
   if (cfg.dodge) {
@@ -938,7 +901,6 @@ function computeBotInput(bot, player, pvx, pvy) {
       }
     }
   }
-
   if (cfg.smart && !dodging) {
     let bestGood = null, bestD = 500;
     for (const k of state.pickups) {
@@ -949,8 +911,7 @@ function computeBotInput(bot, player, pvx, pvy) {
     if (bestGood) {
       const pdx = bestGood.x - bot.x, pdy = bestGood.y - bot.y;
       const pl = Math.hypot(pdx, pdy) || 1;
-      mx += pdx / pl * 1.2;
-      my += pdy / pl * 1.2;
+      mx += pdx / pl * 1.2; my += pdy / pl * 1.2;
     }
     for (const k of state.pickups) {
       if (!PU_BAD.includes(k.type)) continue;
@@ -959,25 +920,20 @@ function computeBotInput(bot, player, pvx, pvy) {
         const pdx = bot.x - k.x, pdy = bot.y - k.y;
         const pl = Math.hypot(pdx, pdy) || 1;
         const urgency = (220 - pd) / 220;
-        mx += pdx / pl * urgency * 2;
-        my += pdy / pl * urgency * 2;
+        mx += pdx / pl * urgency * 2; my += pdy / pl * urgency * 2;
       }
     }
   }
-
   if (!dodging) {
     if (d < cfg.idealDist - 100) { mx -= nx; my -= ny; }
     else if (d > cfg.idealDist + 100) { mx += nx * 0.7; my += ny * 0.7; }
     else {
       const strafeSign = Math.sin(state.time * 1.7) > 0 ? 1 : -1;
-      mx += -ny * strafeSign * 0.8;
-      my += nx * strafeSign * 0.8;
+      mx += -ny * strafeSign * 0.8; my += nx * strafeSign * 0.8;
     }
   }
-
   const ml = Math.hypot(mx, my);
   if (ml > 0) { mx /= ml; my /= ml; }
-
   const shoot = d < cfg.shootRange;
   return { x: mx, y: my, aim, shoot };
 }
@@ -993,7 +949,6 @@ function gameLoop(now) {
     state.announce.t -= dt;
     if (state.announce.t <= 0) state.announce = null;
   }
-
   const isPvE = state.mode === 'pve';
 
   state.players[myId].input = getInputs();
@@ -1014,11 +969,7 @@ function gameLoop(now) {
     if (aliveCount === 0) {
       state.over = true;
       recordPvEScore(state.players[myId].score);
-      showOverlay(
-        'GAME OVER', '#ff5b6e',
-        'Điểm: <b>' + state.players[myId].score + '</b>',
-        'Cấp đạt được: <b>' + state.players[myId].level + '</b>'
-      );
+      showOverlay('GAME OVER', '#ff5b6e', 'Điểm: <b>' + state.players[myId].score + '</b>', 'Cấp đạt được: <b>' + state.players[myId].level + '</b>');
       return;
     }
   } else {
@@ -1027,14 +978,11 @@ function gameLoop(now) {
       state.winner = aliveId;
       const diffTxt = 'Độ khó: ' + DIFF_NAME[state.difficulty];
       if (state.winner === myId) {
-        playSound('win');
-        recordBotWin();
-        showOverlay('🏆 BẠN THẮNG!', '#2ee07a',
-          'Đã hạ gục <b>' + BOT_CFG[state.difficulty].name + '</b>', diffTxt);
+        playSound('win'); recordBotWin();
+        showOverlay('🏆 BẠN THẮNG!', '#2ee07a', 'Đã hạ gục <b>' + BOT_CFG[state.difficulty].name + '</b>', diffTxt);
       } else {
         playSound('lose');
-        showOverlay('💀 BẠN THUA!', '#ff5b6e',
-          '<b>' + BOT_CFG[state.difficulty].name + '</b> đã hạ gục bạn', diffTxt);
+        showOverlay('💀 BẠN THUA!', '#ff5b6e', '<b>' + BOT_CFG[state.difficulty].name + '</b> đã hạ gục bạn', diffTxt);
       }
       return;
     }
@@ -1049,8 +997,7 @@ function gameLoop(now) {
       for (let i=0; i<num; i++) spawnEnemy();
     }
     if (state.wave % 3 === 0 && !state.enemies.some(e=>e.isBoss) && state.time > state.wave*15 - 1) {
-      spawnBoss();
-      state.announce = { text: 'BOSS XUẤT HIỆN!', t: 2.5 };
+      spawnBoss(); state.announce = { text: 'BOSS XUẤT HIỆN!', t: 2.5 };
     }
   }
 
@@ -1058,16 +1005,13 @@ function gameLoop(now) {
     const p = state.players[id];
     if (p.hp <= 0) continue;
     if (p.pvpInvuln > 0) p.pvpInvuln -= dt;
-
     for (const k in p.powerups) if (p.powerups[k] > 0) p.powerups[k] = Math.max(0, p.powerups[k] - dt);
     if (p.levelUpFlash > 0) p.levelUpFlash -= dt;
     if (p.curseFlash > 0) p.curseFlash -= dt;
-
     if (p.powerups.burn > 0) {
       p.burnTick = (p.burnTick || 0) + dt;
       if (p.burnTick >= 0.5) {
-        p.burnTick = 0;
-        p.hp -= 1.5;
+        p.burnTick = 0; p.hp -= 1.5;
         spawnParticles(p.x + rand(-10,10), p.y + rand(-10,10), '#ff3a1a', 3, 80);
         state.events.push({ type: 'hurt', target: p.id });
         if (p.hp <= 0) p.hp = 0;
@@ -1092,12 +1036,9 @@ function gameLoop(now) {
     p.aim = p.input.aim;
 
     if (state.arena) {
-      const hw = state.arena.w / 2 - 20;
-      const hh = state.arena.h / 2 - 20;
-      p.x = clamp(p.x, -hw, hw);
-      p.y = clamp(p.y, -hh, hh);
+      const hw = state.arena.w / 2 - 20, hh = state.arena.h / 2 - 20;
+      p.x = clamp(p.x, -hw, hw); p.y = clamp(p.y, -hh, hh);
     }
-
     let fireRate = p.fireRate;
     if (p.powerups.jam > 0) fireRate *= 2.0;
 
@@ -1110,16 +1051,10 @@ function gameLoop(now) {
       const shots = p.powerups.tripleshot > 0 ? [-0.18, 0, 0.18] : [0];
       for (const off of shots) {
         const a = p.aim + off;
-        state.bullets.push({
-          x: p.x + Math.cos(a) * 30, y: p.y + Math.sin(a) * 30,
-          vx: Math.cos(a) * p.bulletSpeed, vy: Math.sin(a) * p.bulletSpeed,
-          life: 1.2, owner: id, dmg, pierce, hitSet: []
-        });
+        state.bullets.push({ x: p.x + Math.cos(a) * 30, y: p.y + Math.sin(a) * 30, vx: Math.cos(a) * p.bulletSpeed, vy: Math.sin(a) * p.bulletSpeed, life: 1.2, owner: id, dmg, pierce, hitSet: [] });
       }
       if (p.powerups.laser > 0 && (!p.lastLaser || now - p.lastLaser > 400)) {
-        p.lastLaser = now;
-        spawnLaser(p.x, p.y, p.aim, id);
-        state.events.push('laser');
+        p.lastLaser = now; spawnLaser(p.x, p.y, p.aim, id); state.events.push('laser');
       }
       if (p.powerups.bomb > 0 && (!p.lastBomb || now - p.lastBomb > 800)) {
         p.lastBomb = now;
@@ -1128,16 +1063,13 @@ function gameLoop(now) {
       }
       state.events.push('shoot');
     }
-
-    p._prevX = p.x;
-    p._prevY = p.y;
+    p._prevX = p.x; p._prevY = p.y;
   }
 
   for (let i = state.bullets.length - 1; i >= 0; i--) {
     const b = state.bullets[i];
     b.x += b.vx * dt; b.y += b.vy * dt; b.life -= dt;
     if (b.life <= 0) { state.bullets.splice(i, 1); continue; }
-
     let consumed = false;
     if (isPvE) {
       for (let j = state.enemies.length - 1; j >= 0; j--) {
@@ -1148,13 +1080,11 @@ function gameLoop(now) {
           spawnParticles(b.x, b.y, '#fff8cc', 3, 120);
           state.events.push('hit');
           if (e.hp <= 0) killEnemy(e, b.owner);
-          if (b.pierce) b.hitSet.push(e);
-          else { consumed = true; }
+          if (b.pierce) b.hitSet.push(e); else consumed = true;
           break;
         }
       }
     }
-
     if (!consumed && state.mode === 'bot') {
       for (const pid in state.players) {
         if (pid === b.owner) continue;
@@ -1171,12 +1101,10 @@ function gameLoop(now) {
             spawnParticles(p.x, p.y, '#ff5b6e', 8, 200);
           }
           state.events.push({ type: 'hurt', target: pid });
-          consumed = true;
-          break;
+          consumed = true; break;
         }
       }
     }
-
     if (consumed) state.bullets.splice(i, 1);
   }
 
@@ -1236,7 +1164,6 @@ function gameLoop(now) {
         }
       }
     }
-
     for (let i = state.ebullets.length - 1; i >= 0; i--) {
       const b = state.ebullets[i];
       b.x += b.vx * dt; b.y += b.vy * dt; b.life -= dt;
@@ -1252,8 +1179,7 @@ function gameLoop(now) {
             p.hp -= b.dmg;
             state.events.push({ type: 'hurt', target: p.id });
           }
-          state.ebullets.splice(i, 1);
-          break;
+          state.ebullets.splice(i, 1); break;
         }
       }
     }
@@ -1261,15 +1187,12 @@ function gameLoop(now) {
 
   for (let i = state.pickups.length - 1; i >= 0; i--) {
     const k = state.pickups[i];
-    k.life -= dt;
-    k.bob += dt * 4;
+    k.life -= dt; k.bob += dt * 4;
     if (k.life <= 0) { state.pickups.splice(i, 1); continue; }
     for (const id in state.players) {
       const p = state.players[id];
       if (p.hp > 0 && dist(p.x, p.y, k.x, k.y) < 32) {
-        applyPickup(p, k);
-        state.pickups.splice(i, 1);
-        break;
+        applyPickup(p, k); state.pickups.splice(i, 1); break;
       }
     }
   }
@@ -1278,8 +1201,7 @@ function gameLoop(now) {
     state.pickupTimer -= dt;
     if (state.pickupTimer <= 0 && state.pickups.length < 4) {
       state.pickupTimer = 3 + Math.random() * 2;
-      const hw = state.arena.w / 2 - 100;
-      const hh = state.arena.h / 2 - 100;
+      const hw = state.arena.w / 2 - 100, hh = state.arena.h / 2 - 100;
       spawnPowerup(rand(-hw, hw), rand(-hh, hh));
     }
   }
@@ -1311,8 +1233,7 @@ function gameLoop(now) {
 
 function showOverlay(title, color, p1, p2) {
   const t = document.getElementById('ovTitle');
-  t.textContent = title;
-  t.style.color = color;
+  t.textContent = title; t.style.color = color;
   document.getElementById('ovP1').innerHTML = p1;
   document.getElementById('ovP2').innerHTML = p2;
   document.getElementById('overlay').classList.remove('hidden');
@@ -1332,24 +1253,22 @@ canvasEl.addEventListener('contextmenu', e => e.preventDefault());
 
 function getInputs() {
   let mx = 0, my = 0;
-  // keyboard
+  // Keyboard
   if (keys['a'] || keys['arrowleft']) mx--;
   if (keys['d'] || keys['arrowright']) mx++;
   if (keys['w'] || keys['arrowup']) my--;
   if (keys['s'] || keys['arrowdown']) my++;
-  // touch (joystick trái)
-  if (isTouchDevice) {
-    mx += touch.moveX;
-    my += touch.moveY;
-  }
+  // Joystick trái (luôn cộng — kể cả PC khi kéo joystick)
+  mx += touch.moveX;
+  my += touch.moveY;
   const len = Math.hypot(mx, my);
   if (len > 1) { mx /= len; my /= len; }
 
   let aim, shoot;
-  // touch (joystick phải)
-  if (isTouchDevice && touch.shooting) {
+  // FIX: ưu tiên joystick phải khi active (không cần check isTouchDevice)
+  if (touch.aimActive) {
     aim = Math.atan2(touch.aimY, touch.aimX);
-    shoot = true;
+    shoot = touch.shooting;
   } else {
     aim = Math.atan2(mouse.y - innerHeight / 2, mouse.x - innerWidth / 2);
     shoot = mouse.down || keys[' '];
@@ -1576,7 +1495,6 @@ function drawPlayer(p, isMe, st) {
   }
   const bodyCol = isMe ? '#5fbf7d' : '#6ba8ff';
   const stroke = isMe ? '#1e5233' : '#1e3a8a';
-
   ctx.save();
   ctx.translate(p.x, p.y);
 
@@ -1609,9 +1527,7 @@ function drawPlayer(p, isMe, st) {
     ctx.strokeStyle = '#8a1f8a'; ctx.lineWidth = 2;
     for (let i = 0; i < 3; i++) {
       const a0 = performance.now() * 0.005 + i * TAU / 3;
-      ctx.beginPath();
-      ctx.arc(0, 0, 30 + i * 4, a0, a0 + 1.2);
-      ctx.stroke();
+      ctx.beginPath(); ctx.arc(0, 0, 30 + i * 4, a0, a0 + 1.2); ctx.stroke();
     }
     ctx.restore();
   }
@@ -1630,7 +1546,6 @@ function drawPlayer(p, isMe, st) {
     ctx.beginPath(); ctx.arc(0, 0, 32, 0, TAU); ctx.stroke();
     ctx.restore();
   }
-
   if (p.pvpInvuln > 0 && Math.floor(performance.now() * 0.02) % 2 === 0) ctx.globalAlpha = 0.5;
 
   ctx.save(); ctx.rotate(p.angle || 0);
@@ -1662,7 +1577,6 @@ function drawPlayer(p, isMe, st) {
   const hpPct = Math.max(0, p.hp / (p.maxHp || 100));
   ctx.fillStyle = hpPct > 0.5 ? '#2ee07a' : hpPct > 0.25 ? '#ffd93d' : '#ff5b6e';
   ctx.fillRect(-w/2, -24, w * hpPct, 4);
-
   ctx.restore();
 }
 
@@ -1754,7 +1668,6 @@ function drawBotIndicator(st) {
 
   const pSX = me.x - cam.x + W / 2;
   const pSY = me.y - cam.y + H / 2;
-
   const dx = bot.x - me.x, dy = bot.y - me.y;
   const worldDist = Math.hypot(dx, dy) || 1;
   const ux = dx / worldDist, uy = dy / worldDist;
@@ -1775,22 +1688,17 @@ function drawBotIndicator(st) {
   const pulse = 0.7 + 0.3 * Math.sin(now * 0.008);
 
   ctx.save();
-
   ctx.save();
   ctx.shadowColor = '#ff5b6e';
   ctx.shadowBlur = 18 + 8 * pulse;
   ctx.strokeStyle = 'rgba(255,90,110,' + (0.7 * pulse) + ')';
   ctx.lineWidth = 2;
-  ctx.beginPath();
-  ctx.arc(ex, ey, 24 + 4 * pulse, 0, TAU);
-  ctx.stroke();
+  ctx.beginPath(); ctx.arc(ex, ey, 24 + 4 * pulse, 0, TAU); ctx.stroke();
   ctx.restore();
 
   ctx.save();
   ctx.fillStyle = 'rgba(255,90,110,' + (0.15 * pulse) + ')';
-  ctx.beginPath();
-  ctx.arc(ex, ey, 20, 0, TAU);
-  ctx.fill();
+  ctx.beginPath(); ctx.arc(ex, ey, 20, 0, TAU); ctx.fill();
   ctx.restore();
 
   ctx.save();
@@ -1812,93 +1720,4 @@ function drawBotIndicator(st) {
   const labelX = ex - ux * 38;
   const labelY = ey - uy * 38;
   ctx.font = 'bold 12px system-ui,sans-serif';
-  ctx.textAlign = 'center';
-  ctx.textBaseline = 'middle';
-  const distTxt = Math.round(worldDist / 10) + 'm';
-  ctx.lineWidth = 3;
-  ctx.strokeStyle = 'rgba(0,0,0,0.85)';
-  ctx.strokeText(distTxt, labelX, labelY);
-  ctx.fillStyle = '#fff';
-  ctx.fillText(distTxt, labelX, labelY);
-
-  ctx.restore();
-}
-
-function drawGame(st) {
-  ctx.clearRect(0, 0, W, H);
-  const me = st.players[myId];
-  if (!me) return;
-  let targetX = me.x, targetY = me.y;
-  if (me.hp <= 0) {
-    const alive = Object.values(st.players).find(p => p.hp > 0);
-    if (alive) { targetX = alive.x; targetY = alive.y; }
-  }
-  cam.x += (targetX - cam.x) * 0.15;
-  cam.y += (targetY - cam.y) * 0.15;
-
-  let sx = 0, sy = 0;
-  if (shakeTime > 0) {
-    shakeTime -= 0.016;
-    sx = (Math.random() - 0.5) * shakeIntensity;
-    sy = (Math.random() - 0.5) * shakeIntensity;
-  }
-  ctx.save();
-  ctx.translate(W / 2 - cam.x + sx, H / 2 - cam.y + sy);
-
-  drawMap();
-  if (st.arena) drawArena(st.arena);
-  for (const k of st.pickups) drawPickup(k);
-  drawBeams(st);
-  for (const e of st.enemies) drawEnemy(e, st);
-  drawBullets(st);
-  drawEBullets(st);
-  for (const id in st.players) drawPlayer(st.players[id], id === myId, st);
-  drawParticles(st);
-
-  ctx.restore();
-
-  drawBotIndicator(st);
-
-  if (hitFlash > 0) {
-    hitFlash -= 0.05;
-    ctx.fillStyle = `rgba(255, 30, 30, ${hitFlash * 0.4})`;
-    ctx.fillRect(0, 0, W, H);
-  }
-
-  if (st.announce) {
-    ctx.save();
-    ctx.globalAlpha = Math.min(1, st.announce.t);
-    ctx.font = 'bold 52px system-ui,sans-serif';
-    ctx.fillStyle = '#9df3c4';
-    ctx.textAlign = 'center';
-    ctx.shadowColor = '#2ee07a'; ctx.shadowBlur = 30;
-    ctx.fillText(st.announce.text, W / 2, H * 0.26);
-    ctx.restore();
-  }
-
-  if (st.mode === 'pve') {
-    const boss = st.enemies.find(e => e.isBoss);
-    if (boss) {
-      const w = Math.min(520, W - 80);
-      const x = (W - w) / 2, y = 62;
-      const g2 = ctx.createLinearGradient(x, 0, x + w, 0);
-      g2.addColorStop(0, boss.color);
-      g2.addColorStop(1, '#ffffff');
-      ctx.fillStyle = 'rgba(0,0,0,0.55)';
-      rr(x - 5, y - 5, w + 10, 30, 9); ctx.fill();
-      ctx.fillStyle = '#1a1015';
-      rr(x, y, w, 20, 6); ctx.fill();
-      ctx.fillStyle = g2;
-      rr(x, y, w * (boss.hp / boss.maxHp), 20, 6); ctx.fill();
-      ctx.fillStyle = '#ffe4e6';
-      ctx.font = 'bold 12px system-ui,sans-serif';
-      ctx.textAlign = 'center';
-      ctx.fillText('BOSS   ' + Math.ceil(boss.hp) + ' / ' + Math.ceil(boss.maxHp), W / 2, y + 14);
-    }
-  }
-}
-
-})();
-</script>
-</body>
-</html>
+  ctx.textAlign
