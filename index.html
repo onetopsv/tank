@@ -2,13 +2,14 @@
 <html lang="vi">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
 <title>Tank Arena</title>
 <style>
   *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
   html,body{width:100%;height:100%;overflow:hidden;background:#080c11;
-    font-family:system-ui,"Segoe UI",Arial,sans-serif;user-select:none;color:#dff5e8}
-  canvas{display:block;position:fixed;inset:0;cursor:crosshair}
+    font-family:system-ui,"Segoe UI",Arial,sans-serif;user-select:none;color:#dff5e8;
+    overscroll-behavior:none;touch-action:none}
+  canvas{display:block;position:fixed;inset:0;cursor:crosshair;touch-action:none}
   .hidden{display:none !important}
   .screen{position:fixed;inset:0;z-index:50;display:flex;flex-direction:column;
     align-items:center;justify-content:center;gap:16px;padding:24px;
@@ -39,7 +40,6 @@
     min-width:min(340px,92vw);text-align:center}
   .menu-stats b{color:#9df3c4;font-size:16px}
   .hint{font-size:12px;color:#6ea8a0;letter-spacing:1px;line-height:1.7;max-width:400px}
-
   .btn-pve{padding:16px 24px;border-radius:12px;background:#0e2a1e;
     color:#9df3c4;border:2px solid #2ee07a;font-size:15px;font-weight:800;
     letter-spacing:2px;cursor:pointer;transition:.15s;width:min(340px,92vw);
@@ -66,7 +66,7 @@
     display:flex;justify-content:space-between;align-items:flex-start;
     text-shadow:0 2px 8px #000;font-weight:700}
   #hudLeft{display:flex;flex-direction:column;gap:6px}
-  .hpbar{width:240px;height:18px;border-radius:9px;background:#101c24;
+  .hpbar{width:min(240px,45vw);height:18px;border-radius:9px;background:#101c24;
     border:2px solid #26485a;overflow:hidden;position:relative;
     transition:border-color 0.2s;box-shadow:0 0 18px #0af3}
   .hpbar.hurt{border-color:#ff5b6e;box-shadow:0 0 15px #ff5b6e88}
@@ -78,7 +78,7 @@
     border-radius:7px;transition:width .15s;z-index:3;opacity:.85;
     box-shadow:0 0 10px #ffd93d}
   .hpText{font-size:12px;margin-top:3px;opacity:.85}
-  .xpbar{width:240px;height:8px;border-radius:4px;background:#101c24;
+  .xpbar{width:min(240px,45vw);height:8px;border-radius:4px;background:#101c24;
     border:1px solid #26485a;overflow:hidden;margin-top:4px}
   .xpFill{height:100%;width:0%;background:linear-gradient(90deg,#ffd93d,#ff8c1a);transition:width .2s}
   .lvlText{font-size:11px;margin-top:2px;color:#ffd93d;letter-spacing:1px}
@@ -112,6 +112,30 @@
   #btnRestart:hover{background:#2ee07a;color:#04140c;transform:scale(1.03)}
   #btnToMenu{border-color:#26485a;background:#0e1a20;color:#cfe9d8}
   #btnToMenu:hover{background:#12463a;border-color:#2ee07a;color:#9df3c4}
+
+  /* ===== TOUCH JOYSTICKS ===== */
+  #touchControls{position:fixed;inset:0;pointer-events:none;z-index:25}
+  .joystick{
+    position:absolute;width:140px;height:140px;border-radius:50%;
+    background:rgba(46,224,122,0.10);border:2px solid rgba(46,224,122,0.55);
+    bottom:30px;pointer-events:auto;touch-action:none;
+    box-shadow:inset 0 0 30px rgba(46,224,122,0.15),0 0 20px rgba(46,224,122,0.2);
+  }
+  #joyLeft{left:30px}
+  #joyRight{
+    right:30px;
+    background:rgba(255,91,110,0.10);border-color:rgba(255,91,110,0.55);
+    box-shadow:inset 0 0 30px rgba(255,91,110,0.15),0 0 20px rgba(255,91,110,0.2);
+  }
+  .knob{
+    position:absolute;width:64px;height:64px;border-radius:50%;
+    background:rgba(46,224,122,0.75);border:2px solid #2ee07a;
+    top:50%;left:50%;transform:translate(-50%,-50%);
+    pointer-events:none;box-shadow:0 0 25px #2ee07a88;
+    will-change:transform;
+  }
+  #joyRight .knob{background:rgba(255,91,110,0.75);border-color:#ff5b6e;
+    box-shadow:0 0 25px #ff5b6e88}
 </style>
 </head>
 <body>
@@ -148,7 +172,7 @@
     <button id="btnInsane" class="btn-diff insane">💀 SIÊU KHÓ</button>
   </div>
   <button id="btnLogout" class="panel ghost" style="padding:10px 20px;border-radius:10px;border:2px solid #26485a;background:#0e1a20;color:#cfe9d8;font-weight:800;letter-spacing:2px;cursor:pointer;margin-top:6px">ĐĂNG XUẤT</button>
-  <div class="hint">WASD di chuyển · Chuột trái bắn · Nhặt vòng XANH (tốt) - tránh vòng ĐỎ (xấu)</div>
+  <div class="hint">WASD/joystick trái di chuyển · Chuột/joystick phải bắn · Nhặt vòng XANH (tốt) - tránh vòng ĐỎ (xấu)</div>
 </div>
 
 <canvas id="game" class="hidden"></canvas>
@@ -177,6 +201,12 @@
 </div>
 <div id="powerupHud" class="hidden"></div>
 
+<!-- Touch joysticks -->
+<div id="touchControls" class="hidden">
+  <div id="joyLeft" class="joystick"><div class="knob" id="knobLeft"></div></div>
+  <div id="joyRight" class="joystick"><div class="knob" id="knobRight"></div></div>
+</div>
+
 <div id="overlay" class="hidden">
   <h1 id="ovTitle">GAME OVER</h1>
   <p id="ovP1"></p>
@@ -195,6 +225,9 @@ function rand(a, b) { return a + Math.random() * (b - a); }
 function clamp(v, a, b) { return Math.max(a, Math.min(b, v)); }
 function dist(x1,y1,x2,y2){ const dx=x2-x1, dy=y2-y1; return Math.sqrt(dx*dx+dy*dy); }
 const TAU = Math.PI * 2;
+
+/* Phát hiện thiết bị cảm ứng */
+const isTouchDevice = ('ontouchstart' in window) || navigator.maxTouchPoints > 0;
 
 function hash(ix, iy, seed) {
   let h = (Math.imul(ix, 374761393) + Math.imul(iy, 668265263) +
@@ -295,16 +328,19 @@ const screens = {
 const canvasEl = document.getElementById('game');
 const hudEl = document.getElementById('hud');
 const puHudEl = document.getElementById('powerupHud');
+const touchControlsEl = document.getElementById('touchControls');
 
 function show(name) {
   Object.values(screens).forEach(s => s.classList.add('hidden'));
   canvasEl.classList.add('hidden');
   hudEl.classList.add('hidden');
   puHudEl.classList.add('hidden');
+  touchControlsEl.classList.add('hidden');
   if (name === 'game') {
     canvasEl.classList.remove('hidden');
     hudEl.classList.remove('hidden');
     puHudEl.classList.remove('hidden');
+    if (isTouchDevice) touchControlsEl.classList.remove('hidden');
   } else if (screens[name]) screens[name].classList.remove('hidden');
 }
 function showMenu() {
@@ -346,6 +382,84 @@ btnAuth.onclick = () => {
 document.getElementById('btnLogout').onclick = () => {
   localStorage.removeItem(SESS_KEY); currentUser = null; show('auth');
 };
+
+/* ============ TOUCH JOYSTICK ============ */
+const touch = {
+  moveX: 0, moveY: 0,
+  aimX: 0, aimY: 0,
+  shooting: false
+};
+
+function setupJoystick(el, knob, onMove, onEnd) {
+  const maxR = 50;
+  let activeId = null;
+
+  const getTouch = (e) => {
+    if (e.touches) {
+      for (const t of e.touches) if (t.identifier === activeId) return t;
+      return null;
+    }
+    return { clientX: e.clientX, clientY: e.clientY };
+  };
+
+  const start = (e) => {
+    if (activeId !== null) return;
+    e.preventDefault();
+    const t = e.touches ? e.touches[0] : e;
+    activeId = t.identifier !== undefined ? t.identifier : 'mouse';
+    move(e);
+  };
+  const move = (e) => {
+    if (activeId === null) return;
+    const t = getTouch(e);
+    if (!t) return;
+    e.preventDefault();
+    const rect = el.getBoundingClientRect();
+    const cx = rect.left + rect.width / 2;
+    const cy = rect.top + rect.height / 2;
+    let dx = t.clientX - cx;
+    let dy = t.clientY - cy;
+    const d = Math.hypot(dx, dy);
+    if (d > maxR) { dx = dx / d * maxR; dy = dy / d * maxR; }
+    knob.style.transform = `translate(calc(-50% + ${dx}px), calc(-50% + ${dy}px))`;
+    onMove(dx / maxR, dy / maxR);
+  };
+  const end = (e) => {
+    if (activeId === null) return;
+    activeId = null;
+    knob.style.transform = 'translate(-50%,-50%)';
+    onEnd();
+  };
+
+  el.addEventListener('touchstart', start, {passive: false});
+  el.addEventListener('touchmove', move, {passive: false});
+  el.addEventListener('touchend', end);
+  el.addEventListener('touchcancel', end);
+  el.addEventListener('mousedown', start);
+  window.addEventListener('mousemove', (e) => {
+    if (activeId === 'mouse') move(e);
+  });
+  window.addEventListener('mouseup', (e) => {
+    if (activeId === 'mouse') end(e);
+  });
+}
+
+setupJoystick(
+  document.getElementById('joyLeft'),
+  document.getElementById('knobLeft'),
+  (x, y) => { touch.moveX = x; touch.moveY = y; },
+  () => { touch.moveX = 0; touch.moveY = 0; }
+);
+setupJoystick(
+  document.getElementById('joyRight'),
+  document.getElementById('knobRight'),
+  (x, y) => {
+    touch.aimX = x;
+    touch.aimY = y;
+    touch.shooting = Math.hypot(x, y) > 0.25;
+  },
+  () => { touch.aimX = 0; touch.aimY = 0; touch.shooting = false; }
+);
 
 /* ============ BOT CFG ============ */
 const BOT_CFG = {
@@ -446,7 +560,6 @@ function initGame(mode, difficulty) {
   }
 }
 
-/* ============ MENU BUTTONS ============ */
 function startGame(mode, difficulty) {
   initAudio();
   hideOverlay();
@@ -1216,14 +1329,32 @@ canvasEl.addEventListener('mousemove', e => { mouse.x = e.clientX; mouse.y = e.c
 canvasEl.addEventListener('mousedown', e => { mouse.down = true; });
 addEventListener('mouseup', e => { mouse.down = false; });
 canvasEl.addEventListener('contextmenu', e => e.preventDefault());
+
 function getInputs() {
   let mx = 0, my = 0;
+  // keyboard
   if (keys['a'] || keys['arrowleft']) mx--;
   if (keys['d'] || keys['arrowright']) mx++;
   if (keys['w'] || keys['arrowup']) my--;
   if (keys['s'] || keys['arrowdown']) my++;
-  const aim = Math.atan2(mouse.y - innerHeight / 2, mouse.x - innerWidth / 2);
-  return { x: mx, y: my, aim, shoot: mouse.down || keys[' '] };
+  // touch (joystick trái)
+  if (isTouchDevice) {
+    mx += touch.moveX;
+    my += touch.moveY;
+  }
+  const len = Math.hypot(mx, my);
+  if (len > 1) { mx /= len; my /= len; }
+
+  let aim, shoot;
+  // touch (joystick phải)
+  if (isTouchDevice && touch.shooting) {
+    aim = Math.atan2(touch.aimY, touch.aimX);
+    shoot = true;
+  } else {
+    aim = Math.atan2(mouse.y - innerHeight / 2, mouse.x - innerWidth / 2);
+    shoot = mouse.down || keys[' '];
+  }
+  return { x: mx, y: my, aim, shoot };
 }
 
 /* ============ RENDER ============ */
@@ -1608,32 +1739,26 @@ function drawParticles(st) {
   ctx.globalAlpha = 1;
 }
 
-/* ============ BOT OFF-SCREEN INDICATOR (chỉ mũi tên) ============ */
 function drawBotIndicator(st) {
   if (st.mode !== 'bot') return;
   const bot = st.players['BOT'];
   const me = st.players[myId];
   if (!bot || bot.hp <= 0 || !me || me.hp <= 0) return;
 
-  // Toạ độ bot trên màn hình
   const botSX = bot.x - cam.x + W / 2;
   const botSY = bot.y - cam.y + H / 2;
   const margin = 70;
 
-  // Nếu bot trong màn hình → không vẽ
   if (botSX > margin && botSX < W - margin &&
       botSY > margin && botSY < H - margin) return;
 
-  // Toạ độ player trên màn hình
   const pSX = me.x - cam.x + W / 2;
   const pSY = me.y - cam.y + H / 2;
 
-  // Hướng từ player → bot
   const dx = bot.x - me.x, dy = bot.y - me.y;
   const worldDist = Math.hypot(dx, dy) || 1;
   const ux = dx / worldDist, uy = dy / worldDist;
 
-  // Tìm giao điểm với mép trong màn hình
   const minX = margin, maxX = W - margin;
   const minY = margin, maxY = H - margin;
   let tEdge = Infinity;
@@ -1651,7 +1776,6 @@ function drawBotIndicator(st) {
 
   ctx.save();
 
-  // Vòng tròn phát sáng
   ctx.save();
   ctx.shadowColor = '#ff5b6e';
   ctx.shadowBlur = 18 + 8 * pulse;
@@ -1662,7 +1786,6 @@ function drawBotIndicator(st) {
   ctx.stroke();
   ctx.restore();
 
-  // Vòng trong mờ
   ctx.save();
   ctx.fillStyle = 'rgba(255,90,110,' + (0.15 * pulse) + ')';
   ctx.beginPath();
@@ -1670,7 +1793,6 @@ function drawBotIndicator(st) {
   ctx.fill();
   ctx.restore();
 
-  // Mũi tên chỉ hướng
   ctx.save();
   ctx.translate(ex, ey);
   ctx.rotate(angle);
@@ -1687,7 +1809,6 @@ function drawBotIndicator(st) {
   ctx.fill();
   ctx.restore();
 
-  // Khoảng cách
   const labelX = ex - ux * 38;
   const labelY = ey - uy * 38;
   ctx.font = 'bold 12px system-ui,sans-serif';
@@ -1736,7 +1857,6 @@ function drawGame(st) {
 
   ctx.restore();
 
-  // Indicator bot khi off-screen (screen space)
   drawBotIndicator(st);
 
   if (hitFlash > 0) {
