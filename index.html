@@ -345,6 +345,8 @@ function playSound(type) {
     freeze: {t:'sine', f1:1200, f2:200, g:0.15, d:0.4},
     drain:  {t:'triangle', f1:600, f2:100, g:0.15, d:0.5},
     split:  {t:'square', f1:300, f2:80, g:0.18, d:0.3},
+    teleport: {t:'sine', f1:800, f2:200, g:0.15, d:0.3},
+    spawn:  {t:'square', f1:200, f2:400, g:0.1, d:0.2},
   };
   const m = map[type]; if (!m) { osc.disconnect(); gain.disconnect(); return; }
   osc.type = m.t; osc.frequency.setValueAtTime(m.f1, now);
@@ -631,14 +633,14 @@ const BOT_CFG = {
 };
 const DIFF_NAME = { easy: 'DỄ', normal: 'BÌNH THƯỜNG', hard: 'KHÁ', insane: 'SIÊU KHÓ' };
 
-/* ============ MANA CONFIG (cân bằng mạnh cho mobile) ============ */
+/* ============ MANA CONFIG (cân bằng) ============ */
 const MANA_MAX = 100;
-const MANA_REGEN = 55;              // hồi cực nhanh
-const MANA_COST_SHOT = 2;           // rất rẻ
-const MANA_COST_LASER = 10;
-const MANA_COST_BOMB = 12;
+const MANA_REGEN = 32;
+const MANA_COST_SHOT = 4;
+const MANA_COST_LASER = 16;
+const MANA_COST_BOMB = 20;
 const MANA_COST_BOT_SHOT = 3;
-const MANA_REGEN_BOT = 22;
+const MANA_REGEN_BOT = 18;
 
 /* ============ STATE ============ */
 let state = null, lastTime = performance.now();
@@ -811,14 +813,13 @@ function spawnEnemyInArena(typeIdx, wave) {
   });
 }
 
-/* ============ BOSS TYPES MỚI ============ */
-// 0 = bò (charge), 1 = lửa (flamethrower), 2 = băng (freeze), 3 = hút máu (drain), 4 = phân chia (split)
+/* ============ BOSS TYPES ============ */
 const BOSS_TYPES = [
-  { name: 'BÒ',     color: '#b46bff', stroke: '#6a2f9e', r: 48, hp: 1800, speed: 60,  dmg: 40, xp: 30 },
-  { name: 'LỬA',    color: '#ff8c1a', stroke: '#a04d00', r: 46, hp: 1500, speed: 65,  dmg: 25, xp: 30 },
-  { name: 'BĂNG',   color: '#4dd9ff', stroke: '#1b6a8a', r: 46, hp: 1600, speed: 70,  dmg: 22, xp: 30 },
-  { name: 'HÚT MÁU',color: '#ff4d6d', stroke: '#8a1f35', r: 48, hp: 1700, speed: 55,  dmg: 18, xp: 30 },
-  { name: 'PHÂN CHIA',color: '#ff66b2', stroke: '#8a1f4d', r: 52, hp: 2000, speed: 50, dmg: 30, xp: 30 },
+  { name: 'BÒ',        color: '#b46bff', stroke: '#6a2f9e', r: 48, hp: 1800, speed: 60, dmg: 40, xp: 30 },
+  { name: 'LỬA',       color: '#ff8c1a', stroke: '#a04d00', r: 46, hp: 1500, speed: 65, dmg: 25, xp: 30 },
+  { name: 'BĂNG',      color: '#4dd9ff', stroke: '#1b6a8a', r: 46, hp: 1600, speed: 70, dmg: 22, xp: 30 },
+  { name: 'HÚT MÁU',   color: '#ff4d6d', stroke: '#8a1f35', r: 48, hp: 1700, speed: 55, dmg: 18, xp: 30 },
+  { name: 'PHÂN CHIA', color: '#ff66b2', stroke: '#8a1f4d', r: 52, hp: 2000, speed: 50, dmg: 30, xp: 30 },
 ];
 
 function spawnBossInArena() {
@@ -848,18 +849,15 @@ function spawnBossInArena() {
     score: 500 + state.wave * 50, xp: s.xp,
     color: s.color, stroke: s.stroke, angle: 0, hitFlash: 0, seed: Math.random() * 10,
     isBoss: true, bossType: type, atkCd: 1.5, spawnAnim: 0.8, wobble: Math.random() * 100,
-    // State riêng cho từng boss
-    chargeState: 'idle',     // idle | charging | dashing | recover  (boss bò)
-    chargeTimer: 0,
+    chargeState: 'idle',
+    chargeTimer: rand(1.5, 2.5),
     chargeDirX: 0, chargeDirY: 0,
-    // boss lửa
-    fireTimer: 0,
-    // boss băng
-    freezeCd: 2.5,
-    // boss hút máu
-    drainTimer: 2.0, draining: false,
-    // boss phân chia
-    splitLevel: 2
+    fireTimer: rand(1.5, 2.5),
+    freezeCd: rand(1.5, 2.5),
+    drainTimer: rand(2.5, 3.5), draining: false,
+    splitLevel: 2,
+    _contactCd: 0, _burstCd: rand(2.5, 3.5),
+    _snipeCd: rand(1.5, 2.5), _spawnCd: rand(5, 6), _teleportCd: rand(4, 5)
   });
   state.bossAlive = true;
   state.bossSpawnedWave = state.wave;
@@ -946,7 +944,6 @@ function updateHUD(st) {
     document.getElementById('scoreVal').textContent = me.score;
     document.getElementById('waveVal').textContent = st.mode === 'bot' ? '-' : st.wave;
 
-    // ==== MANA ====
     const maxMana = me.maxMana || MANA_MAX;
     const manaPct = Math.max(0, Math.min(100, (me.mana / maxMana) * 100));
     const manaEl = document.getElementById('manaBarP1');
@@ -974,7 +971,6 @@ function updateHUD(st) {
     }
   }
 
-  /* ===== ĐẾM SỐ QUÁI CÒN LẠI ===== */
   const elLeft = document.getElementById('enemiesLeftBox');
   if (st.mode === 'pve' && st.waveActive) {
     const remaining = st.waveSpawnQueue.length + st.enemies.length;
@@ -1053,7 +1049,7 @@ function spawnPowerup(x, y) {
 function applyPickup(p, k) {
   switch (k.type) {
     case 'health': p.hp = Math.min(p.maxHp, p.hp + 40); break;
-    case 'mana':   p.mana = Math.min(p.maxMana, p.mana + 80); break;
+    case 'mana':   p.mana = Math.min(p.maxMana, p.mana + 55); break;
     case 'laser': p.powerups.laser = Math.min(15, p.powerups.laser + 8); break;
     case 'bomb': p.powerups.bomb = Math.min(15, p.powerups.bomb + 8); break;
     case 'shield':
@@ -1171,8 +1167,6 @@ function spawnSplitChildren(boss, ownerId) {
   const count = 4;
   const childR = boss.r * 0.55;
   const childHp = boss.maxHp * 0.12;
-  const childColor = boss.color;
-  const childStroke = boss.stroke;
 
   for (let i = 0; i < count; i++) {
     const a = (i / count) * TAU + rand(-0.3, 0.3);
@@ -1183,7 +1177,7 @@ function spawnSplitChildren(boss, ownerId) {
       x: cx, y: cy,
       behavior: 'chase', hp: childHp, maxHp: childHp,
       speed: boss.speed * 1.4, r: childR, dmg: boss.dmg * 0.5,
-      score: 80, xp: 4, color: childColor, stroke: childStroke,
+      score: 80, xp: 4, color: boss.color, stroke: boss.stroke,
       angle: 0, hitFlash: 0, seed: Math.random() * 10,
       isBoss: false, isMiniBoss: true,
       splitLevel: level - 1,
@@ -1211,8 +1205,8 @@ function killEnemy(e, ownerId) {
       owner.hp = Math.min(owner.maxHp, owner.hp + 20);
       owner.damage += 2;
       owner.fireRate = Math.max(60, owner.fireRate - 8);
-      owner.maxMana += 8;
-      owner.mana = Math.min(owner.maxMana, owner.mana + 30);
+      owner.maxMana += 6;
+      owner.mana = Math.min(owner.maxMana, owner.mana + 20);
       owner.levelUpFlash = 1;
       spawnParticles(owner.x, owner.y, '#ffd93d', 30, 300);
       state.events.push('levelup');
@@ -1225,16 +1219,13 @@ function killEnemy(e, ownerId) {
     if (e.isBoss) state.bossAlive = false;
   }
 
-  // Boss phân chia: chết tạo 4 con
   if (e.isBoss && e.bossType === 4) {
     spawnSplitChildren(e, ownerId);
   }
-  // Mini boss phân chia: chết tạo 4 con nhỏ hơn
   if (e.isMiniBoss && e.splitLevel > 0) {
     spawnSplitChildren(e, ownerId);
   }
 
-  // Splitter thường
   if (e.behavior === 'splitter' && state.enemies.length < 300) {
     for (let k = 0; k < 2; k++) {
       state.enemies.push({
@@ -1254,12 +1245,66 @@ function updateBoss(e, target, dt, st) {
   const d = Math.hypot(dx, dy) || 1;
   const ux = dx / d, uy = dy / d;
 
+  // ===== CONTACT DAMAGE =====
+  if (!e._contactCd) e._contactCd = 0;
+  e._contactCd -= dt;
+  if (d < e.r + 22 && e._contactCd <= 0 && !(e.bossType === 0 && e.chargeState === 'charging')) {
+    const contactDmg = e.dmg * 0.6;
+    if (target.powerups.shield > 0) {
+      if (!target.shieldHp) target.shieldHp = 40;
+      target.shieldHp -= contactDmg;
+      if (target.shieldHp <= 0) { target.powerups.shield = 0; target.shieldHp = 0; }
+    } else {
+      target.hp -= contactDmg;
+    }
+    st.events.push({ type: 'hurt', target: target.id });
+    spawnParticles(target.x, target.y, e.color, 10, 250);
+    target.x += ux * -30;
+    target.y += uy * -30;
+    e._contactCd = 0.8;
+    shakeTime = 0.15; shakeIntensity = 8;
+  }
+
+  // ===== BURST 5 ĐẠN (trừ bò và hút máu) =====
+  if (!e._burstCd) e._burstCd = rand(2.5, 3.5);
+  if (e.bossType !== 0 && e.bossType !== 3) {
+    e._burstCd -= dt;
+    if (e._burstCd <= 0 && d < 900) {
+      e._burstCd = rand(2.8, 3.8);
+      const n = 5;
+      const baseA = Math.atan2(dy, dx);
+      for (let k = -Math.floor(n/2); k <= Math.floor(n/2); k++) {
+        const a = baseA + k * 0.16;
+        st.ebullets.push({
+          x: e.x, y: e.y,
+          vx: Math.cos(a) * 280,
+          vy: Math.sin(a) * 280,
+          r: 7, dmg: Math.floor(e.dmg * 0.3),
+          life: 3, color: e.color
+        });
+      }
+      playSound('shoot');
+    }
+  }
+
+  // ===== SKILL CHÍNH THEO LOẠI BOSS =====
   if (e.bossType === 0) {
-    // ===== BOSS BÒ: charge =====
+    // ===== BÒ: charge + đạn tỉa khi idle =====
     e.chargeTimer -= dt;
     if (e.chargeState === 'idle') {
       e.x += ux * e.speed * dt;
       e.y += uy * e.speed * dt;
+      e._snipeCd -= dt;
+      if (e._snipeCd <= 0) {
+        e._snipeCd = rand(2.0, 3.0);
+        st.ebullets.push({
+          x: e.x, y: e.y,
+          vx: ux * 380, vy: uy * 380,
+          r: 8, dmg: Math.floor(e.dmg * 0.4),
+          life: 2.5, color: e.color
+        });
+        playSound('shoot');
+      }
       if (e.chargeTimer <= 0) {
         e.chargeState = 'charging';
         e.chargeTimer = 1.2;
@@ -1267,9 +1312,23 @@ function updateBoss(e, target, dt, st) {
         playSound('charge');
       }
     } else if (e.chargeState === 'charging') {
-      // Đứng yên tích lực, run lắc
       e.x += Math.cos(st.time * 40) * 1.5;
       e.y += Math.sin(st.time * 40) * 1.5;
+      if (!e._chargeShootCd) e._chargeShootCd = 0.6;
+      e._chargeShootCd -= dt;
+      if (e._chargeShootCd <= 0) {
+        e._chargeShootCd = 0.6;
+        const baseA = Math.atan2(dy, dx);
+        for (let k = -1; k <= 1; k++) {
+          const a = baseA + k * 0.3;
+          st.ebullets.push({
+            x: e.x, y: e.y,
+            vx: Math.cos(a) * 220, vy: Math.sin(a) * 220,
+            r: 6, dmg: Math.floor(e.dmg * 0.25),
+            life: 2.2, color: '#ff4dff'
+          });
+        }
+      }
       if (e.chargeTimer <= 0) {
         e.chargeState = 'dashing';
         e.chargeTimer = 0.55;
@@ -1279,7 +1338,6 @@ function updateBoss(e, target, dt, st) {
       const dashSpeed = 900;
       e.x += e.chargeDirX * dashSpeed * dt;
       e.y += e.chargeDirY * dashSpeed * dt;
-      // Va chạm gây dmg
       if (dist(e.x, e.y, target.x, target.y) < e.r + 24) {
         if (target.powerups.shield > 0) {
           if (!target.shieldHp) target.shieldHp = 40;
@@ -1290,6 +1348,7 @@ function updateBoss(e, target, dt, st) {
         }
         st.events.push({ type: 'hurt', target: target.id });
         spawnParticles(target.x, target.y, '#ff5b6e', 15, 300);
+        shakeTime = 0.3; shakeIntensity = 18;
         e.chargeState = 'recover';
         e.chargeTimer = 1.0;
       }
@@ -1298,14 +1357,15 @@ function updateBoss(e, target, dt, st) {
         e.chargeTimer = 0.8;
       }
     } else if (e.chargeState === 'recover') {
+      e.x += ux * e.speed * 0.3 * dt;
+      e.y += uy * e.speed * 0.3 * dt;
       if (e.chargeTimer <= 0) {
         e.chargeState = 'idle';
         e.chargeTimer = rand(2, 3.5);
       }
     }
   } else if (e.bossType === 1) {
-    // ===== BOSS LỬA: phun lửa =====
-    // Di chuyển chậm về player, giữ khoảng cách ~250
+    // ===== LỬA: phun 5 tia + vòng lửa 360 khi áp sát =====
     if (d > 280) { e.x += ux * e.speed * dt; e.y += uy * e.speed * dt; }
     else if (d < 200) { e.x -= ux * e.speed * 0.7 * dt; e.y -= uy * e.speed * 0.7 * dt; }
     else {
@@ -1315,47 +1375,81 @@ function updateBoss(e, target, dt, st) {
     }
     e.fireTimer -= dt;
     if (e.fireTimer <= 0) {
-      e.fireTimer = rand(2.2, 3.2);
-      // Phun 3 tia lửa về phía player
+      e.fireTimer = rand(1.8, 2.8);
       const baseAngle = Math.atan2(dy, dx);
-      for (let k = -1; k <= 1; k++) {
-        const a = baseAngle + k * 0.22;
+      for (let k = -2; k <= 2; k++) {
+        const a = baseAngle + k * 0.18;
         st.ebullets.push({
           x: e.x, y: e.y,
           vx: Math.cos(a) * 400,
           vy: Math.sin(a) * 400,
-          r: 12, dmg: Math.floor(e.dmg * 0.5),
+          r: 12, dmg: Math.floor(e.dmg * 0.4),
           life: 1.6, color: '#ff8c1a',
-          isFire: true,
-          trail: []
+          isFire: true, trail: []
         });
+      }
+      if (d < 150) {
+        for (let k = 0; k < 8; k++) {
+          const a = (k / 8) * TAU + st.time;
+          st.ebullets.push({
+            x: e.x, y: e.y,
+            vx: Math.cos(a) * 280, vy: Math.sin(a) * 280,
+            r: 10, dmg: Math.floor(e.dmg * 0.35),
+            life: 1.2, color: '#ff3a1a', isFire: true, trail: []
+          });
+        }
       }
       playSound('fire');
     }
   } else if (e.bossType === 2) {
-    // ===== BOSS BĂNG: bắn đạn băng làm đóng băng =====
+    // ===== BĂNG: đạn băng + 6 đạn băng tỏa khi áp sát =====
     if (d > 350) { e.x += ux * e.speed * dt; e.y += uy * e.speed * dt; }
     else if (d < 260) { e.x -= ux * e.speed * 0.6 * dt; e.y -= uy * e.speed * 0.6 * dt; }
     e.freezeCd -= dt;
     if (e.freezeCd <= 0 && d < 700) {
-      e.freezeCd = rand(2.5, 3.5);
+      e.freezeCd = rand(2.0, 3.0);
       st.ebullets.push({
         x: e.x, y: e.y,
         vx: ux * 320, vy: uy * 320,
         r: 11, dmg: Math.floor(e.dmg * 0.6),
         life: 2.8, color: '#4dd9ff',
-        isFreeze: true,
-        freezeDuration: 2.0
+        isFreeze: true, freezeDuration: 2.0
       });
+      if (d < 200) {
+        for (let k = 0; k < 6; k++) {
+          const a = (k / 6) * TAU;
+          st.ebullets.push({
+            x: e.x, y: e.y,
+            vx: Math.cos(a) * 240, vy: Math.sin(a) * 240,
+            r: 9, dmg: Math.floor(e.dmg * 0.35),
+            life: 2.2, color: '#4dd9ff',
+            isFreeze: true, freezeDuration: 1.2
+          });
+        }
+      }
       playSound('freeze');
     }
   } else if (e.bossType === 3) {
-    // ===== BOSS HÚT MÁU =====
+    // ===== HÚT MÁU: hút + 3 đạn đỏ + teleport khi áp sát =====
     if (d > 260) { e.x += ux * e.speed * dt; e.y += uy * e.speed * dt; }
-    // Vòng hào quang hút máu
+    e._snipeCd -= dt;
+    if (e._snipeCd <= 0 && d < 800) {
+      e._snipeCd = rand(1.8, 2.8);
+      const baseA = Math.atan2(dy, dx);
+      for (let k = -1; k <= 1; k++) {
+        const a = baseA + k * 0.2;
+        st.ebullets.push({
+          x: e.x, y: e.y,
+          vx: Math.cos(a) * 300, vy: Math.sin(a) * 300,
+          r: 8, dmg: Math.floor(e.dmg * 0.35),
+          life: 2.5, color: '#ff4d6d'
+        });
+      }
+      playSound('shoot');
+    }
     e.drainTimer -= dt;
     if (e.drainTimer <= 0) {
-      e.drainTimer = rand(3.5, 4.5);
+      e.drainTimer = rand(3.0, 4.0);
       e.draining = true;
       e.drainActive = 1.2;
       playSound('drain');
@@ -1364,21 +1458,18 @@ function updateBoss(e, target, dt, st) {
       e.drainActive -= dt;
       const drainRange = 220;
       if (d < drainRange) {
-        // Hút máu player, hồi máu boss
-        const drainAmt = 8 * dt;
+        const drainAmt = 10 * dt;
         target.hp -= drainAmt;
-        e.hp = Math.min(e.maxHp, e.hp + drainAmt * 1.2);
-        // Particle bay về boss
+        e.hp = Math.min(e.maxHp, e.hp + drainAmt * 1.3);
         if (Math.random() < 0.5) {
           const ang = Math.atan2(e.y - target.y, e.x - target.x);
-          state.particles.push({
+          st.particles.push({
             x: target.x, y: target.y,
             vx: Math.cos(ang) * 200, vy: Math.sin(ang) * 200,
             life: 0.4, maxLife: 0.4,
             color: '#ff4d6d', r: 4
           });
         }
-        // Cảnh báo hurt mỗi 0.5s
         if (!e._hurtCd || st.time - e._hurtCd > 0.5) {
           e._hurtCd = st.time;
           st.events.push({ type: 'hurt', target: target.id });
@@ -1386,14 +1477,26 @@ function updateBoss(e, target, dt, st) {
       }
       if (e.drainActive <= 0) e.draining = false;
     }
+    e._teleportCd -= dt;
+    if (d < 100 && e._teleportCd <= 0) {
+      e._teleportCd = rand(4, 6);
+      const a = Math.atan2(-dy, -dx) + rand(-0.8, 0.8);
+      e.x = target.x + Math.cos(a) * 400;
+      e.y = target.y + Math.sin(a) * 400;
+      const hw = st.arena.w / 2 - 80, hh = st.arena.h / 2 - 80;
+      e.x = clamp(e.x, -hw, hw);
+      e.y = clamp(e.y, -hh, hh);
+      spawnParticles(e.x, e.y, '#ff4d6d', 20, 300);
+      spawnParticles(target.x, target.y, '#ff4d6d', 10, 200);
+      playSound('teleport');
+    }
   } else if (e.bossType === 4) {
-    // ===== BOSS PHÂN CHIA =====
-    // Di chuyển chậm về player, thỉnh thoảng bắn đạn
+    // ===== PHÂN CHIA: 4 đạn tỏa + đẻ quái nhỏ =====
     e.x += ux * e.speed * dt;
     e.y += uy * e.speed * dt;
     e.atkCd -= dt;
     if (e.atkCd <= 0) {
-      e.atkCd = rand(1.6, 2.4);
+      e.atkCd = rand(1.4, 2.2);
       for (let k = 0; k < 4; k++) {
         const a = (k / 4) * TAU + st.time;
         st.ebullets.push({
@@ -1403,6 +1506,22 @@ function updateBoss(e, target, dt, st) {
           life: 3, color: e.color
         });
       }
+    }
+    e._spawnCd -= dt;
+    if (e._spawnCd <= 0 && st.enemies.length < 250) {
+      e._spawnCd = rand(6, 8);
+      for (let k = 0; k < 2; k++) {
+        const a = Math.random() * TAU;
+        st.enemies.push({
+          x: e.x + Math.cos(a) * 80, y: e.y + Math.sin(a) * 80,
+          behavior: 'chase', hp: 30, maxHp: 30, speed: 120, r: 14, dmg: 8,
+          score: 15, xp: 1, color: '#7bd66b', stroke: '#3d8a35',
+          angle: 0, hitFlash: 0, seed: Math.random() * 10,
+          isBoss: false, atkCd: 1.5, spawnAnim: 0.3, wobble: Math.random() * 100
+        });
+      }
+      spawnParticles(e.x, e.y, e.color, 12, 200);
+      playSound('spawn');
     }
   }
 }
@@ -1598,14 +1717,12 @@ function gameLoop(now) {
     if (p.manaFlash > 0) p.manaFlash -= dt;
     if (p.frozenFlash > 0) p.frozenFlash -= dt;
 
-    // ===== FROZEN =====
     let isFrozen = p.frozen > 0;
     if (isFrozen) {
       p.frozen -= dt;
       if (p.frozen <= 0) p.frozen = 0;
     }
 
-    // ===== MANA REGEN =====
     const regen = p.isBot ? MANA_REGEN_BOT : MANA_REGEN;
     const cursePenalty = (p.powerups.curse > 0) ? 0.5 : 1;
     p.mana = Math.min(p.maxMana, p.mana + regen * cursePenalty * dt);
@@ -1737,7 +1854,6 @@ function gameLoop(now) {
       if (e.spawnAnim > 0) { e.spawnAnim -= dt; e.wobble += dt * 8; continue; }
       e.wobble += dt * 4;
 
-      // Tìm target gần nhất
       let target = null, minD = Infinity;
       for (const id in state.players) {
         const p = state.players[id];
@@ -1770,12 +1886,8 @@ function gameLoop(now) {
         } else if (e.behavior === 'splitter') {
           e.x += ux * e.speed * dt; e.y += uy * e.speed * dt;
         }
-      }
 
-      // Va chạm cận chiến (chỉ cho quái thường + mini boss, boss có logic riêng)
-      if (!e.isBoss) {
-        const d2 = dist(target.x, target.y, e.x, e.y);
-        if (d2 < e.r + 18 && target.hp > 0) {
+        if (d < e.r + 18 && target.hp > 0) {
           let dmg = e.dmg * dt;
           if (target.powerups.shield > 0) {
             if (!target.shieldHp) target.shieldHp = 40;
@@ -1789,12 +1901,10 @@ function gameLoop(now) {
       }
     }
 
-    // Update đạn quái
     for (let i = state.ebullets.length - 1; i >= 0; i--) {
       const b = state.ebullets[i];
       b.x += b.vx * dt; b.y += b.vy * dt; b.life -= dt;
 
-      // Trail cho lửa
       if (b.isFire) {
         if (!b.trail) b.trail = [];
         b.trail.push({ x: b.x, y: b.y, life: 0.3 });
@@ -1809,26 +1919,21 @@ function gameLoop(now) {
       for (const id in state.players) {
         const p = state.players[id];
         if (p.hp > 0 && dist(p.x, p.y, b.x, b.y) < 20 + b.r) {
-          let dmgDone = b.dmg;
-
           if (p.powerups.shield > 0) {
             if (!p.shieldHp) p.shieldHp = 40;
-            p.shieldHp -= dmgDone;
+            p.shieldHp -= b.dmg;
             if (p.shieldHp <= 0) { p.powerups.shield = 0; p.shieldHp = 0; }
           } else {
-            p.hp -= dmgDone;
+            p.hp -= b.dmg;
             state.events.push({ type: 'hurt', target: p.id });
           }
 
-          // Hiệu ứng đóng băng
           if (b.isFreeze) {
             p.frozen = (p.frozen || 0) + (b.freezeDuration || 2.0);
             p.frozenFlash = 1;
             playSound('freeze');
             spawnParticles(p.x, p.y, '#4dd9ff', 20, 300);
           }
-
-          // Hiệu ứng lửa
           if (b.isFire) {
             p.powerups.burn = Math.min(8, p.powerups.burn + 1.5);
             spawnParticles(p.x, p.y, '#ff8c1a', 10, 200);
@@ -2070,7 +2175,6 @@ function drawPickup(k) {
 }
 
 function drawBossAura(e, st) {
-  // Hào quang đặc biệt cho boss
   if (e.bossType === 0 && e.chargeState === 'charging') {
     ctx.save();
     ctx.globalAlpha = 0.4 + 0.3 * Math.sin(performance.now() * 0.02);
@@ -2081,9 +2185,6 @@ function drawBossAura(e, st) {
     ctx.arc(0, 0, e.r + 20 + Math.sin(performance.now() * 0.02) * 6, 0, TAU);
     ctx.stroke();
     ctx.setLineDash([]);
-    ctx.restore();
-    // Hướng lao
-    ctx.save();
     ctx.globalAlpha = 0.3;
     ctx.strokeStyle = '#ff4dff';
     ctx.lineWidth = 4;
@@ -2130,7 +2231,7 @@ function drawEnemy(e, st, targetPlayer) {
   ctx.scale(spawnScale, spawnScale);
   const flash = e.hitFlash > 0 ? 1 : 0;
 
-  drawBossAura(e, st);
+  if (e.isBoss) drawBossAura(e, st);
 
   ctx.globalAlpha = 0.18;
   ctx.beginPath(); ctx.arc(0, 0, e.r * (e.isBoss ? 1.9 : 1.7), 0, TAU);
@@ -2162,7 +2263,6 @@ function drawEnemy(e, st, targetPlayer) {
       ctx.fillStyle = '#10151c'; ctx.fill();
     }
   } else if (e.isMiniBoss) {
-    // Mini boss: lục giác + viền dày
     const n = 8;
     ctx.beginPath();
     for (let i = 0; i < n; i++) {
@@ -2233,16 +2333,13 @@ function drawPlayer(p, isMe, st) {
   ctx.save();
   ctx.translate(p.x, p.y);
 
-  // Frozen effect
   if (p.frozen > 0) {
     ctx.save();
     ctx.globalAlpha = 0.55;
-    // Lớp băng bao quanh
     ctx.fillStyle = 'rgba(77,217,255,0.3)';
     ctx.beginPath(); ctx.arc(0, 0, 28, 0, TAU); ctx.fill();
     ctx.strokeStyle = '#9df3f4'; ctx.lineWidth = 3;
     ctx.beginPath(); ctx.arc(0, 0, 30, 0, TAU); ctx.stroke();
-    // Tinh thể băng
     for (let i = 0; i < 6; i++) {
       const a = i / 6 * TAU + performance.now() * 0.001;
       ctx.beginPath();
@@ -2350,7 +2447,6 @@ function drawPlayer(p, isMe, st) {
   ctx.fillStyle = hpPct > 0.5 ? '#2ee07a' : hpPct > 0.25 ? '#ffd93d' : '#ff5b6e';
   ctx.fillRect(-w/2, -24, w * hpPct, 4);
 
-  // mana bar nhỏ dưới chân player
   ctx.fillStyle = 'rgba(0,0,0,0.7)';
   ctx.fillRect(-w/2, -18, w, 3);
   const mpPct = Math.max(0, p.mana / (p.maxMana || MANA_MAX));
@@ -2415,7 +2511,6 @@ function drawBullets(st) {
 
 function drawEBullets(st) {
   for (const b of st.ebullets) {
-    // Trail lửa
     if (b.isFire && b.trail) {
       for (const tr of b.trail) {
         ctx.save();
@@ -2431,7 +2526,6 @@ function drawEBullets(st) {
     ctx.beginPath(); ctx.arc(b.x, b.y, b.r, 0, TAU); ctx.fill();
     ctx.fillStyle = b.color;
     ctx.beginPath(); ctx.arc(b.x, b.y, b.r * 0.6, 0, TAU); ctx.fill();
-    // Icon đóng băng
     if (b.isFreeze) {
       ctx.strokeStyle = '#e0f8ff';
       ctx.lineWidth = 1.5;
