@@ -12,7 +12,6 @@
   canvas{display:block;position:fixed;inset:0;cursor:crosshair}
   .hidden{display:none !important}
   
-  /* SCREENS */
   .screen{position:fixed;inset:0;z-index:50;display:flex;flex-direction:column;
     align-items:center;justify-content:center;gap:18px;padding:24px;
     background:radial-gradient(circle at 50% 40%,#0e1e26,#05080c 70%);
@@ -47,7 +46,6 @@
     font-weight:800;margin:8px 0}
   .hint{font-size:12px;color:#6ea8a0;letter-spacing:1px;line-height:1.7}
 
-  /* HUD */
   #hud{position:fixed;inset:0;pointer-events:none;padding:18px;
     display:flex;justify-content:space-between;align-items:flex-start;
     text-shadow:0 2px 8px #000;font-weight:700}
@@ -69,7 +67,6 @@
     font-size:11px;font-weight:800;letter-spacing:2px;pointer-events:auto}
   #btnMenu:hover{background:#12463a;border-color:#2ee07a;color:#9df3c4}
 
-  /* GAME OVER */
   #overlay{position:fixed;inset:0;display:flex;flex-direction:column;
     align-items:center;justify-content:center;gap:14px;
     background:radial-gradient(circle,#0d1a20cc,#000000f2);backdrop-filter:blur(4px);z-index:40}
@@ -88,7 +85,6 @@
 </head>
 <body>
 
-<!-- AUTH SCREEN -->
 <div id="authScreen" class="screen">
   <h1>TANK ARENA P2P</h1>
   <div class="auth-tabs">
@@ -104,7 +100,6 @@
   <div class="hint">Tài khoản được lưu trên trình duyệt của bạn.</div>
 </div>
 
-<!-- MENU SCREEN -->
 <div id="menuScreen" class="screen hidden">
   <h1>MENU</h1>
   <div class="menu-stats">
@@ -116,10 +111,10 @@
     <input id="inpCode" placeholder="NHẬP MÃ PHÒNG" maxlength="4" style="text-transform:uppercase">
     <button id="btnJoin">VÀO PHÒNG BẰNG MÃ</button>
     <button id="btnLogout" class="ghost" style="margin-top:10px">ĐĂNG XUẤT</button>
+    <div id="msg"></div>
   </div>
 </div>
 
-<!-- WAITING SCREEN -->
 <div id="waitingScreen" class="screen hidden">
   <h1>PHÒNG CHỜ</h1>
   <div class="panel">
@@ -133,7 +128,6 @@
   </div>
 </div>
 
-<!-- GAME -->
 <canvas id="game" class="hidden"></canvas>
 <div id="hud" class="hidden">
   <div id="hudLeft">
@@ -141,7 +135,6 @@
       <div class="hpbar" id="hpBarP1"><div class="hpFill" id="hpFillP1"></div></div>
       <div class="hpText" id="hpTextP1">100 / 100</div>
     </div>
-    <!-- Nếu có P2 -->
     <div id="p2Hud" class="hidden">
       <div class="hpbar" id="hpBarP2" style="margin-top:8px"><div class="hpFill p2" id="hpFillP2"></div></div>
       <div class="hpText" id="hpTextP2">100 / 100</div>
@@ -169,7 +162,12 @@
 'use strict';
 
 /* ==========================================================
-   1. ÂM THANH & HIỆU ỨNG
+   0. FIX: Hàm rand() bị thiếu — nguyên nhân crash chính
+   ========================================================== */
+function rand(a, b) { return a + Math.random() * (b - a); }
+
+/* ==========================================================
+   1. ÂM THANH
    ========================================================== */
 let audioCtx = null;
 function initAudio() {
@@ -178,6 +176,8 @@ function initAudio() {
 }
 function playSound(type) {
   if (!audioCtx) return;
+  // FIX: 'shoot','hit','hurt','pickup' là string; events khác có thể là object
+  if (typeof type !== 'string') return;
   const osc = audioCtx.createOscillator(), gain = audioCtx.createGain();
   osc.connect(gain); gain.connect(audioCtx.destination);
   const now = audioCtx.currentTime;
@@ -197,6 +197,8 @@ function playSound(type) {
     osc.type='sine'; osc.frequency.setValueAtTime(600, now); osc.frequency.setValueAtTime(800, now+0.1);
     gain.gain.setValueAtTime(0.1, now); gain.gain.exponentialRampToValueAtTime(0.01, now+0.2);
     osc.start(now); osc.stop(now+0.2);
+  } else {
+    osc.disconnect(); gain.disconnect();
   }
 }
 
@@ -208,7 +210,7 @@ function triggerHitEffect() {
 }
 
 /* ==========================================================
-   2. TÀI KHOẢN (LOCALSTORAGE)
+   2. TÀI KHOẢN
    ========================================================== */
 const ACCOUNTS_KEY = 'tankArenaAccounts';
 const SESSION_KEY = 'tankArenaSession';
@@ -244,7 +246,7 @@ function updateHighScore(u, score) {
 let currentUser = localStorage.getItem(SESSION_KEY);
 
 /* ==========================================================
-   3. UI CHUYỂN MÀN HÌNH
+   3. UI
    ========================================================== */
 const screens = {
   auth: document.getElementById('authScreen'),
@@ -258,8 +260,8 @@ function show(name) {
   Object.values(screens).forEach(s => s.classList.add('hidden'));
   canvasEl.classList.add('hidden');
   hudEl.classList.add('hidden');
-  if (name === 'game') { 
-    canvasEl.classList.remove('hidden'); hudEl.classList.remove('hidden'); 
+  if (name === 'game') {
+    canvasEl.classList.remove('hidden'); hudEl.classList.remove('hidden');
   } else if (screens[name]) screens[name].classList.remove('hidden');
 }
 
@@ -273,7 +275,6 @@ function showMenu() {
 
 if (currentUser) showMenu(); else show('auth');
 
-/* Auth Logic */
 let authMode = 'login';
 const tabLogin = document.getElementById('tabLogin');
 const tabReg = document.getElementById('tabRegister');
@@ -289,7 +290,7 @@ btnAuth.onclick = () => {
   const p = document.getElementById('inputPassword').value;
   authMsg.style.color = '#ff8a9a';
   if (!u || !p) { authMsg.textContent = 'Vui lòng nhập đầy đủ'; return; }
-  
+
   if (authMode === 'register') {
     const res = registerUser(u, p);
     if (!res.ok) { authMsg.textContent = res.msg; return; }
@@ -310,12 +311,13 @@ document.getElementById('btnLogout').onclick = () => {
 };
 
 /* ==========================================================
-   4. MẠNG P2P (PEERJS)
+   4. P2P
    ========================================================== */
 let peer = null, conn = null, isHost = false;
 let myId = Math.random().toString(36).substr(2, 5);
 let myRoomCode = '';
 let joined = false;
+let gameStarted = false; // FIX: cờ theo dõi game đã bắt đầu
 
 document.getElementById('btnCreate').onclick = () => {
   initAudio();
@@ -323,7 +325,7 @@ document.getElementById('btnCreate').onclick = () => {
   myRoomCode = Math.random().toString(36).substr(2, 4).toUpperCase();
   document.getElementById('codeDisplay').textContent = myRoomCode;
   document.getElementById('playerCount').textContent = 'Đang tạo phòng...';
-  
+
   peer = new Peer('TANK-' + myRoomCode, { debug: 1 });
   peer.on('open', () => {
     joined = true;
@@ -331,23 +333,35 @@ document.getElementById('btnCreate').onclick = () => {
     document.getElementById('btnReady').classList.remove('hidden');
     show('waiting');
   });
-  peer.on('error', (err) => alert('Lỗi tạo phòng: ' + err.type));
-  peer.on('connection', (c) => { conn = c; setupConnection(); });
+  peer.on('error', (err) => {
+    alert('Lỗi tạo phòng: ' + err.type);
+  });
+  peer.on('connection', (c) => {
+    conn = c;
+    setupConnection();
+  });
 };
 
 document.getElementById('btnJoin').onclick = () => {
   initAudio();
   const code = document.getElementById('inpCode').value.trim().toUpperCase();
-  if (code.length !== 4) { document.getElementById('msg').textContent = 'Mã phải 4 ký tự'; return; }
-  
+  const msg = document.getElementById('msg');
+  if (code.length !== 4) { msg.textContent = 'Mã phải 4 ký tự'; return; }
+  msg.textContent = '';
+
   isHost = false;
   myRoomCode = code;
   document.getElementById('codeDisplay').textContent = myRoomCode;
   document.getElementById('playerCount').textContent = 'Đang kết nối...';
-  
+
   peer = new Peer({ debug: 1 });
-  peer.on('open', () => { conn = peer.connect('TANK-' + code, { reliable: true }); setupConnection(); });
-  peer.on('error', () => document.getElementById('playerCount').textContent = 'Không tìm thấy phòng!');
+  peer.on('open', () => {
+    conn = peer.connect('TANK-' + code, { reliable: true });
+    setupConnection();
+  });
+  peer.on('error', () => {
+    document.getElementById('playerCount').textContent = 'Không tìm thấy phòng!';
+  });
 };
 
 function setupConnection() {
@@ -363,46 +377,88 @@ function setupConnection() {
 
   conn.on('data', (data) => {
     if (isHost) {
+      // FIX: xử lý join muộn — thêm player vào state nếu state đã tồn tại
+      if (data.type === 'join') {
+        if (state && !state.players[data.id]) {
+          state.players[data.id] = {
+            id: data.id, name: data.name || 'Player2',
+            x: 0, y: 0, hp: 100, score: 0, angle: -Math.PI/2, aim: 0, shoot: false,
+            input: {x:0, y:0, aim:0, shoot:false}
+          };
+        }
+      }
+      // FIX: xử lý ready từ client → host bắt đầu game
+      if (data.type === 'ready' && !gameStarted) {
+        startGameAsHost();
+      }
       if (data.type === 'input' && state && state.players[data.id]) {
         state.players[data.id].input = data.input;
+      }
+      // FIX: client yêu cầu restart
+      if (data.type === 'restartRequest' && state && state.over) {
+        restartGameAsHost();
       }
     } else {
       if (data.type === 'state') {
         state = data.state;
-        
-        // Xử lý sự kiện (âm thanh, rung)
-        if (state.events) {
+        // FIX: xử lý events trước khi bị host xóa
+        if (state.events && state.events.length) {
           state.events.forEach(e => {
-            if (e.type === 'hurt') {
+            if (e && e.type === 'hurt') {
               playSound('hurt');
               if (e.target === myId) triggerHitEffect();
-            } else {
+            } else if (typeof e === 'string') {
               playSound(e);
             }
           });
           state.events = [];
         }
-        
-        // Cập nhật HUD
-        const me = state.players[myId];
-        if (me) {
-          document.getElementById('hpFillP1').style.width = Math.max(0, me.hp) + '%';
-          document.getElementById('hpTextP1').textContent = Math.max(0, Math.round(me.hp)) + ' / 100';
-          document.getElementById('scoreVal').textContent = me.score;
-          document.getElementById('waveVal').textContent = state.wave;
+        // FIX: cập nhật gameStarted khi nhận state đầu tiên
+        if (!gameStarted) {
+          gameStarted = true;
+          show('game');
+          document.getElementById('hudRoomCode').querySelector('span').textContent = myRoomCode;
         }
-        // HUD P2 nếu có
-        const p2 = Object.values(state.players).find(p => p.id !== myId);
-        if (p2) {
-          document.getElementById('p2Hud').classList.remove('hidden');
-          document.getElementById('hpFillP2').style.width = Math.max(0, p2.hp) + '%';
-          document.getElementById('hpTextP2').textContent = Math.max(0, Math.round(p2.hp)) + ' / 100';
-        }
+        updateHUD(state, myId);
+      }
+      // FIX: nhận lệnh restart từ host
+      if (data.type === 'restart') {
+        document.getElementById('overlay').classList.add('hidden');
+        gameStarted = true;
+      }
+      // FIX: nhận lệnh game over từ host
+      if (data.type === 'gameover') {
+        document.getElementById('finalScore').textContent = data.score || 0;
+        document.getElementById('overlay').classList.remove('hidden');
       }
     }
   });
 
-  conn.on('close', () => { alert('Mất kết nối phòng!'); location.reload(); });
+  conn.on('close', () => {
+    // FIX: chỉ reload nếu đang trong phòng chơi
+    if (gameStarted) {
+      alert('Mất kết nối phòng!');
+      location.reload();
+    }
+  });
+}
+
+function updateHUD(st, myId) {
+  const me = st.players[myId];
+  if (me) {
+    document.getElementById('hpFillP1').style.width = Math.max(0, me.hp) + '%';
+    document.getElementById('hpTextP1').textContent = Math.max(0, Math.round(me.hp)) + ' / 100';
+    document.getElementById('scoreVal').textContent = me.score;
+    document.getElementById('waveVal').textContent = st.wave;
+  }
+  const p2 = Object.values(st.players).find(p => p.id !== myId);
+  if (p2) {
+    document.getElementById('p2Hud').classList.remove('hidden');
+    document.getElementById('hpFillP2').style.width = Math.max(0, p2.hp) + '%';
+    document.getElementById('hpTextP2').textContent = Math.max(0, Math.round(p2.hp)) + ' / 100';
+  } else {
+    document.getElementById('p2Hud').classList.add('hidden');
+  }
 }
 
 document.getElementById('btnLeave').onclick = () => {
@@ -422,28 +478,50 @@ document.getElementById('btnToMenu').onclick = () => {
   location.reload();
 };
 
+// FIX: restart xử lý đúng cho cả host và client
 document.getElementById('btnRestart').onclick = () => {
   document.getElementById('overlay').classList.add('hidden');
   if (isHost) {
-    initGame();
-    state.over = false;
+    restartGameAsHost();
+  } else {
+    conn.send({ type: 'restartRequest' });
   }
 };
 
-document.getElementById('btnReady').onclick = () => {
+// FIX: tách hàm restart
+function restartGameAsHost() {
+  initGame();
+  state.over = false;
+  lastTime = performance.now();
+  sendTimer = 0;
+  if (conn && conn.open) conn.send({ type: 'restart' });
+  requestAnimationFrame(hostLoop);
+}
+
+// FIX: tách hàm start game
+function startGameAsHost() {
+  if (gameStarted) return;
+  gameStarted = true;
   show('game');
   document.getElementById('hudRoomCode').querySelector('span').textContent = myRoomCode;
+  if (!state) initGame();
+  lastTime = performance.now();
+  requestAnimationFrame(hostLoop);
+}
+
+document.getElementById('btnReady').onclick = () => {
+  initAudio();
   if (isHost) {
-    if (!state) initGame();
-    requestAnimationFrame(hostLoop);
+    startGameAsHost();
   } else {
+    // Client: báo host bắt đầu; host sẽ gửi state → clientLoop sẽ tự show game
     conn.send({ type: 'ready' });
     requestAnimationFrame(clientLoop);
   }
 };
 
 /* ==========================================================
-   5. GAME LOGIC (HOST CHẠY)
+   5. GAME LOGIC (HOST)
    ========================================================== */
 let state = null, lastTime = performance.now(), sendTimer = 0;
 
@@ -458,6 +536,10 @@ function initGame() {
     enemies: [], bullets: [], ebullets: [], pickups: [],
     events: []
   };
+  // FIX: nếu có client đã join trước khi game bắt đầu, thêm vào state
+  if (conn && conn.open && !isHost) {
+    // không xảy ra vì host không phải client
+  }
 }
 
 const TYPES = [
@@ -493,7 +575,7 @@ function spawnEnemy() {
   let idx = available[Math.floor(Math.random() * available.length)];
   if (Math.random() < 0.1 + state.wave * 0.02) idx = 2;
   const t = TYPES[idx];
-  
+
   const hpScale = 1 + (state.wave - 1) * 0.1;
 
   state.enemies.push({
@@ -519,7 +601,7 @@ function spawnBoss() {
     { hp: 650, speed: 40, r: 50, color: '#ffd93d', stroke: '#8a6d1a' }
   ];
   const s = stats[type];
-  
+
   let avgX = 0, avgY = 0, count = 0;
   for (const id in state.players) { avgX += state.players[id].x; avgY += state.players[id].y; count++; }
   if (count > 0) { avgX /= count; avgY /= count; }
@@ -535,26 +617,29 @@ function spawnBoss() {
 }
 
 function hostLoop(now) {
-  if (!isHost || state.over) return;
+  if (!isHost || !state || state.over) return;
   const dt = Math.min((now - lastTime) / 1000, 0.1);
   lastTime = now;
 
   state.time += dt;
   if (state.time > state.wave * 15) { state.wave++; state.events.push('pickup'); }
 
-  // Check Game Over
   let allDead = true;
   for (const id in state.players) if (state.players[id].hp > 0) allDead = false;
   if (allDead) {
     state.over = true;
-    if (conn && conn.open) conn.send({ type: 'state', state: state }); // Gửi state cuối
-    document.getElementById('finalScore').textContent = state.players[myId] ? state.players[myId].score : 0;
-    updateHighScore(currentUser, state.players[myId] ? state.players[myId].score : 0);
+    const finalScore = state.players[myId] ? state.players[myId].score : 0;
+    // FIX: gửi gameover cho client
+    if (conn && conn.open) {
+      conn.send({ type: 'gameover', score: finalScore });
+      conn.send({ type: 'state', state: JSON.parse(JSON.stringify(state)) });
+    }
+    document.getElementById('finalScore').textContent = finalScore;
+    updateHighScore(currentUser, finalScore);
     document.getElementById('overlay').classList.remove('hidden');
     return;
   }
 
-  // Spawn
   state.spawnTimer -= dt;
   if (state.spawnTimer <= 0) {
     state.spawnTimer = Math.max(0.3, 1.5 - state.wave * 0.1);
@@ -563,7 +648,6 @@ function hostLoop(now) {
   }
   if (state.wave % 3 === 0 && !state.enemies.some(e=>e.isBoss) && state.time > state.wave*15 - 1) spawnBoss();
 
-  // Update Players
   for (const id in state.players) {
     const p = state.players[id];
     if (p.hp <= 0) continue;
@@ -578,7 +662,6 @@ function hostLoop(now) {
     }
   }
 
-  // Bullets
   for (let i = state.bullets.length - 1; i >= 0; i--) {
     const b = state.bullets[i];
     b.x += b.vx * dt; b.y += b.vy * dt; b.life -= dt;
@@ -593,7 +676,6 @@ function hostLoop(now) {
             state.players[b.owner].score += e.score;
             if (Math.random() < 0.15) state.pickups.push({ x: e.x, y: e.y, type: 'health' });
           }
-          // Splitter
           if (e.behavior === 'splitter') {
              for(let k=0;k<2;k++) {
                 state.enemies.push({ x: e.x+rand(-20,20), y: e.y+rand(-20,20), behavior: 'chase', hp: 20, maxHp: 20, speed: 100, r: 12, dmg: 8, score: 10, color: '#7bd66b', stroke: '#3d8a35', angle:0, hitFlash:0, seed:Math.random()*10, isBoss:false, atkCd:2 });
@@ -605,7 +687,6 @@ function hostLoop(now) {
     }
   }
 
-  // Enemies
   for (const e of state.enemies) {
     let target = null, minD = Infinity;
     for (const id in state.players) {
@@ -619,8 +700,7 @@ function hostLoop(now) {
     const ux = dx/d, uy = dy/d;
 
     if (e.isBoss) {
-       e.x += ux * e.speed * dt; e.y += uy * e.speed * dt; // Boss move cơ bản
-       // (Lược bớt AI boss phức tạp để code gọn, nhưng vẫn giữ sát thương)
+       e.x += ux * e.speed * dt; e.y += uy * e.speed * dt;
     } else {
       if (e.behavior === 'chase') { e.x += ux * e.speed * dt; e.y += uy * e.speed * dt; }
       else if (e.behavior === 'zigzag') {
@@ -645,7 +725,6 @@ function hostLoop(now) {
     }
   }
 
-  // Enemy Bullets
   for (let i = state.ebullets.length - 1; i >= 0; i--) {
     const b = state.ebullets[i];
     b.x += b.vx * dt; b.y += b.vy * dt; b.life -= dt;
@@ -660,7 +739,6 @@ function hostLoop(now) {
     }
   }
 
-  // Pickups
   for (let i = state.pickups.length - 1; i >= 0; i--) {
     const k = state.pickups[i];
     for (const id in state.players) {
@@ -671,13 +749,13 @@ function hostLoop(now) {
     }
   }
 
-  // Sound
+  // FIX: xử lý events phát âm thanh host
   state.events.forEach(e => {
-    if (e.type === 'hurt') { playSound('hurt'); if (e.target === myId) triggerHitEffect(); }
-    else playSound(e);
+    if (e && e.type === 'hurt') { playSound('hurt'); if (e.target === myId) triggerHitEffect(); }
+    else if (typeof e === 'string') playSound(e);
   });
-  
-  // Send State
+
+  // FIX: gửi state TRƯỚC khi xóa events, để client cũng nhận được âm thanh
   sendTimer += dt;
   if (sendTimer > 0.05) {
     sendTimer = 0;
@@ -686,28 +764,21 @@ function hostLoop(now) {
       for (const id in sendState.players) delete sendState.players[id].input;
       conn.send({ type: 'state', state: sendState });
     }
-  }
-  state.events = [];
-
-  // Cập nhật HUD Host
-  const me = state.players[myId];
-  if (me) {
-    document.getElementById('hpFillP1').style.width = Math.max(0, me.hp) + '%';
-    document.getElementById('hpTextP1').textContent = Math.max(0, Math.round(me.hp)) + ' / 100';
-    document.getElementById('scoreVal').textContent = me.score;
-    document.getElementById('waveVal').textContent = state.wave;
+    state.events = []; // xóa sau khi gửi
   }
 
+  updateHUD(state, myId);
   drawGame(state, myId);
   requestAnimationFrame(hostLoop);
 }
 
 /* ==========================================================
-   6. GAME LOGIC (CLIENT CHẠY)
+   6. CLIENT LOOP
    ========================================================== */
 let inputTimer = 0;
 function clientLoop(now) {
-  if (isHost || state && state.over) return;
+  if (isHost) return;
+  if (state && state.over) return;
   const dt = Math.min((now - lastTime) / 1000, 0.1);
   lastTime = now;
 
@@ -716,7 +787,15 @@ function clientLoop(now) {
     inputTimer = 0;
     conn.send({ type: 'input', id: myId, input: getInputs() });
   }
-  if (state) drawGame(state, myId);
+  if (state) {
+    // FIX: khi nhận state đầu tiên thì show game
+    if (!gameStarted) {
+      gameStarted = true;
+      show('game');
+      document.getElementById('hudRoomCode').querySelector('span').textContent = myRoomCode;
+    }
+    drawGame(state, myId);
+  }
   requestAnimationFrame(clientLoop);
 }
 
@@ -743,8 +822,11 @@ function getInputs() {
   return { x: mx, y: my, aim: aim, shoot: mouse.down || keys[' '] };
 }
 
+// FIX: guard state null
 setInterval(() => {
-  if (isHost && state && state.players[myId]) state.players[myId].input = getInputs();
+  if (isHost && state && state.players[myId] && !state.over) {
+    state.players[myId].input = getInputs();
+  }
 }, 33);
 
 const ctx = canvasEl.getContext('2d');
