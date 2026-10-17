@@ -20,21 +20,14 @@
   .panel{background:#0a141a;border:2px solid #1e3a30;border-radius:14px;
     padding:20px;display:flex;flex-direction:column;gap:12px;width:min(360px,92vw)}
   .panel input{padding:12px 14px;border-radius:10px;background:#0e1a20;
-    border:2px solid #26485a;color:#dff5e8;font-size:15px;outline:none;
+    border:2px solid #26485a;color:#dff5e8;font-size:16px;outline:none;
     font-family:inherit;text-align:center;letter-spacing:2px}
   .panel input:focus{border-color:#2ee07a}
   .panel button{padding:13px;border-radius:10px;background:#12463a;
     color:#9df3c4;border:2px solid #2ee07a;font-size:14px;font-weight:800;
     letter-spacing:2px;cursor:pointer;transition:.15s}
   .panel button:hover{background:#2ee07a;color:#04140c;transform:scale(1.02)}
-  .panel button.ghost{background:#0e1a20;color:#cfe9d8;border-color:#26485a}
-  .panel button.ghost:hover{background:#12463a;border-color:#2ee07a;color:#9df3c4}
-  .auth-tabs{display:flex;gap:8px}
-  .auth-tabs button{padding:10px 26px;border-radius:10px 10px 0 0;
-    background:#0e1a20;color:#7a9a92;border:2px solid #1e3a30;
-    font-weight:800;letter-spacing:2px;cursor:pointer;font-size:13px;transition:.15s}
-  .auth-tabs button.active{background:#12463a;color:#9df3c4;border-color:#2ee07a}
-  #authMsg{font-size:13px;text-align:center;min-height:20px;letter-spacing:1px;color:#ff8a9a}
+  #nameMsg{font-size:13px;text-align:center;min-height:20px;letter-spacing:1px;color:#ff8a9a}
   .menu-stats{display:flex;flex-direction:column;gap:5px;padding:14px 22px;border-radius:12px;
     background:#0a141a;border:2px solid #1e3a30;font-size:13px;letter-spacing:1px;
     min-width:min(340px,92vw);text-align:center}
@@ -61,6 +54,10 @@
   .btn-diff.hard:hover{background:#ff8c1a;color:#1a0e00}
   .btn-diff.insane{background:#3a1020;border-color:#ff5b6e;color:#ff8a9a}
   .btn-diff.insane:hover{background:#ff5b6e;color:#1a0410}
+  .btn-change-name{padding:8px 16px;border-radius:8px;background:#0e1a20;
+    color:#7a9a92;border:2px solid #26485a;font-size:11px;font-weight:800;
+    letter-spacing:2px;cursor:pointer;transition:.15s;margin-top:6px}
+  .btn-change-name:hover{background:#12463a;color:#9df3c4;border-color:#2ee07a}
 
   #hud{position:fixed;inset:0;pointer-events:none;padding:18px;
     display:flex;justify-content:space-between;align-items:flex-start;
@@ -113,7 +110,6 @@
   #btnToMenu{border-color:#26485a;background:#0e1a20;color:#cfe9d8}
   #btnToMenu:hover{background:#12463a;border-color:#2ee07a;color:#9df3c4}
 
-  /* ===== TOUCH JOYSTICKS ===== */
   #touchControls{position:fixed;inset:0;pointer-events:none;z-index:25}
   .joystick{
     position:absolute;width:140px;height:140px;border-radius:50%;
@@ -141,21 +137,18 @@
 </head>
 <body>
 
-<div id="authScreen" class="screen">
+<!-- Màn hình nhập tên -->
+<div id="nameScreen" class="screen">
   <h1>TANK ARENA</h1>
-  <div class="auth-tabs">
-    <button id="tabLogin" class="active">ĐĂNG NHẬP</button>
-    <button id="tabRegister">ĐĂNG KÝ</button>
-  </div>
   <div class="panel">
-    <input id="inputUsername" placeholder="Tên đăng nhập" maxlength="20">
-    <input id="inputPassword" type="password" placeholder="Mật khẩu" maxlength="40">
-    <button id="btnAuthSubmit">ĐĂNG NHẬP</button>
-    <div id="authMsg"></div>
+    <input id="inputName" placeholder="Nhập tên của bạn" maxlength="20">
+    <button id="btnEnterGame">VÀO GAME</button>
+    <div id="nameMsg"></div>
   </div>
-  <div class="hint">Tài khoản lưu trên trình duyệt của bạn.</div>
+  <div class="hint">Tên được lưu lại cho lần chơi sau. Không cần tài khoản.</div>
 </div>
 
+<!-- Menu -->
 <div id="menuScreen" class="screen hidden">
   <h1>TANK ARENA</h1>
   <div class="menu-stats">
@@ -172,8 +165,8 @@
     <button id="btnHard" class="btn-diff hard">😠 KHÁ</button>
     <button id="btnInsane" class="btn-diff insane">💀 SIÊU KHÓ</button>
   </div>
-  <button id="btnLogout" class="panel ghost" style="padding:10px 20px;border-radius:10px;border:2px solid #26485a;background:#0e1a20;color:#cfe9d8;font-weight:800;letter-spacing:2px;cursor:pointer;margin-top:6px">ĐĂNG XUẤT</button>
-  <div class="hint">Joystick TRÁI di chuyển · Joystick PHẢI kéo để ngắm + bắn · Hoặc dùng WASD + chuột</div>
+  <button id="btnChangeName" class="btn-change-name">✏️ ĐỔI TÊN</button>
+  <div class="hint">Joystick TRÁI di chuyển · Joystick PHẢI kéo để ngắm + bắn · Hoặc WASD + chuột</div>
 </div>
 
 <canvas id="game" class="hidden"></canvas>
@@ -202,7 +195,6 @@
 </div>
 <div id="powerupHud" class="hidden"></div>
 
-<!-- Touch joysticks (luôn hiện) -->
 <div id="touchControls" class="hidden">
   <div id="joyLeft" class="joystick"><div class="knob" id="knobLeft"></div></div>
   <div id="joyRight" class="joystick"><div class="knob" id="knobRight"></div></div>
@@ -286,41 +278,35 @@ function triggerHitEffect() {
   if (bar) { bar.classList.add('hurt'); setTimeout(() => bar.classList.remove('hurt'), 200); }
 }
 
-/* ============ TÀI KHOẢN ============ */
-const ACC_KEY = 'tankArenaAccounts';
-const SESS_KEY = 'tankArenaSession';
-function getAccounts() { try { return JSON.parse(localStorage.getItem(ACC_KEY) || '{}'); } catch { return {}; } }
-function saveAccounts(a) { localStorage.setItem(ACC_KEY, JSON.stringify(a)); }
-function hashPass(pw) { let h=5381; for(let i=0;i<pw.length;i++) h=((h<<5)+h+pw.charCodeAt(i))|0; return h.toString(36); }
-function registerUser(u, p) {
-  if (u.length < 3) return { ok: false, msg: 'Tên phải có ít nhất 3 ký tự' };
-  if (p.length < 4) return { ok: false, msg: 'Mật khẩu phải có ít nhất 4 ký tự' };
-  const a = getAccounts();
-  if (a[u]) return { ok: false, msg: 'Tên đăng nhập đã tồn tại' };
-  a[u] = { pass: hashPass(p), highScore: 0, botWins: 0 }; saveAccounts(a); return { ok: true };
+/* ============ LƯU TÊN + ĐIỂM ============ */
+const NAME_KEY = 'tankArenaPlayerName';
+const SCORES_KEY = 'tankArenaScores';
+function getScores() { try { return JSON.parse(localStorage.getItem(SCORES_KEY) || '{}'); } catch { return {}; } }
+function saveScores(a) { localStorage.setItem(SCORES_KEY, JSON.stringify(a)); }
+function getPlayerData(name) {
+  const s = getScores();
+  return s[name] || { highScore: 0, botWins: 0 };
 }
-function loginUser(u, p) {
-  const a = getAccounts();
-  if (!a[u]) return { ok: false, msg: 'Tài khoản không tồn tại' };
-  if (a[u].pass !== hashPass(p)) return { ok: false, msg: 'Sai mật khẩu' };
-  localStorage.setItem(SESS_KEY, u); return { ok: true };
+function ensurePlayerData(name) {
+  const s = getScores();
+  if (!s[name]) { s[name] = { highScore: 0, botWins: 0 }; saveScores(s); }
 }
 function recordPvEScore(score) {
-  const a = getAccounts();
-  if (!a[currentUser]) return;
-  if (score > (a[currentUser].highScore || 0)) { a[currentUser].highScore = score; saveAccounts(a); }
+  const s = getScores();
+  if (!s[currentUser]) s[currentUser] = { highScore: 0, botWins: 0 };
+  if (score > (s[currentUser].highScore || 0)) { s[currentUser].highScore = score; saveScores(s); }
 }
 function recordBotWin() {
-  const a = getAccounts();
-  if (!a[currentUser]) return;
-  a[currentUser].botWins = (a[currentUser].botWins || 0) + 1;
-  saveAccounts(a);
+  const s = getScores();
+  if (!s[currentUser]) s[currentUser] = { highScore: 0, botWins: 0 };
+  s[currentUser].botWins = (s[currentUser].botWins || 0) + 1;
+  saveScores(s);
 }
-let currentUser = localStorage.getItem(SESS_KEY);
+let currentUser = localStorage.getItem(NAME_KEY);
 
 /* ============ UI ============ */
 const screens = {
-  auth: document.getElementById('authScreen'),
+  name: document.getElementById('nameScreen'),
   menu: document.getElementById('menuScreen')
 };
 const canvasEl = document.getElementById('game');
@@ -338,47 +324,53 @@ function show(name) {
     canvasEl.classList.remove('hidden');
     hudEl.classList.remove('hidden');
     puHudEl.classList.remove('hidden');
-    touchControlsEl.classList.remove('hidden');  // FIX: luôn hiện
+    touchControlsEl.classList.remove('hidden');
   } else if (screens[name]) screens[name].classList.remove('hidden');
 }
+
 function showMenu() {
-  if (!currentUser) { show('auth'); return; }
+  if (!currentUser) { show('name'); return; }
   show('menu');
   document.getElementById('menuUsername').textContent = currentUser;
-  const a = getAccounts();
-  const acc = a[currentUser] || {};
-  document.getElementById('menuHighScore').textContent = (acc.highScore || 0) + ' điểm';
-  document.getElementById('menuBotWins').textContent = (acc.botWins || 0) + ' trận';
+  const data = getPlayerData(currentUser);
+  document.getElementById('menuHighScore').textContent = (data.highScore || 0) + ' điểm';
+  document.getElementById('menuBotWins').textContent = (data.botWins || 0) + ' trận';
 }
-if (currentUser) showMenu(); else show('auth');
 
-let authMode = 'login';
-const tabLogin = document.getElementById('tabLogin');
-const tabReg = document.getElementById('tabRegister');
-const btnAuth = document.getElementById('btnAuthSubmit');
-const authMsg = document.getElementById('authMsg');
-tabLogin.onclick = () => { authMode = 'login'; tabLogin.classList.add('active'); tabReg.classList.remove('active'); btnAuth.textContent = 'ĐĂNG NHẬP'; authMsg.textContent = ''; };
-tabReg.onclick = () => { authMode = 'register'; tabReg.classList.add('active'); tabLogin.classList.remove('active'); btnAuth.textContent = 'ĐĂNG KÝ'; authMsg.textContent = ''; };
-btnAuth.onclick = () => {
+function showNameScreen() {
+  show('name');
+  const inp = document.getElementById('inputName');
+  inp.value = currentUser || '';
+  document.getElementById('nameMsg').textContent = '';
+  setTimeout(() => inp.focus(), 100);
+}
+
+if (currentUser) showMenu(); else showNameScreen();
+
+/* Nhập tên → vào game */
+const inputName = document.getElementById('inputName');
+const btnEnter = document.getElementById('btnEnterGame');
+const nameMsg = document.getElementById('nameMsg');
+
+function submitName() {
   initAudio();
-  const u = document.getElementById('inputUsername').value.trim();
-  const p = document.getElementById('inputPassword').value;
-  authMsg.style.color = '#ff8a9a';
-  if (!u || !p) { authMsg.textContent = 'Vui lòng nhập đầy đủ'; return; }
-  if (authMode === 'register') {
-    const res = registerUser(u, p);
-    if (!res.ok) { authMsg.textContent = res.msg; return; }
-    loginUser(u, p);
-  } else {
-    const res = loginUser(u, p);
-    if (!res.ok) { authMsg.textContent = res.msg; return; }
-  }
+  const u = inputName.value.trim();
+  nameMsg.style.color = '#ff8a9a';
+  if (u.length < 1) { nameMsg.textContent = 'Vui lòng nhập tên'; return; }
+  if (u.length > 20) { nameMsg.textContent = 'Tên tối đa 20 ký tự'; return; }
   currentUser = u;
-  document.getElementById('inputPassword').value = '';
+  localStorage.setItem(NAME_KEY, u);
+  ensurePlayerData(u);
   showMenu();
-};
-document.getElementById('btnLogout').onclick = () => {
-  localStorage.removeItem(SESS_KEY); currentUser = null; show('auth');
+}
+btnEnter.onclick = submitName;
+inputName.addEventListener('keydown', e => {
+  if (e.key === 'Enter') submitName();
+});
+
+/* Đổi tên */
+document.getElementById('btnChangeName').onclick = () => {
+  showNameScreen();
 };
 
 /* ============ TOUCH JOYSTICK ============ */
@@ -408,7 +400,6 @@ function setupJoystick(el, knob, onMove, onEnd) {
     e.stopPropagation();
     const t = e.touches ? e.touches[0] : e;
     activeId = t.identifier !== undefined ? t.identifier : 'mouse';
-    // Bắt đầu ở vị trí chạm
     move(e);
   };
   const move = (e) => {
@@ -458,10 +449,9 @@ setupJoystick(
   document.getElementById('joyRight'),
   document.getElementById('knobRight'),
   (x, y) => {
-    touch.aimX = x;
-    touch.aimY = y;
+    touch.aimX = x; touch.aimY = y;
     touch.aimActive = true;
-    touch.shooting = Math.hypot(x, y) > 0.15;  // FIX: threshold thấp hơn
+    touch.shooting = Math.hypot(x, y) > 0.15;
   },
   () => {
     touch.aimX = 0; touch.aimY = 0;
@@ -1253,19 +1243,16 @@ canvasEl.addEventListener('contextmenu', e => e.preventDefault());
 
 function getInputs() {
   let mx = 0, my = 0;
-  // Keyboard
   if (keys['a'] || keys['arrowleft']) mx--;
   if (keys['d'] || keys['arrowright']) mx++;
   if (keys['w'] || keys['arrowup']) my--;
   if (keys['s'] || keys['arrowdown']) my++;
-  // Joystick trái (luôn cộng — kể cả PC khi kéo joystick)
   mx += touch.moveX;
   my += touch.moveY;
   const len = Math.hypot(mx, my);
   if (len > 1) { mx /= len; my /= len; }
 
   let aim, shoot;
-  // FIX: ưu tiên joystick phải khi active (không cần check isTouchDevice)
   if (touch.aimActive) {
     aim = Math.atan2(touch.aimY, touch.aimX);
     shoot = touch.shooting;
@@ -1720,4 +1707,93 @@ function drawBotIndicator(st) {
   const labelX = ex - ux * 38;
   const labelY = ey - uy * 38;
   ctx.font = 'bold 12px system-ui,sans-serif';
-  ctx.textAlign
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  const distTxt = Math.round(worldDist / 10) + 'm';
+  ctx.lineWidth = 3;
+  ctx.strokeStyle = 'rgba(0,0,0,0.85)';
+  ctx.strokeText(distTxt, labelX, labelY);
+  ctx.fillStyle = '#fff';
+  ctx.fillText(distTxt, labelX, labelY);
+
+  ctx.restore();
+}
+
+function drawGame(st) {
+  ctx.clearRect(0, 0, W, H);
+  const me = st.players[myId];
+  if (!me) return;
+  let targetX = me.x, targetY = me.y;
+  if (me.hp <= 0) {
+    const alive = Object.values(st.players).find(p => p.hp > 0);
+    if (alive) { targetX = alive.x; targetY = alive.y; }
+  }
+  cam.x += (targetX - cam.x) * 0.15;
+  cam.y += (targetY - cam.y) * 0.15;
+
+  let sx = 0, sy = 0;
+  if (shakeTime > 0) {
+    shakeTime -= 0.016;
+    sx = (Math.random() - 0.5) * shakeIntensity;
+    sy = (Math.random() - 0.5) * shakeIntensity;
+  }
+  ctx.save();
+  ctx.translate(W / 2 - cam.x + sx, H / 2 - cam.y + sy);
+
+  drawMap();
+  if (st.arena) drawArena(st.arena);
+  for (const k of st.pickups) drawPickup(k);
+  drawBeams(st);
+  for (const e of st.enemies) drawEnemy(e, st);
+  drawBullets(st);
+  drawEBullets(st);
+  for (const id in st.players) drawPlayer(st.players[id], id === myId, st);
+  drawParticles(st);
+
+  ctx.restore();
+
+  drawBotIndicator(st);
+
+  if (hitFlash > 0) {
+    hitFlash -= 0.05;
+    ctx.fillStyle = `rgba(255, 30, 30, ${hitFlash * 0.4})`;
+    ctx.fillRect(0, 0, W, H);
+  }
+
+  if (st.announce) {
+    ctx.save();
+    ctx.globalAlpha = Math.min(1, st.announce.t);
+    ctx.font = 'bold 52px system-ui,sans-serif';
+    ctx.fillStyle = '#9df3c4';
+    ctx.textAlign = 'center';
+    ctx.shadowColor = '#2ee07a'; ctx.shadowBlur = 30;
+    ctx.fillText(st.announce.text, W / 2, H * 0.26);
+    ctx.restore();
+  }
+
+  if (st.mode === 'pve') {
+    const boss = st.enemies.find(e => e.isBoss);
+    if (boss) {
+      const w = Math.min(520, W - 80);
+      const x = (W - w) / 2, y = 62;
+      const g2 = ctx.createLinearGradient(x, 0, x + w, 0);
+      g2.addColorStop(0, boss.color);
+      g2.addColorStop(1, '#ffffff');
+      ctx.fillStyle = 'rgba(0,0,0,0.55)';
+      rr(x - 5, y - 5, w + 10, 30, 9); ctx.fill();
+      ctx.fillStyle = '#1a1015';
+      rr(x, y, w, 20, 6); ctx.fill();
+      ctx.fillStyle = g2;
+      rr(x, y, w * (boss.hp / boss.maxHp), 20, 6); ctx.fill();
+      ctx.fillStyle = '#ffe4e6';
+      ctx.font = 'bold 12px system-ui,sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText('BOSS   ' + Math.ceil(boss.hp) + ' / ' + Math.ceil(boss.maxHp), W / 2, y + 14);
+    }
+  }
+}
+
+})();
+</script>
+</body>
+</html>
