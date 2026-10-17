@@ -626,12 +626,11 @@ const DIFF_NAME = { easy: 'DỄ', normal: 'BÌNH THƯỜNG', hard: 'KHÁ', insan
 
 /* ============ MANA CONFIG ============ */
 const MANA_MAX = 100;
-const MANA_REGEN = 14;              // mana hồi mỗi giây
-const MANA_COST_SHOT = 6;           // mỗi phát đạn thường
-const MANA_COST_LASER = 20;         // mỗi lần laser
-const MANA_COST_BOMB = 25;          // mỗi lần bomb
-const MANA_COST_SKILL = 15;         // dự phòng cho skill (chưa dùng)
-const MANA_COST_BOT_SHOT = 4;       // bot tiêu hao ít hơn
+const MANA_REGEN = 14;
+const MANA_COST_SHOT = 6;
+const MANA_COST_LASER = 20;
+const MANA_COST_BOMB = 25;
+const MANA_COST_BOT_SHOT = 4;
 const MANA_REGEN_BOT = 10;
 
 /* ============ STATE ============ */
@@ -749,26 +748,54 @@ function buildWaveQueue(wave) {
   return { queue, hasBoss };
 }
 
+/* ============ SPAWN QUANH PLAYER (ngoài màn hình) ============ */
 function spawnEnemyInArena(typeIdx, wave) {
   if (!state) return;
   if (state.enemies.length > 320) return;
 
-  const arena = state.arena;
-  const halfW = arena.w / 2 - 120;
-  const halfH = arena.h / 2 - 120;
-
-  let spawnX, spawnY, tries = 0;
-  do {
-    const side = Math.floor(Math.random() * 4);
-    if (side === 0) { spawnX = rand(-halfW, halfW); spawnY = -halfH; }
-    else if (side === 1) { spawnX = halfW; spawnY = rand(-halfH, halfH); }
-    else if (side === 2) { spawnX = rand(-halfW, halfW); spawnY = halfH; }
-    else { spawnX = -halfW; spawnY = rand(-halfH, halfH); }
-    tries++;
-  } while (tries < 15 && dist(spawnX, spawnY, state.players[myId].x, state.players[myId].y) < 550);
+  const me = state.players[myId];
+  if (!me) return;
 
   const t = TYPES[typeIdx];
   const hpScale = 1 + (wave - 1) * 0.12;
+
+  // Bán kính spawn: ngay ngoài rìa màn hình + margin
+  const margin = 120;
+  const halfDiag = Math.hypot(W, H) / 2;
+  const minDist = halfDiag + margin;             // ngoài màn hình
+  const maxDist = minDist + 260;                 // không quá xa
+
+  let angle = Math.random() * TAU;
+
+  // Ưu tiên hướng "trước mặt" player một chút để cân bằng
+  if (Math.random() < 0.35) {
+    angle = me.aim + rand(-0.6, 0.6);
+  }
+
+  const d = rand(minDist, maxDist);
+  let spawnX = me.x + Math.cos(angle) * d;
+  let spawnY = me.y + Math.sin(angle) * d;
+
+  // Clamp trong arena
+  const hw = state.arena.w / 2 - 40;
+  const hh = state.arena.h / 2 - 40;
+  spawnX = clamp(spawnX, -hw, hw);
+  spawnY = clamp(spawnY, -hh, hh);
+
+  // Nếu clamp kéo vào quá gần (arena nhỏ), thử hướng khác
+  const realD = dist(spawnX, spawnY, me.x, me.y);
+  if (realD < minDist * 0.85) {
+    for (let tries = 0; tries < 6; tries++) {
+      angle = Math.random() * TAU;
+      const dd = minDist + rand(0, 200);
+      const tx = clamp(me.x + Math.cos(angle) * dd, -hw, hw);
+      const ty = clamp(me.y + Math.sin(angle) * dd, -hh, hh);
+      if (dist(tx, ty, me.x, me.y) > realD) {
+        spawnX = tx; spawnY = ty;
+        break;
+      }
+    }
+  }
 
   state.enemies.push({
     x: spawnX, y: spawnY,
@@ -793,9 +820,21 @@ function spawnBossInArena() {
     { hp: 1700, speed: 45, r: 50, color: '#ffd93d', stroke: '#8a6d1a', xp: 30 }
   ];
   const s = stats[type];
-  const arena = state.arena;
-  const bx = rand(-arena.w / 4, arena.w / 4);
-  const by = -arena.h / 2 + 150;
+  const me = state.players[myId];
+  if (!me) return;
+
+  // Boss spawn ngay ngoài màn hình, phía trên player
+  const halfDiag = Math.hypot(W, H) / 2;
+  const d = halfDiag + 180;
+  const a = -Math.PI / 2 + rand(-0.4, 0.4);
+
+  let bx = me.x + Math.cos(a) * d;
+  let by = me.y + Math.sin(a) * d;
+
+  const hw = state.arena.w / 2 - 80;
+  const hh = state.arena.h / 2 - 80;
+  bx = clamp(bx, -hw, hw);
+  by = clamp(by, -hh, hh);
 
   state.enemies.push({
     x: bx, y: by,
@@ -1341,7 +1380,6 @@ function gameLoop(now) {
 
     // ===== MANA REGEN =====
     const regen = p.isBot ? MANA_REGEN_BOT : MANA_REGEN;
-    // Hiệu ứng: nếu đang có "curse" thì hồi chậm hơn
     const cursePenalty = (p.powerups.curse > 0) ? 0.5 : 1;
     p.mana = Math.min(p.maxMana, p.mana + regen * cursePenalty * dt);
 
@@ -1380,14 +1418,11 @@ function gameLoop(now) {
     if (p.powerups.jam > 0) fireRate *= 2.0;
 
     if (p.input.shoot && (!p.lastShoot || state.time - p.lastShoot > fireRate / 1000)) {
-      // ===== KIỂM TRA MANA =====
       const shotCost = p.isBot ? MANA_COST_BOT_SHOT : MANA_COST_SHOT;
       if (p.mana < shotCost) {
-        // không đủ mana -> không bắn, phát âm thanh cảnh báo (chỉ player)
         if (!p.isBot) {
           p.manaFlash = 1;
           state.events.push('nomana');
-          // vẫn set lastShoot để tránh spam
           p.lastShoot = state.time;
         }
       } else {
@@ -1403,7 +1438,6 @@ function gameLoop(now) {
           const a = p.aim + off + jit;
           state.bullets.push({ x: p.x + Math.cos(a) * 30, y: p.y + Math.sin(a) * 30, vx: Math.cos(a) * p.bulletSpeed, vy: Math.sin(a) * p.bulletSpeed, life: 1.2, owner: id, dmg, pierce, hitSet: [] });
         }
-        // LASER cần mana
         if (p.powerups.laser > 0 && (!p.lastLaser || state.time - p.lastLaser > 0.4)) {
           if (p.mana >= MANA_COST_LASER) {
             p.mana -= MANA_COST_LASER;
@@ -1412,7 +1446,6 @@ function gameLoop(now) {
             state.events.push('laser');
           }
         }
-        // BOMB cần mana
         if (p.powerups.bomb > 0 && (!p.lastBomb || state.time - p.lastBomb > 0.8)) {
           if (p.mana >= MANA_COST_BOMB) {
             p.mana -= MANA_COST_BOMB;
