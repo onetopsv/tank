@@ -75,6 +75,18 @@
     border-radius:7px;transition:width .15s;z-index:3;opacity:.85;
     box-shadow:0 0 10px #ffd93d}
   .hpText{font-size:12px;margin-top:3px;opacity:.85}
+
+  /* ==== MANA BAR ==== */
+  .manabar{width:min(240px,45vw);height:12px;border-radius:6px;background:#101c24;
+    border:2px solid #26485a;overflow:hidden;position:relative;
+    transition:border-color 0.2s, box-shadow 0.2s;box-shadow:0 0 14px #4dd9ff22}
+  .manabar.low{border-color:#ff5b6e;box-shadow:0 0 18px #ff5b6e66;animation:manaPulse .6s infinite}
+  @keyframes manaPulse{0%,100%{opacity:1}50%{opacity:.55}}
+  .manaFill{height:100%;width:100%;border-radius:4px;position:absolute;top:0;left:0;
+    background:linear-gradient(90deg,#3a8fe0,#4dd9ff,#9df3f4);
+    transition:width .12s;z-index:2;box-shadow:0 0 10px #4dd9ff}
+  .manaText{font-size:11px;margin-top:2px;color:#4dd9ff;letter-spacing:1px}
+
   .xpbar{width:min(240px,45vw);height:8px;border-radius:4px;background:#101c24;
     border:1px solid #26485a;overflow:hidden;margin-top:4px}
   .xpFill{height:100%;width:0%;background:linear-gradient(90deg,#ffd93d,#ff8c1a);transition:width .2s}
@@ -131,7 +143,7 @@
     background:rgba(46,224,122,0.75);border:2px solid #2ee07a;
     top:50%;left:50%;transform:translate(-50%,-50%);
     pointer-events:none;box-shadow:0 0 25px #2ee07a88;
-    will-change:transform;
+    will-change:transform;touch-action:none;
   }
   #joyRight .knob{background:rgba(255,91,110,0.75);border-color:#ff5b6e;
     box-shadow:0 0 25px #ff5b6e88}
@@ -220,6 +232,12 @@
       <div class="shieldFill" id="shieldFillP1"></div>
     </div>
     <div class="hpText" id="hpTextP1">100 / 100</div>
+    <!-- MANA -->
+    <div class="manabar" id="manaBarP1">
+      <div class="manaFill" id="manaFillP1"></div>
+    </div>
+    <div class="manaText" id="manaTextP1">MANA 100 / 100</div>
+    <!-- XP -->
     <div class="xpbar" id="xpBarWrapP1"><div class="xpFill" id="xpFillP1"></div></div>
     <div class="lvlText" id="lvlWrapP1">LV <span id="lvlValP1">1</span> • XP <span id="xpValP1">0</span>/<span id="xpNeedP1">5</span></div>
     <div id="p2Hud" class="hidden">
@@ -319,6 +337,8 @@ function playSound(type) {
     curse:  {t:'sawtooth', f1:180, f2:60, g:0.18, d:0.35},
     win:    {t:'square', f1:800, f2:200, g:0.25, d:0.7},
     lose:   {t:'sawtooth', f1:200, f2:40, g:0.25, d:0.8},
+    mana:   {t:'sine', f1:300, f2:900, g:0.08, d:0.15},
+    nomana: {t:'square', f1:120, f2:80, g:0.12, d:0.15},
   };
   const m = map[type]; if (!m) { osc.disconnect(); gain.disconnect(); return; }
   osc.type = m.t; osc.frequency.setValueAtTime(m.f1, now);
@@ -369,6 +389,15 @@ const hudEl = document.getElementById('hud');
 const puHudEl = document.getElementById('powerupHud');
 const touchControlsEl = document.getElementById('touchControls');
 
+function resetTouchState() {
+  touch.moveX = 0; touch.moveY = 0; touch.moveActive = false;
+  touch.aimX = 0; touch.aimY = 0; touch.aimActive = false; touch.shooting = false;
+  const kl = document.getElementById('knobLeft');
+  const kr = document.getElementById('knobRight');
+  if (kl) kl.style.transform = 'translate(-50%,-50%)';
+  if (kr) kr.style.transform = 'translate(-50%,-50%)';
+}
+
 function show(name) {
   Object.values(screens).forEach(s => s.classList.add('hidden'));
   canvasEl.classList.add('hidden');
@@ -376,6 +405,7 @@ function show(name) {
   puHudEl.classList.add('hidden');
   touchControlsEl.classList.add('hidden');
   document.getElementById('enemiesLeftBox').classList.add('hidden');
+  if (name !== 'game') resetTouchState();
   if (name === 'game') {
     canvasEl.classList.remove('hidden');
     hudEl.classList.remove('hidden');
@@ -428,7 +458,7 @@ document.getElementById('btnChangeName').onclick = () => {
   showNameScreen();
 };
 
-/* ============ JOYSTICK ============ */
+/* ============ JOYSTICK (Pointer Events + fallback) ============ */
 const touch = {
   moveX: 0, moveY: 0,
   aimX: 0, aimY: 0,
@@ -439,72 +469,126 @@ const touch = {
 
 function setupJoystick(el, knob, onMove, onEnd) {
   const maxR = 50;
-  let activePointer = null;
+  let activePointerId = null;
   let usingMouse = false;
 
-  const getClient = (e) => {
-    if (e.touches) {
-      for (const t of e.touches) if (t.identifier === activePointer) return t;
-      return null;
-    }
-    return { clientX: e.clientX, clientY: e.clientY };
-  };
+  function resetKnob() {
+    knob.style.transform = 'translate(-50%,-50%)';
+  }
 
-  const start = (e) => {
-    if (activePointer !== null) return;
-    e.preventDefault();
-    e.stopPropagation();
-    if (e.touches) {
-      const t = e.touches[0];
-      activePointer = t.identifier;
-      usingMouse = false;
-    } else {
-      activePointer = 'mouse';
-      usingMouse = true;
-      document.body.style.cursor = 'grabbing';
-    }
-    move(e);
-  };
-
-  const move = (e) => {
-    if (activePointer === null) return;
-    const t = getClient(e);
-    if (!t) return;
-    e.preventDefault();
-    e.stopPropagation();
+  function applyFromClient(clientX, clientY) {
     const rect = el.getBoundingClientRect();
     const cx = rect.left + rect.width / 2;
     const cy = rect.top + rect.height / 2;
-    let dx = t.clientX - cx;
-    let dy = t.clientY - cy;
+    let dx = clientX - cx;
+    let dy = clientY - cy;
     const d = Math.hypot(dx, dy);
     if (d > maxR) { dx = dx / d * maxR; dy = dy / d * maxR; }
-    knob.style.transform = `translate(calc(-50% + ${dx}px), calc(-50% + ${dy}px))`;
+    knob.style.transform =
+      `translate(calc(-50% + ${dx}px), calc(-50% + ${dy}px))`;
     onMove(dx / maxR, dy / maxR);
-  };
+  }
 
-  const end = (e) => {
-    if (activePointer === null) return;
-    if (e) e.stopPropagation();
-    activePointer = null;
+  function endJoystick(e) {
+    if (activePointerId === null) return;
+    if (e && e.cancelable) e.preventDefault();
+    if (e && e.stopPropagation) e.stopPropagation();
+    activePointerId = null;
     if (usingMouse) document.body.style.cursor = '';
     usingMouse = false;
-    knob.style.transform = 'translate(-50%,-50%)';
+    resetKnob();
     onEnd();
-  };
+  }
 
-  el.addEventListener('touchstart', start, {passive: false});
-  el.addEventListener('touchmove', move, {passive: false});
-  el.addEventListener('touchend', end);
-  el.addEventListener('touchcancel', end);
+  if (window.PointerEvent) {
+    el.addEventListener('pointerdown', (e) => {
+      if (activePointerId !== null) return;
+      if (e.button !== undefined && e.button !== 0 && e.pointerType === 'mouse') return;
+      e.preventDefault();
+      e.stopPropagation();
+      activePointerId = e.pointerId;
+      usingMouse = (e.pointerType === 'mouse');
+      if (usingMouse) document.body.style.cursor = 'grabbing';
+      try { el.setPointerCapture(e.pointerId); } catch (_) {}
+      applyFromClient(e.clientX, e.clientY);
+    });
 
-  el.addEventListener('mousedown', start);
-  window.addEventListener('mousemove', (e) => {
-    if (usingMouse && activePointer === 'mouse') move(e);
-  });
-  window.addEventListener('mouseup', (e) => {
-    if (usingMouse && activePointer === 'mouse') end(e);
-  });
+    el.addEventListener('pointermove', (e) => {
+      if (activePointerId === null || e.pointerId !== activePointerId) return;
+      e.preventDefault();
+      e.stopPropagation();
+      applyFromClient(e.clientX, e.clientY);
+    });
+
+    el.addEventListener('pointerup', (e) => {
+      if (e.pointerId !== activePointerId) return;
+      endJoystick(e);
+    });
+    el.addEventListener('pointercancel', (e) => {
+      if (e.pointerId !== activePointerId) return;
+      endJoystick(e);
+    });
+    el.addEventListener('lostpointercapture', (e) => {
+      if (e.pointerId === activePointerId) endJoystick(e);
+    });
+    window.addEventListener('blur', () => {
+      if (activePointerId !== null) endJoystick(null);
+    });
+  } else {
+    el.addEventListener('touchstart', (e) => {
+      if (activePointerId !== null) return;
+      e.preventDefault();
+      e.stopPropagation();
+      const t = e.changedTouches[0];
+      activePointerId = t.identifier;
+      usingMouse = false;
+      applyFromClient(t.clientX, t.clientY);
+    }, { passive: false });
+
+    el.addEventListener('touchmove', (e) => {
+      if (activePointerId === null) return;
+      e.preventDefault();
+      e.stopPropagation();
+      let found = null;
+      for (const t of e.touches) {
+        if (t.identifier === activePointerId) { found = t; break; }
+      }
+      if (found) applyFromClient(found.clientX, found.clientY);
+      else endJoystick(e);
+    }, { passive: false });
+
+    const onTouchEnd = (e) => {
+      if (activePointerId === null) return;
+      let stillThere = false;
+      for (const t of e.touches) {
+        if (t.identifier === activePointerId) { stillThere = true; break; }
+      }
+      if (!stillThere) endJoystick(e);
+    };
+    el.addEventListener('touchend', onTouchEnd);
+    el.addEventListener('touchcancel', onTouchEnd);
+
+    el.addEventListener('mousedown', (e) => {
+      if (activePointerId !== null) return;
+      if (e.button !== 0) return;
+      e.preventDefault();
+      e.stopPropagation();
+      activePointerId = 'mouse';
+      usingMouse = true;
+      document.body.style.cursor = 'grabbing';
+      applyFromClient(e.clientX, e.clientY);
+    });
+    window.addEventListener('mousemove', (e) => {
+      if (activePointerId !== 'mouse') return;
+      applyFromClient(e.clientX, e.clientY);
+    });
+    window.addEventListener('mouseup', (e) => {
+      if (activePointerId === 'mouse') endJoystick(e);
+    });
+    window.addEventListener('blur', () => {
+      if (activePointerId !== null) endJoystick(null);
+    });
+  }
 
   el.addEventListener('dragstart', e => e.preventDefault());
   el.addEventListener('contextmenu', e => e.preventDefault());
@@ -540,6 +624,16 @@ const BOT_CFG = {
 };
 const DIFF_NAME = { easy: 'DỄ', normal: 'BÌNH THƯỜNG', hard: 'KHÁ', insane: 'SIÊU KHÓ' };
 
+/* ============ MANA CONFIG ============ */
+const MANA_MAX = 100;
+const MANA_REGEN = 14;              // mana hồi mỗi giây
+const MANA_COST_SHOT = 6;           // mỗi phát đạn thường
+const MANA_COST_LASER = 20;         // mỗi lần laser
+const MANA_COST_BOMB = 25;          // mỗi lần bomb
+const MANA_COST_SKILL = 15;         // dự phòng cho skill (chưa dùng)
+const MANA_COST_BOT_SHOT = 4;       // bot tiêu hao ít hơn
+const MANA_REGEN_BOT = 10;
+
 /* ============ STATE ============ */
 let state = null, lastTime = performance.now();
 const myId = 'PLAYER';
@@ -550,6 +644,7 @@ function makePlayer(id, name) {
   return {
     id, name, x: 0, y: 0,
     hp: 100, maxHp: 100, score: 0,
+    mana: MANA_MAX, maxMana: MANA_MAX,
     angle: -Math.PI/2, aim: 0, aimJitter: 0,
     input: {x:0, y:0, aim:0, shoot:false},
     level: 1, xp: 0,
@@ -559,7 +654,8 @@ function makePlayer(id, name) {
     levelUpFlash: 0, curseFlash: 0, pvpInvuln: 0,
     isBot: false, difficulty: null,
     _prevX: 0, _prevY: 0,
-    smoothX: 0, smoothY: 0, aimSmooth: undefined
+    smoothX: 0, smoothY: 0, aimSmooth: undefined,
+    manaFlash: 0
   };
 }
 function makeBot(difficulty) {
@@ -576,6 +672,8 @@ function makeBot(difficulty) {
   b.smoothY = 0;
   b.aimSmooth = undefined;
   b.aimJitter = cfg.aimJitter;
+  b.mana = MANA_MAX;
+  b.maxMana = MANA_MAX;
   return b;
 }
 
@@ -590,7 +688,6 @@ function initGame(mode, difficulty) {
     arena: mode === 'bot' ? { w: 1400, h: 1400 } : { w: 6700, h: 6700 },
     pickupTimer: 2.5,
     announce: null, winner: null,
-    // Wave state (PvE)
     waveTotal: 0,
     waveKilled: 0,
     waveSpawned: 0,
@@ -630,7 +727,6 @@ function initGame(mode, difficulty) {
 
 /* ============ WAVE SYSTEM (PvE) ============ */
 function buildWaveQueue(wave) {
-  // Tăng mạnh số quái mỗi màn
   const baseCount = 10 + Math.floor(wave * 4);
   const maxCount = 90;
   const total = Math.min(maxCount, baseCount);
@@ -792,6 +888,16 @@ function updateHUD(st) {
       Math.max(0, Math.round(me.hp)) + ' / ' + Math.round(maxHp) + shieldTxt;
     document.getElementById('scoreVal').textContent = me.score;
     document.getElementById('waveVal').textContent = st.mode === 'bot' ? '-' : st.wave;
+
+    // ==== MANA ====
+    const maxMana = me.maxMana || MANA_MAX;
+    const manaPct = Math.max(0, Math.min(100, (me.mana / maxMana) * 100));
+    const manaEl = document.getElementById('manaBarP1');
+    document.getElementById('manaFillP1').style.width = manaPct + '%';
+    document.getElementById('manaTextP1').textContent =
+      'MANA ' + Math.round(me.mana) + ' / ' + Math.round(maxMana);
+    manaEl.classList.toggle('low', manaPct < 20);
+
     if (st.mode === 'pve') {
       document.getElementById('lvlValP1').textContent = me.level || 1;
       document.getElementById('xpValP1').textContent = Math.floor(me.xp || 0);
@@ -848,7 +954,8 @@ function updatePowerupHUD(st) {
 
 /* ============ POWER-UPS ============ */
 const POWERUPS = [
-  { type: 'health',    color: '#2ee07a', weight: 16, bad: false },
+  { type: 'health',    color: '#2ee07a', weight: 14, bad: false },
+  { type: 'mana',      color: '#4dd9ff', weight: 14, bad: false },
   { type: 'laser',     color: '#4dd9ff', weight: 9,  bad: false },
   { type: 'bomb',      color: '#ff5b6e', weight: 9,  bad: false },
   { type: 'shield',    color: '#ffd93d', weight: 10, bad: false },
@@ -863,12 +970,12 @@ const POWERUPS = [
   { type: 'jam',       color: '#888888', weight: 5,  bad: true },
 ];
 const PU_ICON = {
-  health: '+', laser: '⚡', bomb: '💣', shield: '🛡', speed: '»',
+  health: '+', mana: '◆', laser: '⚡', bomb: '💣', shield: '🛡', speed: '»',
   pierce: '➤', tripleshot: '⋔', curse: '💀', slow: '🐌',
   burn: '🔥', confuse: '🌀', freeze: '❄', jam: '🐢'
 };
 const PU_COLOR = {
-  health: '#2ee07a', laser: '#4dd9ff', bomb: '#ff5b6e',
+  health: '#2ee07a', mana: '#4dd9ff', laser: '#4dd9ff', bomb: '#ff5b6e',
   shield: '#ffd93d', speed: '#ff8c1a', pierce: '#b46bff',
   tripleshot: '#ff66b2',
   curse: '#8a1f35', slow: '#5a4a8a', burn: '#ff3a1a',
@@ -889,9 +996,13 @@ function spawnPowerup(x, y) {
 function applyPickup(p, k) {
   switch (k.type) {
     case 'health': p.hp = Math.min(p.maxHp, p.hp + 40); break;
+    case 'mana':   p.mana = Math.min(p.maxMana, p.mana + 50); break;
     case 'laser': p.powerups.laser = Math.min(15, p.powerups.laser + 8); break;
     case 'bomb': p.powerups.bomb = Math.min(15, p.powerups.bomb + 8); break;
-    case 'shield': p.powerups.shield = Math.min(15, p.powerups.shield + 8); p.shieldHp = 40; break;
+    case 'shield':
+      p.powerups.shield = Math.min(15, p.powerups.shield + 8);
+      p.shieldHp = Math.max(p.shieldHp || 0, 40);
+      break;
     case 'speed': p.powerups.speed = Math.min(15, p.powerups.speed + 8); break;
     case 'pierce': p.powerups.pierce = Math.min(15, p.powerups.pierce + 8); break;
     case 'tripleshot': p.powerups.tripleshot = Math.min(15, p.powerups.tripleshot + 8); break;
@@ -1011,6 +1122,8 @@ function killEnemy(e, ownerId) {
       owner.hp = Math.min(owner.maxHp, owner.hp + 20);
       owner.damage += 2;
       owner.fireRate = Math.max(60, owner.fireRate - 8);
+      owner.maxMana += 5;
+      owner.mana = Math.min(owner.maxMana, owner.mana + 15);
       owner.levelUpFlash = 1;
       spawnParticles(owner.x, owner.y, '#ffd93d', 30, 300);
       state.events.push('levelup');
@@ -1018,7 +1131,6 @@ function killEnemy(e, ownerId) {
     if (Math.random() < 0.18) spawnPowerup(e.x, e.y);
   }
 
-  // Wave tracking
   if (state.mode === 'pve' && state.waveActive) {
     state.waveKilled++;
     if (e.isBoss) state.bossAlive = false;
@@ -1051,7 +1163,6 @@ function computeBotInput(bot, player, pvx, pvy) {
   const px = player.x + pvx * bulletTime * cfg.lead;
   const py = player.y + pvy * bulletTime * cfg.lead;
 
-  // ---- AIM SMOOTHING (không còn giật) ----
   const aimTarget = Math.atan2(py - bot.y, px - bot.x);
   if (bot.aimSmooth === undefined || !isFinite(bot.aimSmooth)) bot.aimSmooth = aimTarget;
   let aimDiff = aimTarget - bot.aimSmooth;
@@ -1112,7 +1223,6 @@ function computeBotInput(bot, player, pvx, pvy) {
     if (d < cfg.idealDist - 100) { mx -= nx; my -= ny; }
     else if (d > cfg.idealDist + 100) { mx += nx * 0.7; my += ny * 0.7; }
     else {
-      // ---- STRAFE MƯỢT (không còn lật dấu đột ngột) ----
       const strafe = Math.sin(state.time * 1.2);
       mx += -ny * strafe * 0.8; my += nx * strafe * 0.8;
       const keep = (d - cfg.idealDist) / 100;
@@ -1124,7 +1234,6 @@ function computeBotInput(bot, player, pvx, pvy) {
   const ml = Math.hypot(mx, my);
   if (ml > 0) { mx /= ml; my /= ml; }
 
-  // Smooth movement (giữ 0.85/0.15 để phản hồi nhanh nhưng vẫn mượt)
   bot.smoothX = bot.smoothX * 0.85 + mx * 0.15;
   bot.smoothY = bot.smoothY * 0.85 + my * 0.15;
 
@@ -1194,7 +1303,6 @@ function gameLoop(now) {
   }
 
   if (isPvE) {
-    // ---- WAVE SPAWN (nhanh + nhiều con 1 lần) ----
     if (state.waveActive) {
       if (state.waveSpawnQueue.length > 0) {
         state.waveSpawnTimer -= dt;
@@ -1229,6 +1337,14 @@ function gameLoop(now) {
     for (const k in p.powerups) if (p.powerups[k] > 0) p.powerups[k] = Math.max(0, p.powerups[k] - dt);
     if (p.levelUpFlash > 0) p.levelUpFlash -= dt;
     if (p.curseFlash > 0) p.curseFlash -= dt;
+    if (p.manaFlash > 0) p.manaFlash -= dt;
+
+    // ===== MANA REGEN =====
+    const regen = p.isBot ? MANA_REGEN_BOT : MANA_REGEN;
+    // Hiệu ứng: nếu đang có "curse" thì hồi chậm hơn
+    const cursePenalty = (p.powerups.curse > 0) ? 0.5 : 1;
+    p.mana = Math.min(p.maxMana, p.mana + regen * cursePenalty * dt);
+
     if (p.powerups.burn > 0) {
       p.burnTick = (p.burnTick || 0) + dt;
       if (p.burnTick >= 0.5) {
@@ -1264,27 +1380,49 @@ function gameLoop(now) {
     if (p.powerups.jam > 0) fireRate *= 2.0;
 
     if (p.input.shoot && (!p.lastShoot || state.time - p.lastShoot > fireRate / 1000)) {
-      p.lastShoot = state.time;
-      let dmg = p.damage;
-      if (p.powerups.pierce > 0) dmg += 10;
-      if (p.powerups.curse > 0) dmg *= 0.8;
-      const pierce = p.powerups.pierce > 0;
-      const shots = p.powerups.tripleshot > 0 ? [-0.18, 0, 0.18] : [0];
-      for (const off of shots) {
-        // ---- MỖI VIÊN ĐẠN CÓ JITTER NGẪU NHIÊN (chỉ bot) ----
-        const jit = p.aimJitter ? (Math.random() - 0.5) * p.aimJitter : 0;
-        const a = p.aim + off + jit;
-        state.bullets.push({ x: p.x + Math.cos(a) * 30, y: p.y + Math.sin(a) * 30, vx: Math.cos(a) * p.bulletSpeed, vy: Math.sin(a) * p.bulletSpeed, life: 1.2, owner: id, dmg, pierce, hitSet: [] });
+      // ===== KIỂM TRA MANA =====
+      const shotCost = p.isBot ? MANA_COST_BOT_SHOT : MANA_COST_SHOT;
+      if (p.mana < shotCost) {
+        // không đủ mana -> không bắn, phát âm thanh cảnh báo (chỉ player)
+        if (!p.isBot) {
+          p.manaFlash = 1;
+          state.events.push('nomana');
+          // vẫn set lastShoot để tránh spam
+          p.lastShoot = state.time;
+        }
+      } else {
+        p.mana -= shotCost;
+        p.lastShoot = state.time;
+        let dmg = p.damage;
+        if (p.powerups.pierce > 0) dmg += 10;
+        if (p.powerups.curse > 0) dmg *= 0.8;
+        const pierce = p.powerups.pierce > 0;
+        const shots = p.powerups.tripleshot > 0 ? [-0.18, 0, 0.18] : [0];
+        for (const off of shots) {
+          const jit = p.aimJitter ? (Math.random() - 0.5) * p.aimJitter : 0;
+          const a = p.aim + off + jit;
+          state.bullets.push({ x: p.x + Math.cos(a) * 30, y: p.y + Math.sin(a) * 30, vx: Math.cos(a) * p.bulletSpeed, vy: Math.sin(a) * p.bulletSpeed, life: 1.2, owner: id, dmg, pierce, hitSet: [] });
+        }
+        // LASER cần mana
+        if (p.powerups.laser > 0 && (!p.lastLaser || state.time - p.lastLaser > 0.4)) {
+          if (p.mana >= MANA_COST_LASER) {
+            p.mana -= MANA_COST_LASER;
+            p.lastLaser = state.time;
+            spawnLaser(p.x, p.y, p.aim, id);
+            state.events.push('laser');
+          }
+        }
+        // BOMB cần mana
+        if (p.powerups.bomb > 0 && (!p.lastBomb || state.time - p.lastBomb > 0.8)) {
+          if (p.mana >= MANA_COST_BOMB) {
+            p.mana -= MANA_COST_BOMB;
+            p.lastBomb = state.time;
+            const tx = p.x + Math.cos(p.aim) * 260, ty = p.y + Math.sin(p.aim) * 260;
+            explodeBomb(tx, ty, id);
+          }
+        }
+        state.events.push('shoot');
       }
-      if (p.powerups.laser > 0 && (!p.lastLaser || state.time - p.lastLaser > 0.4)) {
-        p.lastLaser = state.time; spawnLaser(p.x, p.y, p.aim, id); state.events.push('laser');
-      }
-      if (p.powerups.bomb > 0 && (!p.lastBomb || state.time - p.lastBomb > 0.8)) {
-        p.lastBomb = state.time;
-        const tx = p.x + Math.cos(p.aim) * 260, ty = p.y + Math.sin(p.aim) * 260;
-        explodeBomb(tx, ty, id);
-      }
-      state.events.push('shoot');
     }
     p._prevX = p.x; p._prevY = p.y;
   }
@@ -1474,6 +1612,7 @@ addEventListener('keydown', e => { keys[e.key.toLowerCase()] = true; });
 addEventListener('keyup', e => { keys[e.key.toLowerCase()] = false; });
 canvasEl.addEventListener('mousemove', e => { mouse.x = e.clientX; mouse.y = e.clientY; });
 canvasEl.addEventListener('mousedown', e => {
+  if (e.button !== 0) return;
   if (e.target.closest && e.target.closest('.joystick')) return;
   mouse.down = true;
 });
@@ -1494,9 +1633,14 @@ function getInputs() {
   if (len > 1) { mx /= len; my /= len; }
 
   let aim, shoot;
-  if (touch.aimActive) {
+  const aimLen = Math.hypot(touch.aimX, touch.aimY);
+  if (touch.aimActive && aimLen > 0.2) {
     aim = Math.atan2(touch.aimY, touch.aimX);
     shoot = touch.shooting;
+  } else if (touch.aimActive) {
+    const me = state && state.players[myId];
+    aim = me ? me.aim : 0;
+    shoot = false;
   } else {
     aim = Math.atan2(mouse.y - H / 2, mouse.x - W / 2);
     shoot = mouse.down || keys[' '];
@@ -1725,6 +1869,15 @@ function drawPlayer(p, isMe, st) {
   ctx.save();
   ctx.translate(p.x, p.y);
 
+  if (p.manaFlash > 0) {
+    ctx.save();
+    ctx.globalAlpha = p.manaFlash * 0.7;
+    ctx.strokeStyle = '#4dd9ff'; ctx.lineWidth = 4;
+    ctx.setLineDash([8, 6]);
+    ctx.beginPath(); ctx.arc(0, 0, 38, 0, TAU); ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.restore();
+  }
   if (p.curseFlash > 0) {
     ctx.save();
     ctx.globalAlpha = p.curseFlash * 0.6;
@@ -1804,6 +1957,14 @@ function drawPlayer(p, isMe, st) {
   const hpPct = Math.max(0, p.hp / (p.maxHp || 100));
   ctx.fillStyle = hpPct > 0.5 ? '#2ee07a' : hpPct > 0.25 ? '#ffd93d' : '#ff5b6e';
   ctx.fillRect(-w/2, -24, w * hpPct, 4);
+
+  // mana bar nhỏ dưới chân player
+  ctx.fillStyle = 'rgba(0,0,0,0.7)';
+  ctx.fillRect(-w/2, -18, w, 3);
+  const mpPct = Math.max(0, p.mana / (p.maxMana || MANA_MAX));
+  ctx.fillStyle = '#4dd9ff';
+  ctx.fillRect(-w/2, -18, w * mpPct, 3);
+
   ctx.restore();
 }
 
@@ -1994,7 +2155,7 @@ function drawGame(st) {
 
   let sx = 0, sy = 0;
   if (shakeTime > 0) {
-    shakeTime -= 0.016;
+    shakeTime = Math.max(0, shakeTime - 0.016);
     sx = (Math.random() - 0.5) * shakeIntensity;
     sy = (Math.random() - 0.5) * shakeIntensity;
   }
@@ -2033,7 +2194,6 @@ function drawGame(st) {
     ctx.restore();
   }
 
-  // Wave progress (PvE)
   if (st.mode === 'pve' && st.waveActive) {
     const remaining = st.waveSpawnQueue.length + st.enemies.length;
     const total = st.waveTotal;
