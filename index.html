@@ -476,12 +476,12 @@ setupJoystick(
   }
 );
 
-/* ============ BOT CFG ============ */
+/* ============ BOT CFG (ĐÃ GIẢM BUFF TOÀN BỘ) ============ */
 const BOT_CFG = {
-  easy: { speedBonus: 0.65, aimJitter: 0.55, shootRange: 550, dodge: false, dodgeRange: 0, smart: false, lead: 0, fireRate: 500, damage: 6, idealDist: 450, hp: 80, name: 'BOT DỄ', color: '#7bd66b' },
-  normal: { speedBonus: 0.85, aimJitter: 0.25, shootRange: 700, dodge: true, dodgeRange: 160, smart: false, lead: 0.3, fireRate: 330, damage: 10, idealDist: 380, hp: 100, name: 'BOT THƯỜNG', color: '#4dd9ff' },
-  hard: { speedBonus: 1.05, aimJitter: 0.13, shootRange: 850, dodge: true, dodgeRange: 260, smart: true, lead: 0.6, fireRate: 220, damage: 14, idealDist: 330, hp: 130, name: 'BOT KHÁ', color: '#ff8c1a' },
-  insane: { speedBonus: 1.25, aimJitter: 0.05, shootRange: 1000, dodge: true, dodgeRange: 380, smart: true, lead: 1.0, fireRate: 140, damage: 18, idealDist: 300, hp: 160, name: 'BOT SIÊU KHÓ', color: '#ff5b6e' }
+  easy: { speedBonus: 0.60, aimJitter: 0.60, shootRange: 500, dodge: false, dodgeRange: 0, smart: false, lead: 0, fireRate: 550, damage: 5, idealDist: 450, hp: 70, name: 'BOT DỄ', color: '#7bd66b' },
+  normal: { speedBonus: 0.80, aimJitter: 0.30, shootRange: 650, dodge: true, dodgeRange: 140, smart: false, lead: 0.2, fireRate: 360, damage: 8, idealDist: 380, hp: 90, name: 'BOT THƯỜNG', color: '#4dd9ff' },
+  hard: { speedBonus: 0.95, aimJitter: 0.18, shootRange: 800, dodge: true, dodgeRange: 220, smart: true, lead: 0.5, fireRate: 260, damage: 12, idealDist: 330, hp: 110, name: 'BOT KHÁ', color: '#ff8c1a' },
+  insane: { speedBonus: 1.10, aimJitter: 0.10, shootRange: 900, dodge: true, dodgeRange: 280, smart: true, lead: 0.7, fireRate: 200, damage: 14, idealDist: 320, hp: 130, name: 'BOT SIÊU KHÓ', color: '#ff5b6e' }
 };
 const DIFF_NAME = { easy: 'DỄ', normal: 'BÌNH THƯỜNG', hard: 'KHÁ', insane: 'SIÊU KHÓ' };
 
@@ -503,7 +503,8 @@ function makePlayer(id, name) {
     shieldHp: 0, burnTick: 0, lastShoot: 0,
     levelUpFlash: 0, curseFlash: 0, pvpInvuln: 0,
     isBot: false, difficulty: null,
-    _prevX: 0, _prevY: 0
+    _prevX: 0, _prevY: 0,
+    smoothX: 0, smoothY: 0
   };
 }
 function makeBot(difficulty) {
@@ -534,7 +535,7 @@ function initGame(mode, difficulty) {
   if (mode === 'bot') {
     state.players['BOT'] = makeBot(difficulty);
     
-    // BUFF NHẸ CHO PLAYER KHI ĐẤU BOT ĐỂ BẮN MƯỢT HƠN
+    // BUFF NHẸ CHO PLAYER KHI ĐẤU BOT
     state.players[myId].fireRate = 130; 
     state.players[myId].bulletSpeed = 1300;
     
@@ -835,23 +836,25 @@ function spawnEnemy() {
 function spawnBoss() {
   if (!state) return;
   const type = state.bossIndex % 6; state.bossIndex++;
+  // TĂNG MẠNH HP VÀ SÁT THƯƠNG CỦA BOSS
   const stats = [
-    { hp: 720, speed: 66, r: 48, color: '#b46bff', stroke: '#6a2f9e', xp: 15 },
-    { hp: 520, speed: 78, r: 46, color: '#ff4d6d', stroke: '#8a1f35', xp: 15 },
-    { hp: 420, speed: 90, r: 44, color: '#ff8c1a', stroke: '#a04d00', xp: 15 },
-    { hp: 560, speed: 55, r: 46, color: '#1ac4c4', stroke: '#0a7272', xp: 15 },
-    { hp: 480, speed: 80, r: 45, color: '#e0e0e0', stroke: '#555', xp: 15 },
-    { hp: 650, speed: 40, r: 50, color: '#ffd93d', stroke: '#8a6d1a', xp: 15 }
+    { hp: 1800, speed: 70, r: 48, color: '#b46bff', stroke: '#6a2f9e', xp: 30 },
+    { hp: 1400, speed: 85, r: 46, color: '#ff4d6d', stroke: '#8a1f35', xp: 30 },
+    { hp: 1100, speed: 100, r: 44, color: '#ff8c1a', stroke: '#a04d00', xp: 30 },
+    { hp: 1500, speed: 60, r: 46, color: '#1ac4c4', stroke: '#0a7272', xp: 30 },
+    { hp: 1300, speed: 90, r: 45, color: '#e0e0e0', stroke: '#555', xp: 30 },
+    { hp: 1700, speed: 45, r: 50, color: '#ffd93d', stroke: '#8a6d1a', xp: 30 }
   ];
   const s = stats[type];
   let avgX = 0, avgY = 0, count = 0;
   for (const id in state.players) { avgX += state.players[id].x; avgY += state.players[id].y; count++; }
   if (count > 0) { avgX /= count; avgY /= count; }
   state.enemies.push({
-    x: avgX + 700, y: avgY, hp: s.hp + state.wave * 100, maxHp: s.hp + state.wave * 100,
-    speed: s.speed, r: s.r, dmg: 30 + state.wave * 2, score: 300 + state.wave * 30,
+    x: avgX + 700, y: avgY, 
+    hp: s.hp + state.wave * 250, maxHp: s.hp + state.wave * 250,
+    speed: s.speed, r: s.r, dmg: 50 + state.wave * 5, score: 500 + state.wave * 50,
     xp: s.xp, color: s.color, stroke: s.stroke, angle: 0, hitFlash: 0, seed: Math.random() * 10,
-    isBoss: true, bossType: type, atkCd: 1.5, spawnAnim: 0.8, wobble: Math.random()*100
+    isBoss: true, bossType: type, atkCd: 1.2, spawnAnim: 0.8, wobble: Math.random()*100
   });
   state.events.push('pickup');
 }
@@ -891,7 +894,7 @@ function killEnemy(e, ownerId) {
   }
 }
 
-/* ============ BOT AI ============ */
+/* ============ BOT AI (CÓ LÀM MƯỢT) ============ */
 function computeBotInput(bot, player, pvx, pvy) {
   const cfg = BOT_CFG[bot.difficulty];
   if (!cfg || bot.hp <= 0 || player.hp <= 0) {
@@ -958,8 +961,21 @@ function computeBotInput(bot, player, pvx, pvy) {
       mx += -ny * strafeSign * 0.8; my += nx * strafeSign * 0.8;
     }
   }
+  
   const ml = Math.hypot(mx, my);
   if (ml > 0) { mx /= ml; my /= ml; }
+  
+  // LÀM MƯỢT CHUYỂN ĐỘNG CỦA BOT (HẾT GIẬT)
+  bot.smoothX = bot.smoothX * 0.85 + mx * 0.15;
+  bot.smoothY = bot.smoothY * 0.85 + my * 0.15;
+  const sLen = Math.hypot(bot.smoothX, bot.smoothY);
+  if (sLen > 0.1) {
+    mx = bot.smoothX / sLen;
+    my = bot.smoothY / sLen;
+  } else {
+    mx = 0; my = 0;
+  }
+
   const shoot = d < cfg.shootRange;
   return { x: mx, y: my, aim, shoot };
 }
@@ -1075,7 +1091,6 @@ function gameLoop(now) {
     let fireRate = p.fireRate;
     if (p.powerups.jam > 0) fireRate *= 2.0;
 
-    // SỬA LỖI BẮN CHẬM: Dùng state.time để đồng bộ logic cooldown chính xác
     if (p.input.shoot && (!p.lastShoot || state.time - p.lastShoot > fireRate / 1000)) {
       p.lastShoot = state.time;
       let dmg = p.damage;
@@ -1694,22 +1709,32 @@ function drawParticles(st) {
 }
 
 function drawBotIndicator(st) {
-  if (st.mode !== 'bot') return;
-  const bot = st.players['BOT'];
+  let targetObj = null;
+  let targetColor = '#ff5b6e';
+  let labelName = 'BOT';
+  
+  if (st.mode === 'bot') {
+    const bot = st.players['BOT'];
+    if (bot && bot.hp > 0) { targetObj = bot; targetColor = '#ff5b6e'; labelName = 'BOT'; }
+  } else if (st.mode === 'pve') {
+    const boss = st.enemies.find(e => e.isBoss);
+    if (boss) { targetObj = boss; targetColor = boss.color; labelName = 'BOSS'; }
+  }
+
+  if (!targetObj) return;
   const me = st.players[myId];
-  if (!bot || bot.hp <= 0 || !me || me.hp <= 0) return;
+  if (!me || me.hp <= 0) return;
   if (!isFinite(cam.x) || !isFinite(cam.y)) return;
 
-  const botSX = bot.x - cam.x + W / 2;
-  const botSY = bot.y - cam.y + H / 2;
+  const tx = targetObj.x - cam.x + W / 2;
+  const ty = targetObj.y - cam.y + H / 2;
   const margin = 70;
 
-  if (botSX > margin && botSX < W - margin &&
-      botSY > margin && botSY < H - margin) return;
+  if (tx > margin && tx < W - margin && ty > margin && ty < H - margin) return;
 
   const pSX = me.x - cam.x + W / 2;
   const pSY = me.y - cam.y + H / 2;
-  const dx = bot.x - me.x, dy = bot.y - me.y;
+  const dx = targetObj.x - me.x, dy = targetObj.y - me.y;
   const worldDist = Math.hypot(dx, dy) || 1;
   const ux = dx / worldDist, uy = dy / worldDist;
 
@@ -1730,23 +1755,23 @@ function drawBotIndicator(st) {
 
   ctx.save();
   ctx.save();
-  ctx.shadowColor = '#ff5b6e';
+  ctx.shadowColor = targetColor;
   ctx.shadowBlur = 18 + 8 * pulse;
-  ctx.strokeStyle = 'rgba(255,90,110,' + (0.7 * pulse) + ')';
+  ctx.strokeStyle = `rgba(${targetColor === '#ff5b6e' ? '255,90,110' : '200,100,255'},${(0.7 * pulse)})`;
   ctx.lineWidth = 2;
   ctx.beginPath(); ctx.arc(ex, ey, 24 + 4 * pulse, 0, TAU); ctx.stroke();
   ctx.restore();
 
   ctx.save();
-  ctx.fillStyle = 'rgba(255,90,110,' + (0.15 * pulse) + ')';
+  ctx.fillStyle = `rgba(${targetColor === '#ff5b6e' ? '255,90,110' : '200,100,255'},${(0.15 * pulse)})`;
   ctx.beginPath(); ctx.arc(ex, ey, 20, 0, TAU); ctx.fill();
   ctx.restore();
 
   ctx.save();
   ctx.translate(ex, ey);
   ctx.rotate(angle);
-  ctx.fillStyle = '#ff5b6e';
-  ctx.shadowColor = '#ff5b6e';
+  ctx.fillStyle = targetColor;
+  ctx.shadowColor = targetColor;
   ctx.shadowBlur = 15;
   const aSize = 16;
   ctx.beginPath();
@@ -1763,7 +1788,7 @@ function drawBotIndicator(st) {
   ctx.font = 'bold 12px system-ui,sans-serif';
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
-  const distTxt = Math.round(worldDist / 10) + 'm';
+  const distTxt = labelName + ' ' + Math.round(worldDist / 10) + 'm';
   ctx.lineWidth = 3;
   ctx.strokeStyle = 'rgba(0,0,0,0.85)';
   ctx.strokeText(distTxt, labelX, labelY);
