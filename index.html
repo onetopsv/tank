@@ -742,6 +742,7 @@ const MANA_REGEN_BOT = 18;
 const XP_ORB_RADIUS = 34;
 const XP_ORB_MAGNET_RANGE = 90;
 const XP_ORB_MAGNET_SPEED = 400;
+const MAGNET_POWERUP_RANGE = 600;   // ← Bán kính hút khi có power-up NAM CHÂM
 
 /* ============ SKILL CONFIG ============ */
 const BOSS_SKILLS = [
@@ -761,14 +762,15 @@ function xpNeeded(lvl) { return 5 + (lvl - 1) * 3; }
 
 function makePlayer(id, name) {
   return {
-    id, name, x: 0, y: 0,
+    id, name, x: 0, y: 0, r: 20,                 // ← THÊM r: 20 (bán kính player)
     hp: 100, maxHp: 100, score: 0,
     mana: MANA_MAX, maxMana: MANA_MAX,
     angle: -Math.PI/2, aim: 0, aimJitter: 0,
     input: {x:0, y:0, aim:0, shoot:false},
     level: 1, xp: 0,
     fireRate: 180, damage: 14, bulletSpeed: 1000,
-    powerups: { laser:0, bomb:0, shield:0, speed:0, pierce:0, tripleshot:0, curse:0, slow:0, burn:0, confuse:0, freeze:0, jam:0 },
+    powerups: { laser:0, bomb:0, shield:0, speed:0, pierce:0, tripleshot:0,
+                magnet:0, curse:0, slow:0, burn:0, confuse:0, freeze:0, jam:0 },  // ← THÊM magnet:0
     shieldHp: 0, burnTick: 0, lastShoot: 0, lastLaser: 0, lastBomb: 0,
     levelUpFlash: 0, curseFlash: 0, pvpInvuln: 0,
     frozen: 0, frozenFlash: 0,
@@ -1045,12 +1047,10 @@ function updateSkillBarUI() {
     btn.dataset.skillKey = skillKey;
     btn.dataset.index = i;
 
-    // Cooldown overlay
     const cdEl = document.createElement('div');
     cdEl.className = 'cd-overlay hidden';
     btn.appendChild(cdEl);
 
-    // Pointer events cho mobile
     btn.addEventListener('pointerdown', (e) => {
       e.preventDefault();
       e.stopPropagation();
@@ -1106,7 +1106,6 @@ function triggerSkill(skillKey) {
   me.skillCooldowns[skillKey] = sk.cd * me.skillCdMultiplier;
   state.events.push('skill');
 
-  // Execute skill
   const aim = me.aim || 0;
 
   if (skillKey === 'charge') {
@@ -1117,7 +1116,6 @@ function triggerSkill(skillKey) {
     state.announce = { text: '⚡ LAO TỚI!', t: 1.2 };
     spawnParticles(me.x, me.y, '#b46bff', 30, 400);
   } else if (skillKey === 'flame') {
-    // 5 tia lửa
     for (let k = -2; k <= 2; k++) {
       const a = aim + k * 0.18;
       state.bullets.push({
@@ -1130,7 +1128,6 @@ function triggerSkill(skillKey) {
     playSound('fire');
     spawnParticles(me.x, me.y, '#ff8c1a', 20, 300);
   } else if (skillKey === 'freeze') {
-    // 6 đạn băng tỏa tròn
     for (let k = 0; k < 6; k++) {
       const a = (k / 6) * TAU + aim;
       state.bullets.push({
@@ -1143,7 +1140,6 @@ function triggerSkill(skillKey) {
     playSound('freeze');
     spawnParticles(me.x, me.y, '#4dd9ff', 25, 300);
   } else if (skillKey === 'drain') {
-    // AoE hút máu - mỗi quái xung quanh bị hút 1 lượng máu
     const R = 280;
     let totalDrain = 0;
     for (let i = state.enemies.length - 1; i >= 0; i--) {
@@ -1153,7 +1149,6 @@ function triggerSkill(skillKey) {
         e.hp -= drain;
         totalDrain += drain;
         spawnParticles(e.x, e.y, '#ff4d6d', 6, 200);
-        // Particle bay về player
         state.particles.push({
           x: e.x, y: e.y,
           vx: (me.x - e.x) * 2, vy: (me.y - e.y) * 2,
@@ -1162,7 +1157,6 @@ function triggerSkill(skillKey) {
         if (e.hp <= 0) killEnemy(e, myId);
       }
     }
-    // Hồi máu player = 60% tổng dmg
     if (totalDrain > 0) {
       me.hp = Math.min(me.maxHp, me.hp + totalDrain * 0.6);
       spawnParticles(me.x, me.y, '#ff4d6d', 30, 400);
@@ -1170,7 +1164,6 @@ function triggerSkill(skillKey) {
     playSound('drain');
     state.announce = { text: '🩸 HÚT MÁU!', t: 1.0 };
   } else if (skillKey === 'split') {
-    // Triệu hồi 2 quái nhỏ đồng minh (chúng tấn công quái khác)
     for (let k = 0; k < 2; k++) {
       const a = Math.random() * TAU;
       state.enemies.push({
@@ -1422,6 +1415,7 @@ function updateHUD(st) {
 const PU_LABEL = {
   laser: '⚡ LASER', bomb: '💣 BOM', shield: '🛡️ KHIÊN',
   speed: '👟 TỐC ĐỘ', pierce: '🔱 XUYÊN', tripleshot: '🔥 3 TIA',
+  magnet: '🧲 NAM CHÂM',                                                // ← THÊM
   curse: '💀 YẾU', slow: '🐌 CHẬM', burn: '🔥 BỎNG', confuse: '🌀 RỐI',
   freeze: '❄️ BĂNG', jam: '🐢 KẸT SÚNG'
 };
@@ -1451,6 +1445,7 @@ const POWERUPS = [
   { type: 'speed',     color: '#ff8c1a', weight: 10, bad: false },
   { type: 'pierce',    color: '#b46bff', weight: 9,  bad: false },
   { type: 'tripleshot',color: '#ff66b2', weight: 9,  bad: false },
+  { type: 'magnet',    color: '#b46bff', weight: 10, bad: false },     // ← THÊM: NAM CHÂM
   { type: 'curse',     color: '#8a1f35', weight: 5,  bad: true },
   { type: 'slow',      color: '#5a4a8a', weight: 4,  bad: true },
   { type: 'burn',      color: '#ff3a1a', weight: 4,  bad: true },
@@ -1460,14 +1455,15 @@ const POWERUPS = [
 ];
 const PU_ICON = {
   health: '+', mana: '◆', laser: '⚡', bomb: '💣', shield: '🛡', speed: '»',
-  pierce: '➤', tripleshot: '⋔', curse: '💀', slow: '🐌',
+  pierce: '➤', tripleshot: '⋔', magnet: '🧲',                            // ← THÊM
+  curse: '💀', slow: '🐌',
   burn: '🔥', confuse: '🌀', freeze: '❄', jam: '🐢',
   xp: '✦'
 };
 const PU_COLOR = {
   health: '#2ee07a', mana: '#4dd9ff', laser: '#4dd9ff', bomb: '#ff5b6e',
   shield: '#ffd93d', speed: '#ff8c1a', pierce: '#b46bff',
-  tripleshot: '#ff66b2',
+  tripleshot: '#ff66b2', magnet: '#b46bff',                              // ← THÊM
   curse: '#8a1f35', slow: '#5a4a8a', burn: '#ff3a1a',
   confuse: '#8a1f8a', freeze: '#4dd9ff', jam: '#888888',
   xp: '#b46bff'
@@ -1519,6 +1515,7 @@ function applyPickup(p, k) {
     case 'speed': p.powerups.speed = Math.min(15, p.powerups.speed + 8); break;
     case 'pierce': p.powerups.pierce = Math.min(15, p.powerups.pierce + 8); break;
     case 'tripleshot': p.powerups.tripleshot = Math.min(15, p.powerups.tripleshot + 8); break;
+    case 'magnet': p.powerups.magnet = Math.min(15, p.powerups.magnet + 10); break;   // ← THÊM
     case 'curse': p.powerups.curse = Math.min(15, p.powerups.curse + 10); break;
     case 'slow': p.powerups.slow = Math.min(15, p.powerups.slow + 8); break;
     case 'burn': p.powerups.burn = Math.min(15, p.powerups.burn + 6); break;
@@ -1654,7 +1651,6 @@ function killEnemy(e, ownerId) {
   const owner = state.players[ownerId];
   if (owner && !e.isAlly) {
     owner.score += e.score;
-    // XP orb
     const xpTotal = e.xp;
     if (xpTotal > 0) {
       const orbCount = xpTotal >= 4 ? 3 : (xpTotal >= 2 ? 2 : 1);
@@ -1679,7 +1675,6 @@ function killEnemy(e, ownerId) {
     }
     if (Math.random() < 0.18) spawnPowerup(e.x, e.y);
 
-    // BOSS DROP SKILL
     if (e.isBoss) {
       if (Math.random() < SKILL_DROP_CHANCE) {
         const bossSkillKey = BOSS_TYPES[e.bossType].skillKey;
@@ -1926,7 +1921,7 @@ function updateBoss(e, target, dt, st) {
     }
     if (e.draining) {
       e.drainActive -= dt;
-      const drainRange = 220;
+      const drainRange = 400;                 // ← TĂNG từ 220 → 400
       if (d < drainRange) {
         const drainAmt = 10 * dt;
         target.hp -= drainAmt;
@@ -2189,7 +2184,6 @@ function gameLoop(now) {
     }
   }
 
-  // Update skill cooldowns
   if (state) {
     const me = state.players[myId];
     if (me) {
@@ -2241,7 +2235,7 @@ function gameLoop(now) {
         const dashSpeed = 1200;
         p.x += p.chargeDirX * dashSpeed * dt;
         p.y += p.chargeDirY * dashSpeed * dt;
-        // Damage enemies trong đường lao
+        // Damage enemies trong đường lao — dùng p.r (đã thêm = 20)
         for (let i = state.enemies.length - 1; i >= 0; i--) {
           const e = state.enemies[i];
           if (e.isAlly) continue;
@@ -2390,7 +2384,6 @@ function gameLoop(now) {
       if (e.spawnAnim > 0) { e.spawnAnim -= dt; e.wobble += dt * 8; continue; }
       e.wobble += dt * 4;
 
-      // Ally (từ skill phân chia)
       if (e.isAlly) {
         e.allyLife -= dt;
         if (e.allyLife <= 0) {
@@ -2399,7 +2392,6 @@ function gameLoop(now) {
           if (idx !== -1) state.enemies.splice(idx, 1);
           continue;
         }
-        // Tìm quái địch gần nhất để tấn công
         let nearest = null, minD = Infinity;
         for (const en of state.enemies) {
           if (en.isAlly) continue;
@@ -2425,7 +2417,6 @@ function gameLoop(now) {
         continue;
       }
 
-      // Frozen enemies: slow down
       if (e.frozen && e.frozen > 0) {
         e.frozen -= dt;
         if (e.frozen <= 0) e.frozen = 0;
@@ -2528,7 +2519,6 @@ function gameLoop(now) {
     k.life -= dt; k.bob += dt * 4;
     if (k.life <= 0) { state.pickups.splice(i, 1); continue; }
 
-    // XP orb
     if (k.type === 'xp') {
       if (k.vx || k.vy) {
         k.x += k.vx * dt;
@@ -2540,12 +2530,16 @@ function gameLoop(now) {
       }
       const me = state.players[myId];
       if (me && me.hp > 0) {
+        // ← Nếu có powerup NAM CHÂM, bán kính hút tăng lên MAGNET_POWERUP_RANGE
+        const magnetRange = (me.powerups.magnet > 0)
+          ? MAGNET_POWERUP_RANGE
+          : XP_ORB_MAGNET_RANGE;
         const ddx = me.x - k.x, ddy = me.y - k.y;
         const dd = Math.hypot(ddx, ddy);
-        if (dd < XP_ORB_MAGNET_RANGE) {
+        if (dd < magnetRange) {
           k.magnetized = true;
           const nx = ddx / (dd || 1), ny = ddy / (dd || 1);
-          const speed = XP_ORB_MAGNET_SPEED * (1 - dd / XP_ORB_MAGNET_RANGE) + 150;
+          const speed = XP_ORB_MAGNET_SPEED * (1 - dd / magnetRange) + 150;
           k.x += nx * speed * dt;
           k.y += ny * speed * dt;
         } else {
@@ -2617,7 +2611,6 @@ const mouse = { x: W / 2, y: H / 2, down: false };
 addEventListener('keydown', e => {
   keys[e.key.toLowerCase()] = true;
 
-  // Hotkey 1-5 để kích hoạt skill
   const num = parseInt(e.key, 10);
   if (num >= 1 && num <= 5 && state && !state.over) {
     const me = state.players[myId];
@@ -2866,7 +2859,7 @@ function drawBossAura(e, st) {
     ctx.restore();
   }
   if (e.bossType === 3 && e.draining) {
-    const drainRange = 220;
+    const drainRange = 400;                    // ← TĂNG từ 220 → 400
     ctx.save();
     const grad = ctx.createRadialGradient(0, 0, e.r, 0, 0, drainRange);
     grad.addColorStop(0, 'rgba(255,77,109,0.35)');
@@ -2900,7 +2893,6 @@ function drawEnemy(e, st, targetPlayer) {
   ctx.globalAlpha = 1;
 
   if (e.isAlly) {
-    // Vẽ quái đồng minh (hình vuông phát sáng)
     ctx.save();
     ctx.rotate(t * 2);
     ctx.fillStyle = e.color;
@@ -2908,7 +2900,6 @@ function drawEnemy(e, st, targetPlayer) {
     ctx.strokeStyle = '#fff'; ctx.lineWidth = 2;
     ctx.strokeRect(-e.r*0.7, -e.r*0.7, e.r*1.4, e.r*1.4);
     ctx.restore();
-    // Vòng đời
     ctx.fillStyle = 'rgba(0,0,0,0.5)';
     ctx.fillRect(-e.r, -e.r-10, e.r*2, 3);
     ctx.fillStyle = '#ff66b2';
@@ -3008,7 +2999,6 @@ function drawPlayer(p, isMe, st) {
   ctx.save();
   ctx.translate(p.x, p.y);
 
-  // Charge visual
   if (p.chargeState === 'charging') {
     ctx.save();
     ctx.globalAlpha = 0.5 + 0.4 * Math.sin(performance.now() * 0.03);
@@ -3017,7 +3007,6 @@ function drawPlayer(p, isMe, st) {
     ctx.setLineDash([8, 6]);
     ctx.beginPath(); ctx.arc(0, 0, 32, 0, TAU); ctx.stroke();
     ctx.setLineDash([]);
-    // Hướng lao
     ctx.globalAlpha = 0.4;
     ctx.beginPath();
     ctx.moveTo(0, 0);
@@ -3114,6 +3103,15 @@ function drawPlayer(p, isMe, st) {
     ctx.strokeStyle = '#ffd93d'; ctx.lineWidth = 3;
     ctx.shadowColor = '#ffd93d'; ctx.shadowBlur = 20;
     ctx.beginPath(); ctx.arc(0, 0, 32, 0, TAU); ctx.stroke();
+    ctx.restore();
+  }
+  if (p.powerups.magnet > 0) {
+    ctx.save();
+    ctx.globalAlpha = 0.35 + 0.2 * Math.sin(performance.now() * 0.008);
+    ctx.strokeStyle = '#b46bff'; ctx.lineWidth = 2;
+    ctx.setLineDash([4, 8]);
+    ctx.beginPath(); ctx.arc(0, 0, 60, 0, TAU); ctx.stroke();
+    ctx.setLineDash([]);
     ctx.restore();
   }
   if (p.pvpInvuln > 0 && Math.floor(performance.now() * 0.02) % 2 === 0) ctx.globalAlpha = 0.5;
