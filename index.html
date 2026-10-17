@@ -149,6 +149,49 @@
   #joyRight .knob{background:rgba(255,91,110,0.75);border-color:#ff5b6e;
     box-shadow:0 0 25px #ff5b6e88}
 
+  /* ===== SKILL BUTTONS (mobile) ===== */
+  #skillBar{
+    position:fixed;
+    bottom:200px;
+    right:20px;
+    z-index:26;
+    display:flex;
+    flex-direction:column;
+    gap:10px;
+    pointer-events:none;
+  }
+  .skill-btn{
+    width:64px;height:64px;border-radius:50%;
+    background:rgba(10,20,26,0.9);
+    border:3px solid;
+    color:#fff;
+    font-size:22px;
+    font-weight:900;
+    display:flex;align-items:center;justify-content:center;
+    pointer-events:auto;
+    cursor:pointer;
+    position:relative;
+    touch-action:none;
+    box-shadow:0 0 20px currentColor;
+    transition:transform .1s;
+    font-family:system-ui;
+  }
+  .skill-btn:active{transform:scale(0.9)}
+  .skill-btn.cd{opacity:0.4;filter:grayscale(1)}
+  .skill-btn .cd-overlay{
+    position:absolute;inset:0;border-radius:50%;
+    display:flex;align-items:center;justify-content:center;
+    background:rgba(0,0,0,0.7);
+    font-size:18px;color:#fff;font-weight:900;
+  }
+  .skill-btn .hotkey{
+    position:absolute;top:-6px;right:-6px;
+    background:#0a141a;border:2px solid #fff;border-radius:50%;
+    width:20px;height:20px;font-size:10px;font-weight:900;
+    display:flex;align-items:center;justify-content:center;
+    color:#fff;
+  }
+
   #enemiesLeftBox{
     position: fixed; top: 16px; right: 16px; z-index: 10; pointer-events: none;
     padding: 6px 14px 5px; border-radius: 12px;
@@ -247,8 +290,11 @@
   <div id="joyRight" class="joystick"><div class="knob" id="knobRight"></div></div>
 </div>
 
+<!-- Skill bar (mobile buttons) -->
+<div id="skillBar" class="hidden"></div>
+
 <!-- ====== TEST BOSS DEV PANEL ====== -->
-<div id="devPanel" class="hidden" style="position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);z-index:60;background:rgba(10,20,26,0.97);border:2px solid #b46bff;border-radius:14px;padding:18px 20px;width:min(340px,92vw);box-shadow:0 0 40px rgba(180,107,255,0.5);display:flex;flex-direction:column;gap:12px">
+<div id="devPanel" class="hidden" style="position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);z-index:60;background:rgba(10,20,26,0.97);border:2px solid #b46bff;border-radius:14px;padding:18px 20px;width:min(340px,92vw);box-shadow:0 0 40px rgba(180,107,255,0.5);display:flex;flex-direction:column;gap:12px;max-height:90vh;overflow-y:auto">
   <div style="font-size:15px;font-weight:800;letter-spacing:2px;color:#e0c6ff;text-align:center;margin-bottom:4px">⚙️ DEV PANEL</div>
   <div style="display:flex;justify-content:space-between;align-items:center;gap:8px">
     <span style="font-size:12px;color:#cfe9d8">LV</span>
@@ -280,12 +326,19 @@
     <button class="dvbtn" data-stat="fireRate" data-delta="20" style="padding:4px 14px;background:#3a1020;border:1px solid #ff5b6e;color:#ff8a9a;border-radius:6px;cursor:pointer;font-weight:800;font-size:16px">−</button>
     <button class="dvbtn" data-stat="fireRate" data-delta="-20" style="padding:4px 14px;background:#12463a;border:1px solid #2ee07a;color:#9df3c4;border-radius:6px;cursor:pointer;font-weight:800;font-size:16px">+</button>
   </div>
+  <div style="display:flex;justify-content:space-between;align-items:center;gap:8px">
+    <span style="font-size:12px;color:#cfe9d8">SKILL RATE</span>
+    <span id="dvSkillCdVal" style="font-size:14px;color:#e0c6ff;font-weight:800;min-width:40px;text-align:center">1.0</span>
+    <button class="dvbtn" data-stat="skillCd" data-delta="0.1" style="padding:4px 14px;background:#3a1020;border:1px solid #ff5b6e;color:#ff8a9a;border-radius:6px;cursor:pointer;font-weight:800;font-size:16px">−</button>
+    <button class="dvbtn" data-stat="skillCd" data-delta="-0.1" style="padding:4px 14px;background:#12463a;border:1px solid #2ee07a;color:#9df3c4;border-radius:6px;cursor:pointer;font-weight:800;font-size:16px">+</button>
+  </div>
 
   <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:4px">
     <button id="dvFullHeal" style="padding:10px;background:#12463a;border:2px solid #2ee07a;color:#9df3c4;border-radius:8px;cursor:pointer;font-size:12px;font-weight:800">💚 FULL HP</button>
     <button id="dvFullMana" style="padding:10px;background:#0d3a44;border:2px solid #4dd9ff;color:#9df3f4;border-radius:8px;cursor:pointer;font-size:12px;font-weight:800">💙 FULL MANA</button>
     <button id="dvGodMode" style="padding:10px;background:#2a1800;border:2px solid #ffd93d;color:#ffd93d;border-radius:8px;cursor:pointer;font-size:12px;font-weight:800">🛡 GOD MODE</button>
     <button id="dvResetBoss" style="padding:10px;background:#3a1020;border:2px solid #ff5b6e;color:#ff8a9a;border-radius:8px;cursor:pointer;font-size:12px;font-weight:800">🔄 RESPAWN BOSS</button>
+    <button id="dvGiveSkill" style="padding:10px;background:#2a1030;border:2px solid #b46bff;color:#e0c6ff;border-radius:8px;cursor:pointer;font-size:12px;font-weight:800;grid-column:span 2">✨ CHO SKILL BOSS</button>
   </div>
 
   <button id="dvClose" style="padding:10px;background:#1a1a1a;border:2px solid #888;color:#ccc;border-radius:8px;cursor:pointer;font-size:12px;font-weight:800;margin-top:4px">ĐÓNG</button>
@@ -372,6 +425,7 @@ function playSound(type) {
     split:  {t:'square', f1:300, f2:80, g:0.18, d:0.3},
     teleport: {t:'sine', f1:800, f2:200, g:0.15, d:0.3},
     spawn:  {t:'square', f1:200, f2:400, g:0.1, d:0.2},
+    skill:  {t:'sine', f1:500, f2:1500, g:0.15, d:0.3},
   };
   const m = map[type]; if (!m) { osc.disconnect(); gain.disconnect(); return; }
   osc.type = m.t; osc.frequency.setValueAtTime(m.f1, now);
@@ -419,6 +473,7 @@ const screens = {
 const hudEl = document.getElementById('hud');
 const puHudEl = document.getElementById('powerupHud');
 const touchControlsEl = document.getElementById('touchControls');
+const skillBarEl = document.getElementById('skillBar');
 
 const touch = {
   moveX: 0, moveY: 0,
@@ -443,6 +498,7 @@ function show(name) {
   hudEl.classList.add('hidden');
   puHudEl.classList.add('hidden');
   touchControlsEl.classList.add('hidden');
+  skillBarEl.classList.add('hidden');
   document.getElementById('enemiesLeftBox').classList.add('hidden');
   document.getElementById('devPanel').classList.add('hidden');
   document.getElementById('dvOpen').classList.add('hidden');
@@ -452,6 +508,7 @@ function show(name) {
     hudEl.classList.remove('hidden');
     puHudEl.classList.remove('hidden');
     touchControlsEl.classList.remove('hidden');
+    skillBarEl.classList.remove('hidden');
   } else if (screens[name]) screens[name].classList.remove('hidden');
 }
 
@@ -681,6 +738,21 @@ const MANA_COST_BOMB = 20;
 const MANA_COST_BOT_SHOT = 3;
 const MANA_REGEN_BOT = 18;
 
+/* ============ XP ORB CONFIG ============ */
+const XP_ORB_RADIUS = 34;
+const XP_ORB_MAGNET_RANGE = 90;
+const XP_ORB_MAGNET_SPEED = 400;
+
+/* ============ SKILL CONFIG ============ */
+const BOSS_SKILLS = [
+  { key: 'charge',  name: 'LAO TỚI',   color: '#b46bff', icon: '🐂', cd: 6,   cost: 15, desc: 'Tích lực rồi lao thẳng' },
+  { key: 'flame',   name: 'PHUN LỬA',  color: '#ff8c1a', icon: '🔥', cd: 4,   cost: 20, desc: 'Bắn 5 tia lửa' },
+  { key: 'freeze',  name: 'BĂNG GIÁ',  color: '#4dd9ff', icon: '❄',  cd: 5,   cost: 18, desc: 'Bắn đạn băng làm chậm' },
+  { key: 'drain',   name: 'HÚT MÁU',   color: '#ff4d6d', icon: '🩸', cd: 8,   cost: 25, desc: 'Hút máu quái xung quanh' },
+  { key: 'split',   name: 'PHÂN CHIA', color: '#ff66b2', icon: '🧬', cd: 10,  cost: 30, desc: 'Triệu hồi 2 quái nhỏ' },
+];
+const SKILL_DROP_CHANCE = 0.25;
+
 /* ============ STATE ============ */
 let state = null, lastTime = performance.now();
 const myId = 'PLAYER';
@@ -700,6 +772,10 @@ function makePlayer(id, name) {
     shieldHp: 0, burnTick: 0, lastShoot: 0, lastLaser: 0, lastBomb: 0,
     levelUpFlash: 0, curseFlash: 0, pvpInvuln: 0,
     frozen: 0, frozenFlash: 0,
+    skills: [],
+    skillCooldowns: {},
+    skillCdMultiplier: 1.0,
+    chargeState: 'idle', chargeTimer: 0, chargeDirX: 0, chargeDirY: 0,
     isBot: false, difficulty: null,
     _prevX: 0, _prevY: 0,
     smoothX: 0, smoothY: 0, aimSmooth: undefined,
@@ -775,6 +851,7 @@ function initGame(mode, difficulty) {
     document.getElementById('p2Hud').classList.add('hidden');
     startNewWave();
   }
+  updateSkillBarUI();
 }
 
 /* ============ WAVE ============ */
@@ -854,11 +931,11 @@ function spawnEnemyInArena(typeIdx, wave) {
 }
 
 const BOSS_TYPES = [
-  { name: 'BÒ',        color: '#b46bff', stroke: '#6a2f9e', r: 48, hp: 1800, speed: 60, dmg: 40, xp: 30 },
-  { name: 'LỬA',       color: '#ff8c1a', stroke: '#a04d00', r: 46, hp: 1500, speed: 65, dmg: 25, xp: 30 },
-  { name: 'BĂNG',      color: '#4dd9ff', stroke: '#1b6a8a', r: 46, hp: 1600, speed: 70, dmg: 22, xp: 30 },
-  { name: 'HÚT MÁU',   color: '#ff4d6d', stroke: '#8a1f35', r: 48, hp: 1700, speed: 55, dmg: 18, xp: 30 },
-  { name: 'PHÂN CHIA', color: '#ff66b2', stroke: '#8a1f4d', r: 52, hp: 2000, speed: 50, dmg: 30, xp: 30 },
+  { name: 'BÒ',        color: '#b46bff', stroke: '#6a2f9e', r: 48, hp: 1800, speed: 60, dmg: 40, xp: 30, skillKey: 'charge' },
+  { name: 'LỬA',       color: '#ff8c1a', stroke: '#a04d00', r: 46, hp: 1500, speed: 65, dmg: 25, xp: 30, skillKey: 'flame' },
+  { name: 'BĂNG',      color: '#4dd9ff', stroke: '#1b6a8a', r: 46, hp: 1600, speed: 70, dmg: 22, xp: 30, skillKey: 'freeze' },
+  { name: 'HÚT MÁU',   color: '#ff4d6d', stroke: '#8a1f35', r: 48, hp: 1700, speed: 55, dmg: 18, xp: 30, skillKey: 'drain' },
+  { name: 'PHÂN CHIA', color: '#ff66b2', stroke: '#8a1f4d', r: 52, hp: 2000, speed: 50, dmg: 30, xp: 30, skillKey: 'split' },
 ];
 
 function spawnBossInArena() {
@@ -949,6 +1026,170 @@ document.getElementById('btnNormal').onclick = () => startGame('bot', 'normal');
 document.getElementById('btnHard').onclick = () => startGame('bot', 'hard');
 document.getElementById('btnInsane').onclick = () => startGame('bot', 'insane');
 
+/* ============ SKILL BAR UI ============ */
+function updateSkillBarUI() {
+  if (!state) { skillBarEl.innerHTML = ''; return; }
+  const me = state.players[myId];
+  if (!me) { skillBarEl.innerHTML = ''; return; }
+
+  skillBarEl.innerHTML = '';
+  me.skills.forEach((skillKey, i) => {
+    const sk = BOSS_SKILLS.find(s => s.key === skillKey);
+    if (!sk) return;
+    const btn = document.createElement('button');
+    btn.className = 'skill-btn';
+    btn.style.borderColor = sk.color;
+    btn.style.color = sk.color;
+    btn.style.boxShadow = `0 0 20px ${sk.color}`;
+    btn.innerHTML = `${sk.icon}<span class="hotkey">${i+1}</span>`;
+    btn.dataset.skillKey = skillKey;
+    btn.dataset.index = i;
+
+    // Cooldown overlay
+    const cdEl = document.createElement('div');
+    cdEl.className = 'cd-overlay hidden';
+    btn.appendChild(cdEl);
+
+    // Pointer events cho mobile
+    btn.addEventListener('pointerdown', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      triggerSkill(skillKey);
+    });
+    btn.addEventListener('contextmenu', e => e.preventDefault());
+
+    skillBarEl.appendChild(btn);
+  });
+}
+
+function updateSkillCooldownUI() {
+  if (!state) return;
+  const me = state.players[myId];
+  if (!me) return;
+  const btns = skillBarEl.querySelectorAll('.skill-btn');
+  btns.forEach(btn => {
+    const key = btn.dataset.skillKey;
+    const sk = BOSS_SKILLS.find(s => s.key === key);
+    if (!sk) return;
+    const cd = me.skillCooldowns[key] || 0;
+    const cdEl = btn.querySelector('.cd-overlay');
+    if (cd > 0) {
+      btn.classList.add('cd');
+      cdEl.classList.remove('hidden');
+      cdEl.textContent = Math.ceil(cd);
+    } else {
+      btn.classList.remove('cd');
+      cdEl.classList.add('hidden');
+    }
+  });
+}
+
+/* ============ SKILL SYSTEM ============ */
+function triggerSkill(skillKey) {
+  if (!state || state.over) return;
+  const me = state.players[myId];
+  if (!me || me.hp <= 0) return;
+
+  const sk = BOSS_SKILLS.find(s => s.key === skillKey);
+  if (!sk) return;
+
+  const cd = me.skillCooldowns[skillKey] || 0;
+  if (cd > 0) return;
+
+  if (me.mana < sk.cost) {
+    me.manaFlash = 1;
+    state.events.push('nomana');
+    return;
+  }
+
+  me.mana -= sk.cost;
+  me.skillCooldowns[skillKey] = sk.cd * me.skillCdMultiplier;
+  state.events.push('skill');
+
+  // Execute skill
+  const aim = me.aim || 0;
+
+  if (skillKey === 'charge') {
+    me.chargeState = 'charging';
+    me.chargeTimer = 1.0;
+    me.chargeDirX = Math.cos(aim);
+    me.chargeDirY = Math.sin(aim);
+    state.announce = { text: '⚡ LAO TỚI!', t: 1.2 };
+    spawnParticles(me.x, me.y, '#b46bff', 30, 400);
+  } else if (skillKey === 'flame') {
+    // 5 tia lửa
+    for (let k = -2; k <= 2; k++) {
+      const a = aim + k * 0.18;
+      state.bullets.push({
+        x: me.x + Math.cos(a) * 30, y: me.y + Math.sin(a) * 30,
+        vx: Math.cos(a) * 700, vy: Math.sin(a) * 700,
+        life: 1.2, owner: myId, dmg: me.damage * 1.5,
+        pierce: false, hitSet: [], isFire: true, color: '#ff8c1a', r: 10
+      });
+    }
+    playSound('fire');
+    spawnParticles(me.x, me.y, '#ff8c1a', 20, 300);
+  } else if (skillKey === 'freeze') {
+    // 6 đạn băng tỏa tròn
+    for (let k = 0; k < 6; k++) {
+      const a = (k / 6) * TAU + aim;
+      state.bullets.push({
+        x: me.x + Math.cos(a) * 30, y: me.y + Math.sin(a) * 30,
+        vx: Math.cos(a) * 500, vy: Math.sin(a) * 500,
+        life: 2.5, owner: myId, dmg: me.damage * 0.8,
+        pierce: false, hitSet: [], isFreeze: true, freezeDuration: 2.0, color: '#4dd9ff', r: 9
+      });
+    }
+    playSound('freeze');
+    spawnParticles(me.x, me.y, '#4dd9ff', 25, 300);
+  } else if (skillKey === 'drain') {
+    // AoE hút máu - mỗi quái xung quanh bị hút 1 lượng máu
+    const R = 280;
+    let totalDrain = 0;
+    for (let i = state.enemies.length - 1; i >= 0; i--) {
+      const e = state.enemies[i];
+      if (dist(me.x, me.y, e.x, e.y) < R) {
+        const drain = 25;
+        e.hp -= drain;
+        totalDrain += drain;
+        spawnParticles(e.x, e.y, '#ff4d6d', 6, 200);
+        // Particle bay về player
+        state.particles.push({
+          x: e.x, y: e.y,
+          vx: (me.x - e.x) * 2, vy: (me.y - e.y) * 2,
+          life: 0.5, maxLife: 0.5, color: '#ff4d6d', r: 5
+        });
+        if (e.hp <= 0) killEnemy(e, myId);
+      }
+    }
+    // Hồi máu player = 60% tổng dmg
+    if (totalDrain > 0) {
+      me.hp = Math.min(me.maxHp, me.hp + totalDrain * 0.6);
+      spawnParticles(me.x, me.y, '#ff4d6d', 30, 400);
+    }
+    playSound('drain');
+    state.announce = { text: '🩸 HÚT MÁU!', t: 1.0 };
+  } else if (skillKey === 'split') {
+    // Triệu hồi 2 quái nhỏ đồng minh (chúng tấn công quái khác)
+    for (let k = 0; k < 2; k++) {
+      const a = Math.random() * TAU;
+      state.enemies.push({
+        x: me.x + Math.cos(a) * 60, y: me.y + Math.sin(a) * 60,
+        behavior: 'chase', hp: 100, maxHp: 100, speed: 150, r: 18, dmg: 20,
+        score: 0, xp: 0, color: '#ff66b2', stroke: '#8a1f4d',
+        angle: 0, hitFlash: 0, seed: Math.random() * 10,
+        isBoss: false, isAlly: true, atkCd: 1.0, spawnAnim: 0.3, wobble: Math.random() * 100,
+        allyLife: 15
+      });
+    }
+    playSound('split');
+    spawnParticles(me.x, me.y, '#ff66b2', 25, 350);
+    state.announce = { text: '🧬 PHÂN CHIA!', t: 1.2 };
+  }
+
+  updateSkillCooldownUI();
+}
+
 /* ============ TEST BOSS ============ */
 function startBossTest(bossType) {
   initAudio();
@@ -998,6 +1239,7 @@ function startBossTest(bossType) {
   document.getElementById('dvGodMode').style.color = '#ffd93d';
   document.getElementById('dvGodMode').style.borderColor = '#ffd93d';
   updateDevPanelUI();
+  updateSkillBarUI();
 }
 
 document.getElementById('btnMenu').onclick = () => {
@@ -1033,6 +1275,7 @@ function updateDevPanelUI() {
   document.getElementById('dvHpVal').textContent = me.maxHp;
   document.getElementById('dvManaVal').textContent = me.maxMana;
   document.getElementById('dvFrVal').textContent = me.fireRate;
+  document.getElementById('dvSkillCdVal').textContent = me.skillCdMultiplier.toFixed(1);
 }
 
 document.querySelectorAll('.dvbtn').forEach(btn => {
@@ -1040,7 +1283,7 @@ document.querySelectorAll('.dvbtn').forEach(btn => {
     if (!state || !state.isBossTest) return;
     const me = state.players[myId];
     const stat = btn.dataset.stat;
-    const delta = parseInt(btn.dataset.delta, 10);
+    const delta = parseFloat(btn.dataset.delta);
 
     if (stat === 'level') {
       me.level = Math.max(1, me.level + delta);
@@ -1061,6 +1304,8 @@ document.querySelectorAll('.dvbtn').forEach(btn => {
       me.mana = Math.min(me.mana, me.maxMana);
     } else if (stat === 'fireRate') {
       me.fireRate = Math.max(30, me.fireRate + delta);
+    } else if (stat === 'skillCd') {
+      me.skillCdMultiplier = Math.max(0.1, Math.min(5, me.skillCdMultiplier + delta));
     }
     updateDevPanelUI();
   };
@@ -1094,6 +1339,19 @@ document.getElementById('dvResetBoss').onclick = () => {
   state.bossIndex = state.testBossType;
   const bossName = BOSS_TYPES[state.testBossType].name;
   state.announce = { text: 'RESPAWN: BOSS ' + bossName, t: 1.5 };
+};
+document.getElementById('dvGiveSkill').onclick = () => {
+  if (!state || !state.isBossTest) return;
+  const me = state.players[myId];
+  const sk = BOSS_SKILLS.find(s => s.key === BOSS_TYPES[state.testBossType].skillKey);
+  if (sk && !me.skills.includes(sk.key)) {
+    me.skills.push(sk.key);
+    me.skillCooldowns[sk.key] = 0;
+    updateSkillBarUI();
+    state.announce = { text: '✨ NHẬN SKILL: ' + sk.name, t: 2.0 };
+  } else {
+    state.announce = { text: 'ĐÃ CÓ SKILL NÀY RỒI', t: 1.5 };
+  }
 };
 document.getElementById('dvClose').onclick = () => {
   document.getElementById('devPanel').classList.add('hidden');
@@ -1203,14 +1461,16 @@ const POWERUPS = [
 const PU_ICON = {
   health: '+', mana: '◆', laser: '⚡', bomb: '💣', shield: '🛡', speed: '»',
   pierce: '➤', tripleshot: '⋔', curse: '💀', slow: '🐌',
-  burn: '🔥', confuse: '🌀', freeze: '❄', jam: '🐢'
+  burn: '🔥', confuse: '🌀', freeze: '❄', jam: '🐢',
+  xp: '✦'
 };
 const PU_COLOR = {
   health: '#2ee07a', mana: '#4dd9ff', laser: '#4dd9ff', bomb: '#ff5b6e',
   shield: '#ffd93d', speed: '#ff8c1a', pierce: '#b46bff',
   tripleshot: '#ff66b2',
   curse: '#8a1f35', slow: '#5a4a8a', burn: '#ff3a1a',
-  confuse: '#8a1f8a', freeze: '#4dd9ff', jam: '#888888'
+  confuse: '#8a1f8a', freeze: '#4dd9ff', jam: '#888888',
+  xp: '#b46bff'
 };
 function pickPUType() {
   const total = POWERUPS.reduce((s,p)=>s+p.weight,0);
@@ -1225,6 +1485,28 @@ function spawnPowerup(x, y) {
   state.pickups.push({ x, y, type, color: def.color, bad: def.bad, life: 18, bob: Math.random()*Math.PI*2 });
 }
 function applyPickup(p, k) {
+  if (k.type === 'xp') {
+    p.xp += k.xpValue || 1;
+    let leveled = false;
+    while (p.xp >= xpNeeded(p.level)) {
+      p.xp -= xpNeeded(p.level);
+      p.level++;
+      p.maxHp += 10;
+      p.hp = Math.min(p.maxHp, p.hp + 20);
+      p.damage += 2;
+      p.fireRate = Math.max(60, p.fireRate - 8);
+      p.maxMana += 6;
+      p.mana = Math.min(p.maxMana, p.mana + 20);
+      p.levelUpFlash = 1;
+      spawnParticles(p.x, p.y, '#ffd93d', 30, 300);
+      state.events.push('levelup');
+      leveled = true;
+    }
+    if (leveled) spawnParticles(p.x, p.y, '#b46bff', 20, 250);
+    state.events.push('mana');
+    return;
+  }
+
   switch (k.type) {
     case 'health': p.hp = Math.min(p.maxHp, p.hp + 40); break;
     case 'mana':   p.mana = Math.min(p.maxMana, p.mana + 55); break;
@@ -1370,23 +1652,49 @@ function killEnemy(e, ownerId) {
   state.enemies.splice(idx, 1);
   spawnParticles(e.x, e.y, e.color, e.isBoss ? 40 : (e.isMiniBoss ? 20 : 12), e.isBoss ? 400 : 250);
   const owner = state.players[ownerId];
-  if (owner) {
+  if (owner && !e.isAlly) {
     owner.score += e.score;
-    owner.xp += e.xp;
-    while (owner.xp >= xpNeeded(owner.level)) {
-      owner.xp -= xpNeeded(owner.level);
-      owner.level++;
-      owner.maxHp += 10;
-      owner.hp = Math.min(owner.maxHp, owner.hp + 20);
-      owner.damage += 2;
-      owner.fireRate = Math.max(60, owner.fireRate - 8);
-      owner.maxMana += 6;
-      owner.mana = Math.min(owner.maxMana, owner.mana + 20);
-      owner.levelUpFlash = 1;
-      spawnParticles(owner.x, owner.y, '#ffd93d', 30, 300);
-      state.events.push('levelup');
+    // XP orb
+    const xpTotal = e.xp;
+    if (xpTotal > 0) {
+      const orbCount = xpTotal >= 4 ? 3 : (xpTotal >= 2 ? 2 : 1);
+      const xpPerOrb = Math.max(1, Math.ceil(xpTotal / orbCount));
+      for (let k = 0; k < orbCount; k++) {
+        const a = Math.random() * TAU;
+        const dd = rand(15, 45);
+        state.pickups.push({
+          x: e.x + Math.cos(a) * dd,
+          y: e.y + Math.sin(a) * dd,
+          type: 'xp',
+          xpValue: xpPerOrb,
+          color: '#b46bff',
+          bad: false,
+          life: 25,
+          bob: Math.random() * Math.PI * 2,
+          vx: Math.cos(a) * 80,
+          vy: Math.sin(a) * 80,
+          magnetized: false
+        });
+      }
     }
     if (Math.random() < 0.18) spawnPowerup(e.x, e.y);
+
+    // BOSS DROP SKILL
+    if (e.isBoss) {
+      if (Math.random() < SKILL_DROP_CHANCE) {
+        const bossSkillKey = BOSS_TYPES[e.bossType].skillKey;
+        if (!owner.skills.includes(bossSkillKey)) {
+          owner.skills.push(bossSkillKey);
+          owner.skillCooldowns[bossSkillKey] = 0;
+          const sk = BOSS_SKILLS.find(s => s.key === bossSkillKey);
+          if (sk) {
+            state.announce = { text: '✨ NHẬN SKILL: ' + sk.name, t: 2.5 };
+            state.events.push('levelup');
+            updateSkillBarUI();
+          }
+        }
+      }
+    }
   }
 
   if (state.mode === 'pve' && state.waveActive) {
@@ -1842,7 +2150,7 @@ function gameLoop(now) {
 
   if (isPvE) {
     if (state.isBossTest) {
-      if (state.enemies.length === 0 && !state.testWinShown) {
+      if (state.enemies.filter(e => e.isBoss).length === 0 && !state.testWinShown) {
         state.testWinShown = true;
         const bt = state.testBossType;
         setTimeout(() => {
@@ -1867,7 +2175,7 @@ function gameLoop(now) {
           state.waveSpawnTimer = Math.max(0.10, 0.35 - state.wave * 0.012);
         }
       }
-      if (state.waveSpawnQueue.length === 0 && state.enemies.length === 0) {
+      if (state.waveSpawnQueue.length === 0 && state.enemies.filter(e => !e.isAlly).length === 0) {
         onWaveCleared();
       }
     } else {
@@ -1881,11 +2189,23 @@ function gameLoop(now) {
     }
   }
 
+  // Update skill cooldowns
+  if (state) {
+    const me = state.players[myId];
+    if (me) {
+      for (const k in me.skillCooldowns) {
+        if (me.skillCooldowns[k] > 0) {
+          me.skillCooldowns[k] = Math.max(0, me.skillCooldowns[k] - dt);
+        }
+      }
+      updateSkillCooldownUI();
+    }
+  }
+
   for (const id in state.players) {
     const p = state.players[id];
     if (p.hp <= 0) continue;
 
-    // GOD MODE: luôn full HP
     if (state.godMode && !p.isBot) p.hp = p.maxHp;
 
     if (p.pvpInvuln > 0) p.pvpInvuln -= dt;
@@ -1904,6 +2224,40 @@ function gameLoop(now) {
     const regen = p.isBot ? MANA_REGEN_BOT : MANA_REGEN;
     const cursePenalty = (p.powerups.curse > 0) ? 0.5 : 1;
     p.mana = Math.min(p.maxMana, p.mana + regen * cursePenalty * dt);
+
+    // Charge skill (chargeState)
+    if (p.chargeState && p.chargeState !== 'idle') {
+      p.chargeTimer -= dt;
+      if (p.chargeState === 'charging') {
+        p.x += Math.cos(state.time * 40) * 1.5;
+        p.y += Math.sin(state.time * 40) * 1.5;
+        if (p.chargeTimer <= 0) {
+          p.chargeState = 'dashing';
+          p.chargeTimer = 0.4;
+          playSound('roar');
+        }
+        continue;
+      } else if (p.chargeState === 'dashing') {
+        const dashSpeed = 1200;
+        p.x += p.chargeDirX * dashSpeed * dt;
+        p.y += p.chargeDirY * dashSpeed * dt;
+        // Damage enemies trong đường lao
+        for (let i = state.enemies.length - 1; i >= 0; i--) {
+          const e = state.enemies[i];
+          if (e.isAlly) continue;
+          if (dist(p.x, p.y, e.x, e.y) < p.r + 30) {
+            e.hp -= p.damage * 4;
+            e.hitFlash = 0.2;
+            spawnParticles(e.x, e.y, '#b46bff', 10, 300);
+            if (e.hp <= 0) killEnemy(e, id);
+          }
+        }
+        if (p.chargeTimer <= 0) {
+          p.chargeState = 'idle';
+        }
+        continue;
+      }
+    }
 
     if (p.powerups.burn > 0) {
       p.burnTick = (p.burnTick || 0) + dt;
@@ -1993,10 +2347,14 @@ function gameLoop(now) {
     if (isPvE) {
       for (let j = state.enemies.length - 1; j >= 0; j--) {
         const e = state.enemies[j];
+        if (e.isAlly) continue;
         if (b.hitSet && b.hitSet.includes(e)) continue;
         if (dist(e.x, e.y, b.x, b.y) < e.r + 6) {
           e.hp -= b.dmg; e.hitFlash = 0.12;
           spawnParticles(b.x, b.y, '#fff8cc', 3, 120);
+          if (b.isFreeze) {
+            e.frozen = (e.frozen || 0) + (b.freezeDuration || 1.5);
+          }
           state.events.push('hit');
           if (e.hp <= 0) killEnemy(e, b.owner);
           if (b.pierce) b.hitSet.push(e); else consumed = true;
@@ -2032,6 +2390,48 @@ function gameLoop(now) {
       if (e.spawnAnim > 0) { e.spawnAnim -= dt; e.wobble += dt * 8; continue; }
       e.wobble += dt * 4;
 
+      // Ally (từ skill phân chia)
+      if (e.isAlly) {
+        e.allyLife -= dt;
+        if (e.allyLife <= 0) {
+          spawnParticles(e.x, e.y, e.color, 15, 200);
+          const idx = state.enemies.indexOf(e);
+          if (idx !== -1) state.enemies.splice(idx, 1);
+          continue;
+        }
+        // Tìm quái địch gần nhất để tấn công
+        let nearest = null, minD = Infinity;
+        for (const en of state.enemies) {
+          if (en.isAlly) continue;
+          const dd = dist(e.x, e.y, en.x, en.y);
+          if (dd < minD) { minD = dd; nearest = en; }
+        }
+        if (nearest) {
+          const dx = nearest.x - e.x, dy = nearest.y - e.y;
+          const d = Math.hypot(dx, dy) || 1;
+          const ux = dx / d, uy = dy / d;
+          if (d > 30) {
+            e.x += ux * e.speed * dt; e.y += uy * e.speed * dt;
+          }
+          e.atkCd -= dt;
+          if (e.atkCd <= 0 && d < 100) {
+            e.atkCd = 0.6;
+            nearest.hp -= e.dmg;
+            nearest.hitFlash = 0.1;
+            spawnParticles(nearest.x, nearest.y, '#ff66b2', 5, 150);
+            if (nearest.hp <= 0) killEnemy(nearest, myId);
+          }
+        }
+        continue;
+      }
+
+      // Frozen enemies: slow down
+      if (e.frozen && e.frozen > 0) {
+        e.frozen -= dt;
+        if (e.frozen <= 0) e.frozen = 0;
+      }
+      const enemySpeedMul = (e.frozen > 0) ? 0.3 : 1;
+
       let target = null, minD = Infinity;
       for (const id in state.players) {
         const p = state.players[id];
@@ -2048,21 +2448,21 @@ function gameLoop(now) {
         const d = Math.hypot(dx, dy) || 1;
         const ux = dx/d, uy = dy/d;
 
-        if (e.behavior === 'chase') { e.x += ux * e.speed * dt; e.y += uy * e.speed * dt; }
+        if (e.behavior === 'chase') { e.x += ux * e.speed * enemySpeedMul * dt; e.y += uy * e.speed * enemySpeedMul * dt; }
         else if (e.behavior === 'zigzag') {
           const px = -uy, py = ux, zig = Math.sin(state.time * 12 + e.seed) * 1.5;
-          e.x += (ux + px * zig) * e.speed * 0.8 * dt;
-          e.y += (uy + py * zig) * e.speed * 0.8 * dt;
+          e.x += (ux + px * zig) * e.speed * 0.8 * enemySpeedMul * dt;
+          e.y += (uy + py * zig) * e.speed * 0.8 * enemySpeedMul * dt;
         } else if (e.behavior === 'shoot') {
-          if (d > 320) { e.x += ux * e.speed * dt; e.y += uy * e.speed * dt; }
-          else if (d < 250) { e.x -= ux * e.speed * dt; e.y -= uy * e.speed * dt; }
+          if (d > 320) { e.x += ux * e.speed * enemySpeedMul * dt; e.y += uy * e.speed * enemySpeedMul * dt; }
+          else if (d < 250) { e.x -= ux * e.speed * enemySpeedMul * dt; e.y -= uy * e.speed * enemySpeedMul * dt; }
           e.atkCd -= dt;
           if (e.atkCd <= 0 && d < 600) {
             e.atkCd = rand(2, 3.5);
             state.ebullets.push({ x: e.x, y: e.y, vx: ux * 350, vy: uy * 350, r: 7, dmg: e.dmg, life: 4, color: '#b46bff' });
           }
         } else if (e.behavior === 'splitter') {
-          e.x += ux * e.speed * dt; e.y += uy * e.speed * dt;
+          e.x += ux * e.speed * enemySpeedMul * dt; e.y += uy * e.speed * enemySpeedMul * dt;
         }
 
         if (d < e.r + 18 && target.hp > 0) {
@@ -2127,9 +2527,37 @@ function gameLoop(now) {
     const k = state.pickups[i];
     k.life -= dt; k.bob += dt * 4;
     if (k.life <= 0) { state.pickups.splice(i, 1); continue; }
+
+    // XP orb
+    if (k.type === 'xp') {
+      if (k.vx || k.vy) {
+        k.x += k.vx * dt;
+        k.y += k.vy * dt;
+        k.vx *= 0.9;
+        k.vy *= 0.9;
+        if (Math.abs(k.vx) < 5) k.vx = 0;
+        if (Math.abs(k.vy) < 5) k.vy = 0;
+      }
+      const me = state.players[myId];
+      if (me && me.hp > 0) {
+        const ddx = me.x - k.x, ddy = me.y - k.y;
+        const dd = Math.hypot(ddx, ddy);
+        if (dd < XP_ORB_MAGNET_RANGE) {
+          k.magnetized = true;
+          const nx = ddx / (dd || 1), ny = ddy / (dd || 1);
+          const speed = XP_ORB_MAGNET_SPEED * (1 - dd / XP_ORB_MAGNET_RANGE) + 150;
+          k.x += nx * speed * dt;
+          k.y += ny * speed * dt;
+        } else {
+          k.magnetized = false;
+        }
+      }
+    }
+
     for (const id in state.players) {
       const p = state.players[id];
-      if (p.hp > 0 && dist(p.x, p.y, k.x, k.y) < 32) {
+      const rad = k.type === 'xp' ? XP_ORB_RADIUS : 32;
+      if (p.hp > 0 && dist(p.x, p.y, k.x, k.y) < rad) {
         applyPickup(p, k); state.pickups.splice(i, 1); break;
       }
     }
@@ -2186,12 +2614,25 @@ function showOverlay(title, color, p1, p2) {
 /* ============ INPUT ============ */
 const keys = Object.create(null);
 const mouse = { x: W / 2, y: H / 2, down: false };
-addEventListener('keydown', e => { keys[e.key.toLowerCase()] = true; });
+addEventListener('keydown', e => {
+  keys[e.key.toLowerCase()] = true;
+
+  // Hotkey 1-5 để kích hoạt skill
+  const num = parseInt(e.key, 10);
+  if (num >= 1 && num <= 5 && state && !state.over) {
+    const me = state.players[myId];
+    if (me && me.skills[num - 1]) {
+      e.preventDefault();
+      triggerSkill(me.skills[num - 1]);
+    }
+  }
+});
 addEventListener('keyup', e => { keys[e.key.toLowerCase()] = false; });
 canvasEl.addEventListener('mousemove', e => { mouse.x = e.clientX; mouse.y = e.clientY; });
 canvasEl.addEventListener('mousedown', e => {
   if (e.button !== 0) return;
   if (e.target.closest && e.target.closest('.joystick')) return;
+  if (e.target.closest && e.target.closest('.skill-btn')) return;
   mouse.down = true;
 });
 addEventListener('mouseup', () => { mouse.down = false; });
@@ -2317,6 +2758,47 @@ function drawArena(arena) {
 }
 
 function drawPickup(k) {
+  if (k.type === 'xp') {
+    const pulse = 1 + Math.sin(k.bob * 1.5) * 0.15;
+    const magnetGlow = k.magnetized ? 1.4 : 1;
+    ctx.save();
+    ctx.translate(k.x, k.y);
+    ctx.globalAlpha = k.life < 3 ? (Math.floor(performance.now() * 0.01) % 2 ? 0.3 : 1) : 1;
+
+    ctx.save();
+    ctx.shadowColor = '#b46bff'; ctx.shadowBlur = 20 * magnetGlow;
+    ctx.strokeStyle = 'rgba(180,107,255,0.7)';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.arc(0, 0, 12 * pulse * magnetGlow, 0, TAU);
+    ctx.stroke();
+    ctx.restore();
+
+    const grad = ctx.createRadialGradient(0, 0, 0, 0, 0, 10 * pulse);
+    grad.addColorStop(0, '#e0c6ff');
+    grad.addColorStop(0.6, '#b46bff');
+    grad.addColorStop(1, 'rgba(180,107,255,0.3)');
+    ctx.fillStyle = grad;
+    ctx.beginPath(); ctx.arc(0, 0, 10 * pulse, 0, TAU); ctx.fill();
+
+    ctx.font = 'bold 12px system-ui';
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillStyle = '#fff';
+    ctx.fillText('✦', 0, 0);
+
+    if (k.xpValue > 1) {
+      ctx.font = 'bold 9px system-ui';
+      ctx.fillStyle = '#ffd93d';
+      ctx.strokeStyle = 'rgba(0,0,0,0.9)';
+      ctx.lineWidth = 2;
+      ctx.strokeText('+' + k.xpValue, 0, -18);
+      ctx.fillText('+' + k.xpValue, 0, -18);
+    }
+
+    ctx.restore();
+    return;
+  }
+
   const pulse = 1 + Math.sin(k.bob) * 0.12;
   const isBad = k.bad;
   const ringColor = isBad ? '#ff5b6e' : '#2ee07a';
@@ -2417,7 +2899,21 @@ function drawEnemy(e, st, targetPlayer) {
   ctx.fillStyle = e.color; ctx.fill();
   ctx.globalAlpha = 1;
 
-  if (e.isBoss) {
+  if (e.isAlly) {
+    // Vẽ quái đồng minh (hình vuông phát sáng)
+    ctx.save();
+    ctx.rotate(t * 2);
+    ctx.fillStyle = e.color;
+    ctx.fillRect(-e.r*0.7, -e.r*0.7, e.r*1.4, e.r*1.4);
+    ctx.strokeStyle = '#fff'; ctx.lineWidth = 2;
+    ctx.strokeRect(-e.r*0.7, -e.r*0.7, e.r*1.4, e.r*1.4);
+    ctx.restore();
+    // Vòng đời
+    ctx.fillStyle = 'rgba(0,0,0,0.5)';
+    ctx.fillRect(-e.r, -e.r-10, e.r*2, 3);
+    ctx.fillStyle = '#ff66b2';
+    ctx.fillRect(-e.r, -e.r-10, e.r*2 * (e.allyLife / 15), 3);
+  } else if (e.isBoss) {
     const n = 18;
     ctx.beginPath();
     for (let i = 0; i < n; i++) {
@@ -2487,7 +2983,7 @@ function drawEnemy(e, st, targetPlayer) {
       }
     }
   }
-  if (e.hp < e.maxHp) {
+  if (e.hp < e.maxHp && !e.isAlly) {
     const w = e.r * 2;
     ctx.fillStyle = 'rgba(0,0,0,0.6)';
     ctx.fillRect(-w / 2, -e.r - 15, w, 5);
@@ -2511,6 +3007,32 @@ function drawPlayer(p, isMe, st) {
   const stroke = isMe ? '#1e5233' : '#1e3a8a';
   ctx.save();
   ctx.translate(p.x, p.y);
+
+  // Charge visual
+  if (p.chargeState === 'charging') {
+    ctx.save();
+    ctx.globalAlpha = 0.5 + 0.4 * Math.sin(performance.now() * 0.03);
+    ctx.strokeStyle = '#b46bff';
+    ctx.lineWidth = 4;
+    ctx.setLineDash([8, 6]);
+    ctx.beginPath(); ctx.arc(0, 0, 32, 0, TAU); ctx.stroke();
+    ctx.setLineDash([]);
+    // Hướng lao
+    ctx.globalAlpha = 0.4;
+    ctx.beginPath();
+    ctx.moveTo(0, 0);
+    ctx.lineTo(p.chargeDirX * 120, p.chargeDirY * 120);
+    ctx.stroke();
+    ctx.restore();
+  }
+  if (p.chargeState === 'dashing') {
+    ctx.save();
+    ctx.globalAlpha = 0.7;
+    ctx.strokeStyle = '#b46bff';
+    ctx.lineWidth = 6;
+    ctx.beginPath(); ctx.arc(0, 0, 26, 0, TAU); ctx.stroke();
+    ctx.restore();
+  }
 
   if (p.frozen > 0) {
     ctx.save();
@@ -2671,9 +3193,28 @@ function drawBullets(st) {
   ctx.lineCap = 'round';
   for (const b of st.bullets) {
     const isPlayer = b.owner === myId;
-    const outer = b.pierce ? 'rgba(180,107,255,0.45)' : (isPlayer ? 'rgba(255,214,102,0.35)' : 'rgba(255,120,120,0.5)');
-    const glow  = b.pierce ? '#b46bff' : (isPlayer ? '#ffe066' : '#ff5b6e');
-    const core  = b.pierce ? '#e0c6ff' : (isPlayer ? '#fff8cc' : '#ffb0b8');
+    let outer, glow, core;
+    if (b.isFire) {
+      outer = 'rgba(255,140,26,0.45)';
+      glow = '#ff8c1a';
+      core = '#ffe0b0';
+    } else if (b.isFreeze) {
+      outer = 'rgba(77,217,255,0.45)';
+      glow = '#4dd9ff';
+      core = '#e0f8ff';
+    } else if (b.pierce) {
+      outer = 'rgba(180,107,255,0.45)';
+      glow = '#b46bff';
+      core = '#e0c6ff';
+    } else if (isPlayer) {
+      outer = 'rgba(255,214,102,0.35)';
+      glow = '#ffe066';
+      core = '#fff8cc';
+    } else {
+      outer = 'rgba(255,120,120,0.5)';
+      glow = '#ff5b6e';
+      core = '#ffb0b8';
+    }
     ctx.strokeStyle = outer;
     ctx.lineWidth = 9.6;
     ctx.beginPath();
@@ -2683,7 +3224,7 @@ function drawBullets(st) {
     ctx.save();
     ctx.shadowColor = glow; ctx.shadowBlur = 16;
     ctx.fillStyle = core;
-    ctx.beginPath(); ctx.arc(b.x, b.y, 6, 0, TAU); ctx.fill();
+    ctx.beginPath(); ctx.arc(b.x, b.y, b.r || 6, 0, TAU); ctx.fill();
     ctx.restore();
   }
 }
@@ -2883,7 +3424,7 @@ function drawGame(st) {
   }
 
   if (st.mode === 'pve' && st.waveActive && !st.isBossTest) {
-    const remaining = st.waveSpawnQueue.length + st.enemies.length;
+    const remaining = st.waveSpawnQueue.length + st.enemies.filter(e => !e.isAlly).length;
     const total = st.waveTotal;
     const killed = total - remaining;
     const w = Math.min(360, W - 80);
