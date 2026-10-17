@@ -625,14 +625,14 @@ const BOT_CFG = {
 };
 const DIFF_NAME = { easy: 'DỄ', normal: 'BÌNH THƯỜNG', hard: 'KHÁ', insane: 'SIÊU KHÓ' };
 
-/* ============ MANA CONFIG ============ */
+/* ============ MANA CONFIG (đã cân bằng lại) ============ */
 const MANA_MAX = 100;
-const MANA_REGEN = 14;
-const MANA_COST_SHOT = 6;
-const MANA_COST_LASER = 20;
-const MANA_COST_BOMB = 25;
-const MANA_COST_BOT_SHOT = 4;
-const MANA_REGEN_BOT = 10;
+const MANA_REGEN = 28;              // hồi nhanh hơn nhiều
+const MANA_COST_SHOT = 3;           // rẻ hơn 1 nửa
+const MANA_COST_LASER = 15;
+const MANA_COST_BOMB = 18;
+const MANA_COST_BOT_SHOT = 3;
+const MANA_REGEN_BOT = 20;
 
 /* ============ STATE ============ */
 let state = null, lastTime = performance.now();
@@ -760,15 +760,12 @@ function spawnEnemyInArena(typeIdx, wave) {
   const t = TYPES[typeIdx];
   const hpScale = 1 + (wave - 1) * 0.12;
 
-  // Bán kính spawn: ngay ngoài rìa màn hình + margin
   const margin = 120;
   const halfDiag = Math.hypot(W, H) / 2;
   const minDist = halfDiag + margin;
   const maxDist = minDist + 260;
 
   let angle = Math.random() * TAU;
-
-  // Ưu tiên hướng "trước mặt" player một chút
   if (Math.random() < 0.35) {
     angle = me.aim + rand(-0.6, 0.6);
   }
@@ -777,13 +774,11 @@ function spawnEnemyInArena(typeIdx, wave) {
   let spawnX = me.x + Math.cos(angle) * d;
   let spawnY = me.y + Math.sin(angle) * d;
 
-  // Clamp trong arena
   const hw = state.arena.w / 2 - 40;
   const hh = state.arena.h / 2 - 40;
   spawnX = clamp(spawnX, -hw, hw);
   spawnY = clamp(spawnY, -hh, hh);
 
-  // Nếu clamp kéo vào quá gần (arena nhỏ), thử hướng khác
   const realD = dist(spawnX, spawnY, me.x, me.y);
   if (realD < minDist * 0.85) {
     for (let tries = 0; tries < 6; tries++) {
@@ -824,7 +819,6 @@ function spawnBossInArena() {
   const me = state.players[myId];
   if (!me) return;
 
-  // Boss spawn ngay ngoài màn hình, phía trên player
   const halfDiag = Math.hypot(W, H) / 2;
   const d = halfDiag + 180;
   const a = -Math.PI / 2 + rand(-0.4, 0.4);
@@ -1036,7 +1030,7 @@ function spawnPowerup(x, y) {
 function applyPickup(p, k) {
   switch (k.type) {
     case 'health': p.hp = Math.min(p.maxHp, p.hp + 40); break;
-    case 'mana':   p.mana = Math.min(p.maxMana, p.mana + 50); break;
+    case 'mana':   p.mana = Math.min(p.maxMana, p.mana + 60); break;
     case 'laser': p.powerups.laser = Math.min(15, p.powerups.laser + 8); break;
     case 'bomb': p.powerups.bomb = Math.min(15, p.powerups.bomb + 8); break;
     case 'shield':
@@ -1162,8 +1156,8 @@ function killEnemy(e, ownerId) {
       owner.hp = Math.min(owner.maxHp, owner.hp + 20);
       owner.damage += 2;
       owner.fireRate = Math.max(60, owner.fireRate - 8);
-      owner.maxMana += 5;
-      owner.mana = Math.min(owner.maxMana, owner.mana + 15);
+      owner.maxMana += 8;
+      owner.mana = Math.min(owner.maxMana, owner.mana + 30);
       owner.levelUpFlash = 1;
       spawnParticles(owner.x, owner.y, '#ffd93d', 30, 300);
       state.events.push('levelup');
