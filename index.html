@@ -2578,7 +2578,7 @@ function gameLoop(now) {
     }
 
     // ===== MAGNET =====
-    // Nam châm hút CẢ XP orb VÀ các power-up khác (kể cả power-up xấu)
+    // Nam châm hút XP orb + power-up TỐT (KHÔNG hút power-up xấu)
     const me = state.players[myId];
     if (me && me.hp > 0) {
       let magnetRange, magnetSpeed;
@@ -2587,9 +2587,13 @@ function gameLoop(now) {
         // khi có power-up magnet thì hút mạnh + xa hơn
         magnetRange = (me.powerups.magnet > 0) ? MAGNET_POWERUP_RANGE : XP_ORB_MAGNET_RANGE;
         magnetSpeed = XP_ORB_MAGNET_SPEED;
-      } else {
-        // Power-up khác: CHỈ bị hút khi player đang có magnet
+      } else if (!k.bad) {
+        // Power-up TỐT: chỉ bị hút khi player đang có magnet
         magnetRange = (me.powerups.magnet > 0) ? MAGNET_POWERUP_RANGE : 0;
+        magnetSpeed = XP_ORB_MAGNET_SPEED;
+      } else {
+        // Power-up XẤU: KHÔNG bị nam châm hút
+        magnetRange = 0;
         magnetSpeed = XP_ORB_MAGNET_SPEED;
       }
       if (magnetRange > 0) {
@@ -2888,8 +2892,8 @@ function drawPickup(k) {
   ctx.translate(k.x, k.y);
   ctx.globalAlpha = k.life < 3 ? (Math.floor(performance.now() * 0.01) % 2 ? 0.3 : 1) : 1;
 
-  // Hiệu ứng glow khi power-up đang bị nam châm hút
-  if (k.magnetized) {
+  // Hiệu ứng glow khi power-up TỐT đang bị nam châm hút
+  if (k.magnetized && !isBad) {
     ctx.save();
     ctx.shadowColor = '#b46bff';
     ctx.shadowBlur = 24;
