@@ -894,7 +894,7 @@ function killEnemy(e, ownerId) {
   }
 }
 
-/* ============ BOT AI (CÓ LÀM MƯỢT) ============ */
+/* ============ BOT AI (LÀM MƯỢT TUYỆT ĐỐI) ============ */
 function computeBotInput(bot, player, pvx, pvy) {
   const cfg = BOT_CFG[bot.difficulty];
   if (!cfg || bot.hp <= 0 || player.hp <= 0) {
@@ -908,8 +908,10 @@ function computeBotInput(bot, player, pvx, pvy) {
   const py = player.y + pvy * bulletTime * cfg.lead;
   const jitter = (Math.random() - 0.5) * cfg.aimJitter;
   const aim = Math.atan2(py - bot.y, px - bot.x) + jitter;
+  
   let mx = 0, my = 0, dodging = false;
 
+  // 1. Né đạn (chỉ né khi thực sự nguy hiểm)
   if (cfg.dodge) {
     for (const b of state.bullets) {
       if (b.owner === bot.id) continue;
@@ -919,7 +921,8 @@ function computeBotInput(bot, player, pvx, pvy) {
       const blen = Math.hypot(b.vx, b.vy) || 1;
       const bnx = b.vx / blen, bny = b.vy / blen;
       const approaching = -(bdx * bnx + bdy * bny) / bd;
-      if (approaching > 0.3) {
+      
+      if (approaching > 0.6 && bd < cfg.dodgeRange * 0.8) {
         const perpX = -bny, perpY = bnx;
         const cross = bdx * bny - bdy * bnx;
         const side = cross > 0 ? 1 : -1;
@@ -930,6 +933,8 @@ function computeBotInput(bot, player, pvx, pvy) {
       }
     }
   }
+
+  // 2. Đi nhặt power-up (nếu thông minh)
   if (cfg.smart && !dodging) {
     let bestGood = null, bestD = 500;
     for (const k of state.pickups) {
@@ -953,27 +958,33 @@ function computeBotInput(bot, player, pvx, pvy) {
       }
     }
   }
+
+  // 3. Giữ khoảng cách và đi lòng vòng
   if (!dodging) {
     if (d < cfg.idealDist - 100) { mx -= nx; my -= ny; }
     else if (d > cfg.idealDist + 100) { mx += nx * 0.7; my += ny * 0.7; }
     else {
-      const strafeSign = Math.sin(state.time * 1.7) > 0 ? 1 : -1;
+      const strafeSign = Math.sin(state.time * 1.5) > 0 ? 1 : -1;
       mx += -ny * strafeSign * 0.8; my += nx * strafeSign * 0.8;
     }
   }
-  
+
   const ml = Math.hypot(mx, my);
   if (ml > 0) { mx /= ml; my /= ml; }
+
+  // 4. LÀM MƯỢT CHUYỂN ĐỘNG
+  bot.smoothX = bot.smoothX * 0.92 + mx * 0.08;
+  bot.smoothY = bot.smoothY * 0.92 + my * 0.08;
   
-  // LÀM MƯỢT CHUYỂN ĐỘNG CỦA BOT (HẾT GIẬT)
-  bot.smoothX = bot.smoothX * 0.85 + mx * 0.15;
-  bot.smoothY = bot.smoothY * 0.85 + my * 0.15;
   const sLen = Math.hypot(bot.smoothX, bot.smoothY);
-  if (sLen > 0.1) {
+  if (sLen > 0.15) {
     mx = bot.smoothX / sLen;
     my = bot.smoothY / sLen;
   } else {
-    mx = 0; my = 0;
+    mx = 0; 
+    my = 0;
+    bot.smoothX = 0;
+    bot.smoothY = 0;
   }
 
   const shoot = d < cfg.shootRange;
