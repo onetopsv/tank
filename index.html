@@ -209,6 +209,14 @@
   #enemiesLeftBox.urgent{ animation: enemiesUrgent .8s infinite; }
   @keyframes enemiesUrgent{ 0%, 100%{ box-shadow: 0 0 22px rgba(255, 91, 110, 0.4); }
     50% { box-shadow: 0 0 36px rgba(255, 91, 110, 0.95); } }
+
+  /* Aim hint UI */
+  #aimHint{
+    position:fixed;bottom:100px;left:50%;transform:translateX(-50%);
+    padding:6px 12px;border-radius:8px;background:rgba(10,20,26,0.85);
+    border:1px solid #26485a;color:#7a9a92;font-size:10px;font-weight:700;
+    letter-spacing:1px;pointer-events:none;z-index:5;
+  }
 </style>
 </head>
 <body>
@@ -293,6 +301,8 @@
 <!-- Skill bar (mobile buttons) -->
 <div id="skillBar" class="hidden"></div>
 
+<div id="aimHint" class="hidden">🖱️ Di chuột để ngắm • Giữ chuột trái để bắn • Phím <b>WASD</b> di chuyển • <b>1-5</b> kỹ năng</div>
+
 <!-- ====== TEST BOSS DEV PANEL ====== -->
 <div id="devPanel" class="hidden" style="position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);z-index:60;background:rgba(10,20,26,0.97);border:2px solid #b46bff;border-radius:14px;padding:18px 20px;width:min(340px,92vw);box-shadow:0 0 40px rgba(180,107,255,0.5);display:flex;flex-direction:column;gap:12px;max-height:90vh;overflow-y:auto">
   <div style="font-size:15px;font-weight:800;letter-spacing:2px;color:#e0c6ff;text-align:center;margin-bottom:4px">⚙️ DEV PANEL</div>
@@ -339,6 +349,7 @@
     <button id="dvGodMode" style="padding:10px;background:#2a1800;border:2px solid #ffd93d;color:#ffd93d;border-radius:8px;cursor:pointer;font-size:12px;font-weight:800">🛡 GOD MODE</button>
     <button id="dvResetBoss" style="padding:10px;background:#3a1020;border:2px solid #ff5b6e;color:#ff8a9a;border-radius:8px;cursor:pointer;font-size:12px;font-weight:800">🔄 RESPAWN BOSS</button>
     <button id="dvGiveSkill" style="padding:10px;background:#2a1030;border:2px solid #b46bff;color:#e0c6ff;border-radius:8px;cursor:pointer;font-size:12px;font-weight:800;grid-column:span 2">✨ CHO SKILL BOSS</button>
+    <button id="dvGiveAllSkills" style="padding:10px;background:#2a1030;border:2px solid #ff66b2;color:#ffb0d4;border-radius:8px;cursor:pointer;font-size:12px;font-weight:800;grid-column:span 2">🌟 CHO TẤT CẢ SKILL</button>
   </div>
 
   <button id="dvClose" style="padding:10px;background:#1a1a1a;border:2px solid #888;color:#ccc;border-radius:8px;cursor:pointer;font-size:12px;font-weight:800;margin-top:4px">ĐÓNG</button>
@@ -381,6 +392,9 @@ const ctx = canvasEl.getContext('2d');
 let W = innerWidth, H = innerHeight;
 const DPR = Math.min(devicePixelRatio || 1, 2);
 let cam = { x: 0, y: 0 };
+
+// Detect touch device to hide joysticks on desktop
+const isTouchDevice = ('ontouchstart' in window) || (navigator.maxTouchPoints > 0);
 
 function rr(x, y, w, h, r) {
   w = Math.max(w, 1); h = Math.max(h, 1);
@@ -502,12 +516,21 @@ function show(name) {
   document.getElementById('enemiesLeftBox').classList.add('hidden');
   document.getElementById('devPanel').classList.add('hidden');
   document.getElementById('dvOpen').classList.add('hidden');
+  document.getElementById('aimHint').classList.add('hidden');
   if (name !== 'game') resetTouchState();
   if (name === 'game') {
     canvasEl.classList.remove('hidden');
     hudEl.classList.remove('hidden');
     puHudEl.classList.remove('hidden');
-    touchControlsEl.classList.remove('hidden');
+    // Only show joysticks on touch devices — desktop uses mouse
+    if (isTouchDevice) {
+      touchControlsEl.classList.remove('hidden');
+    } else {
+      // Hide joysticks on desktop to avoid accidental mouse-drag capture
+      document.getElementById('joyLeft').style.display = 'none';
+      document.getElementById('joyRight').style.display = 'none';
+      document.getElementById('aimHint').classList.remove('hidden');
+    }
     skillBarEl.classList.remove('hidden');
   } else if (screens[name]) screens[name].classList.remove('hidden');
 }
@@ -742,7 +765,7 @@ const MANA_REGEN_BOT = 18;
 const XP_ORB_RADIUS = 34;
 const XP_ORB_MAGNET_RANGE = 90;
 const XP_ORB_MAGNET_SPEED = 400;
-const MAGNET_POWERUP_RANGE = 600;   // ← Bán kính hút khi có power-up NAM CHÂM
+const MAGNET_POWERUP_RANGE = 600;
 
 /* ============ SKILL CONFIG ============ */
 const BOSS_SKILLS = [
@@ -752,7 +775,7 @@ const BOSS_SKILLS = [
   { key: 'drain',   name: 'HÚT MÁU',   color: '#ff4d6d', icon: '🩸', cd: 8,   cost: 25, desc: 'Hút máu quái xung quanh' },
   { key: 'split',   name: 'PHÂN CHIA', color: '#ff66b2', icon: '🧬', cd: 10,  cost: 30, desc: 'Triệu hồi 2 quái nhỏ' },
 ];
-const SKILL_DROP_CHANCE = 0.25;
+const SKILL_DROP_CHANCE = 1.0;   // 100% boss rơi skill
 
 /* ============ STATE ============ */
 let state = null, lastTime = performance.now();
@@ -762,7 +785,7 @@ function xpNeeded(lvl) { return 5 + (lvl - 1) * 3; }
 
 function makePlayer(id, name) {
   return {
-    id, name, x: 0, y: 0, r: 20,                 // ← THÊM r: 20 (bán kính player)
+    id, name, x: 0, y: 0, r: 20,
     hp: 100, maxHp: 100, score: 0,
     mana: MANA_MAX, maxMana: MANA_MAX,
     angle: -Math.PI/2, aim: 0, aimJitter: 0,
@@ -770,7 +793,7 @@ function makePlayer(id, name) {
     level: 1, xp: 0,
     fireRate: 180, damage: 14, bulletSpeed: 1000,
     powerups: { laser:0, bomb:0, shield:0, speed:0, pierce:0, tripleshot:0,
-                magnet:0, curse:0, slow:0, burn:0, confuse:0, freeze:0, jam:0 },  // ← THÊM magnet:0
+                magnet:0, curse:0, slow:0, burn:0, confuse:0, freeze:0, jam:0 },
     shieldHp: 0, burnTick: 0, lastShoot: 0, lastLaser: 0, lastBomb: 0,
     levelUpFlash: 0, curseFlash: 0, pvpInvuln: 0,
     frozen: 0, frozenFlash: 0,
@@ -851,6 +874,11 @@ function initGame(mode, difficulty) {
     document.getElementById('xpBarWrapP1').style.display = '';
     document.getElementById('lvlWrapP1').style.display = '';
     document.getElementById('p2Hud').classList.add('hidden');
+    // Tặng 2 skill ngẫu nhiên để test ngay
+    const allKeys = BOSS_SKILLS.map(s => s.key);
+    const shuffled = allKeys.slice().sort(() => Math.random() - 0.5);
+    state.players[myId].skills = shuffled.slice(0, 2);
+    state.players[myId].skills.forEach(k => { state.players[myId].skillCooldowns[k] = 0; });
     startNewWave();
   }
   updateSkillBarUI();
@@ -1017,6 +1045,7 @@ function startGame(mode, difficulty) {
   hideOverlay();
   shakeTime = 0; shakeIntensity = 0; hitFlash = 0;
   state = null;
+  resetTouchState();
   initGame(mode, difficulty);
   show('game');
   lastTime = performance.now();
@@ -1051,11 +1080,12 @@ function updateSkillBarUI() {
     cdEl.className = 'cd-overlay hidden';
     btn.appendChild(cdEl);
 
-    btn.addEventListener('pointerdown', (e) => {
-      e.preventDefault();
-      e.stopPropagation();
+    const fire = (e) => {
+      if (e) { e.preventDefault(); e.stopPropagation(); }
       triggerSkill(skillKey);
-    });
+    };
+    btn.addEventListener('pointerdown', fire);
+    btn.addEventListener('click', fire);
     btn.addEventListener('contextmenu', e => e.preventDefault());
 
     skillBarEl.appendChild(btn);
@@ -1189,6 +1219,7 @@ function startBossTest(bossType) {
   hideOverlay();
   shakeTime = 0; shakeIntensity = 0; hitFlash = 0;
   state = null;
+  resetTouchState();
 
   initGame('pve', null);
 
@@ -1211,6 +1242,9 @@ function startBossTest(bossType) {
   me.x = 0; me.y = 0;
   me.hp = me.maxHp;
   me.mana = me.maxMana;
+  // Trong test boss, cho tất cả skill luôn để test
+  me.skills = BOSS_SKILLS.map(s => s.key);
+  me.skills.forEach(k => { me.skillCooldowns[k] = 0; });
 
   spawnBossInArena();
   state.bossIndex = bossType;
@@ -1346,6 +1380,14 @@ document.getElementById('dvGiveSkill').onclick = () => {
     state.announce = { text: 'ĐÃ CÓ SKILL NÀY RỒI', t: 1.5 };
   }
 };
+document.getElementById('dvGiveAllSkills').onclick = () => {
+  if (!state || !state.isBossTest) return;
+  const me = state.players[myId];
+  me.skills = BOSS_SKILLS.map(s => s.key);
+  me.skills.forEach(k => { me.skillCooldowns[k] = 0; });
+  updateSkillBarUI();
+  state.announce = { text: '🌟 ĐÃ NHẬN TẤT CẢ SKILL', t: 2.0 };
+};
 document.getElementById('dvClose').onclick = () => {
   document.getElementById('devPanel').classList.add('hidden');
   document.getElementById('dvOpen').classList.remove('hidden');
@@ -1415,7 +1457,7 @@ function updateHUD(st) {
 const PU_LABEL = {
   laser: '⚡ LASER', bomb: '💣 BOM', shield: '🛡️ KHIÊN',
   speed: '👟 TỐC ĐỘ', pierce: '🔱 XUYÊN', tripleshot: '🔥 3 TIA',
-  magnet: '🧲 NAM CHÂM',                                                // ← THÊM
+  magnet: '🧲 NAM CHÂM',
   curse: '💀 YẾU', slow: '🐌 CHẬM', burn: '🔥 BỎNG', confuse: '🌀 RỐI',
   freeze: '❄️ BĂNG', jam: '🐢 KẸT SÚNG'
 };
@@ -1445,7 +1487,7 @@ const POWERUPS = [
   { type: 'speed',     color: '#ff8c1a', weight: 10, bad: false },
   { type: 'pierce',    color: '#b46bff', weight: 9,  bad: false },
   { type: 'tripleshot',color: '#ff66b2', weight: 9,  bad: false },
-  { type: 'magnet',    color: '#b46bff', weight: 10, bad: false },     // ← THÊM: NAM CHÂM
+  { type: 'magnet',    color: '#b46bff', weight: 10, bad: false },
   { type: 'curse',     color: '#8a1f35', weight: 5,  bad: true },
   { type: 'slow',      color: '#5a4a8a', weight: 4,  bad: true },
   { type: 'burn',      color: '#ff3a1a', weight: 4,  bad: true },
@@ -1455,7 +1497,7 @@ const POWERUPS = [
 ];
 const PU_ICON = {
   health: '+', mana: '◆', laser: '⚡', bomb: '💣', shield: '🛡', speed: '»',
-  pierce: '➤', tripleshot: '⋔', magnet: '🧲',                            // ← THÊM
+  pierce: '➤', tripleshot: '⋔', magnet: '🧲',
   curse: '💀', slow: '🐌',
   burn: '🔥', confuse: '🌀', freeze: '❄', jam: '🐢',
   xp: '✦'
@@ -1463,7 +1505,7 @@ const PU_ICON = {
 const PU_COLOR = {
   health: '#2ee07a', mana: '#4dd9ff', laser: '#4dd9ff', bomb: '#ff5b6e',
   shield: '#ffd93d', speed: '#ff8c1a', pierce: '#b46bff',
-  tripleshot: '#ff66b2', magnet: '#b46bff',                              // ← THÊM
+  tripleshot: '#ff66b2', magnet: '#b46bff',
   curse: '#8a1f35', slow: '#5a4a8a', burn: '#ff3a1a',
   confuse: '#8a1f8a', freeze: '#4dd9ff', jam: '#888888',
   xp: '#b46bff'
@@ -1515,7 +1557,7 @@ function applyPickup(p, k) {
     case 'speed': p.powerups.speed = Math.min(15, p.powerups.speed + 8); break;
     case 'pierce': p.powerups.pierce = Math.min(15, p.powerups.pierce + 8); break;
     case 'tripleshot': p.powerups.tripleshot = Math.min(15, p.powerups.tripleshot + 8); break;
-    case 'magnet': p.powerups.magnet = Math.min(15, p.powerups.magnet + 10); break;   // ← THÊM
+    case 'magnet': p.powerups.magnet = Math.min(15, p.powerups.magnet + 10); break;
     case 'curse': p.powerups.curse = Math.min(15, p.powerups.curse + 10); break;
     case 'slow': p.powerups.slow = Math.min(15, p.powerups.slow + 8); break;
     case 'burn': p.powerups.burn = Math.min(15, p.powerups.burn + 6); break;
@@ -1921,7 +1963,7 @@ function updateBoss(e, target, dt, st) {
     }
     if (e.draining) {
       e.drainActive -= dt;
-      const drainRange = 400;                 // ← TĂNG từ 220 → 400
+      const drainRange = 400;
       if (d < drainRange) {
         const drainAmt = 10 * dt;
         target.hp -= drainAmt;
@@ -2219,7 +2261,6 @@ function gameLoop(now) {
     const cursePenalty = (p.powerups.curse > 0) ? 0.5 : 1;
     p.mana = Math.min(p.maxMana, p.mana + regen * cursePenalty * dt);
 
-    // Charge skill (chargeState)
     if (p.chargeState && p.chargeState !== 'idle') {
       p.chargeTimer -= dt;
       if (p.chargeState === 'charging') {
@@ -2235,7 +2276,6 @@ function gameLoop(now) {
         const dashSpeed = 1200;
         p.x += p.chargeDirX * dashSpeed * dt;
         p.y += p.chargeDirY * dashSpeed * dt;
-        // Damage enemies trong đường lao — dùng p.r (đã thêm = 20)
         for (let i = state.enemies.length - 1; i >= 0; i--) {
           const e = state.enemies[i];
           if (e.isAlly) continue;
@@ -2530,7 +2570,6 @@ function gameLoop(now) {
       }
       const me = state.players[myId];
       if (me && me.hp > 0) {
-        // ← Nếu có powerup NAM CHÂM, bán kính hút tăng lên MAGNET_POWERUP_RANGE
         const magnetRange = (me.powerups.magnet > 0)
           ? MAGNET_POWERUP_RANGE
           : XP_ORB_MAGNET_RANGE;
@@ -2608,11 +2647,26 @@ function showOverlay(title, color, p1, p2) {
 /* ============ INPUT ============ */
 const keys = Object.create(null);
 const mouse = { x: W / 2, y: H / 2, down: false };
+
+// FIX #1: dùng e.code để nhận diện phím số trên MỌI keyboard layout
+function getDigitFromEvent(e) {
+  const code = e.code || '';
+  if (code === 'Digit1' || code === 'Numpad1') return 1;
+  if (code === 'Digit2' || code === 'Numpad2') return 2;
+  if (code === 'Digit3' || code === 'Numpad3') return 3;
+  if (code === 'Digit4' || code === 'Numpad4') return 4;
+  if (code === 'Digit5' || code === 'Numpad5') return 5;
+  // Fallback cho trình duyệt cũ không hỗ trợ e.code
+  const n = parseInt(e.key, 10);
+  return (n >= 1 && n <= 5) ? n : 0;
+}
+
 addEventListener('keydown', e => {
   keys[e.key.toLowerCase()] = true;
+  if (e.repeat) return;   // tránh bắn skill liên tục khi giữ phím
 
-  const num = parseInt(e.key, 10);
-  if (num >= 1 && num <= 5 && state && !state.over) {
+  const num = getDigitFromEvent(e);
+  if (num && state && !state.over) {
     const me = state.players[myId];
     if (me && me.skills[num - 1]) {
       e.preventDefault();
@@ -2631,6 +2685,7 @@ canvasEl.addEventListener('mousedown', e => {
 addEventListener('mouseup', () => { mouse.down = false; });
 canvasEl.addEventListener('contextmenu', e => e.preventDefault());
 
+// FIX #2: Aim tính theo VỊ TRÍ THỰC của player trên màn hình, không phải tâm
 function getInputs() {
   let mx = 0, my = 0;
 
@@ -2647,6 +2702,7 @@ function getInputs() {
   let aim, shoot;
   const aimLen = Math.hypot(touch.aimX, touch.aimY);
   if (touch.aimActive && aimLen > 0.2) {
+    // Touch aim — dùng joystick phải
     aim = Math.atan2(touch.aimY, touch.aimX);
     shoot = touch.shooting;
   } else if (touch.aimActive) {
@@ -2654,7 +2710,14 @@ function getInputs() {
     aim = me ? me.aim : 0;
     shoot = false;
   } else {
-    aim = Math.atan2(mouse.y - H / 2, mouse.x - W / 2);
+    // Desktop mouse aim — DÙNG VỊ TRÍ THỰC CỦA PLAYER, không phải tâm màn hình!
+    const me = state && state.players[myId];
+    let px = W / 2, py = H / 2;
+    if (me) {
+      px = W / 2 + me.x - cam.x;
+      py = H / 2 + me.y - cam.y;
+    }
+    aim = Math.atan2(mouse.y - py, mouse.x - px);
     shoot = mouse.down || keys[' '];
   }
   return { x: mx, y: my, aim, shoot };
@@ -2859,7 +2922,7 @@ function drawBossAura(e, st) {
     ctx.restore();
   }
   if (e.bossType === 3 && e.draining) {
-    const drainRange = 400;                    // ← TĂNG từ 220 → 400
+    const drainRange = 400;
     ctx.save();
     const grad = ctx.createRadialGradient(0, 0, e.r, 0, 0, drainRange);
     grad.addColorStop(0, 'rgba(255,77,109,0.35)');
@@ -3151,6 +3214,27 @@ function drawPlayer(p, isMe, st) {
   const mpPct = Math.max(0, p.mana / (p.maxMana || MANA_MAX));
   ctx.fillStyle = '#4dd9ff';
   ctx.fillRect(-w/2, -18, w * mpPct, 3);
+
+  // AIM LINE cho player — cho thấy hướng sắp bắn
+  if (isMe && p.hp > 0) {
+    ctx.save();
+    ctx.globalAlpha = 0.35 + 0.15 * Math.sin(performance.now() * 0.005);
+    ctx.strokeStyle = '#9df3c4';
+    ctx.lineWidth = 1.5;
+    ctx.setLineDash([8, 8]);
+    ctx.beginPath();
+    ctx.moveTo(Math.cos(p.aim) * 28, Math.sin(p.aim) * 28);
+    ctx.lineTo(Math.cos(p.aim) * 160, Math.sin(p.aim) * 160);
+    ctx.stroke();
+    ctx.setLineDash([]);
+    // Điểm đầu aim
+    ctx.globalAlpha = 0.6;
+    ctx.fillStyle = '#9df3c4';
+    ctx.beginPath();
+    ctx.arc(Math.cos(p.aim) * 160, Math.sin(p.aim) * 160, 3, 0, TAU);
+    ctx.fill();
+    ctx.restore();
+  }
 
   ctx.restore();
 }
