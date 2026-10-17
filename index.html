@@ -149,7 +149,6 @@
   #joyRight .knob{background:rgba(255,91,110,0.75);border-color:#ff5b6e;
     box-shadow:0 0 25px #ff5b6e88}
 
-  /* ===== SKILL BUTTONS (mobile) ===== */
   #skillBar{
     position:fixed;
     bottom:200px;
@@ -210,7 +209,6 @@
   @keyframes enemiesUrgent{ 0%, 100%{ box-shadow: 0 0 22px rgba(255, 91, 110, 0.4); }
     50% { box-shadow: 0 0 36px rgba(255, 91, 110, 0.95); } }
 
-  /* Aim hint UI */
   #aimHint{
     position:fixed;bottom:100px;left:50%;transform:translateX(-50%);
     padding:6px 12px;border-radius:8px;background:rgba(10,20,26,0.85);
@@ -298,12 +296,10 @@
   <div id="joyRight" class="joystick"><div class="knob" id="knobRight"></div></div>
 </div>
 
-<!-- Skill bar (mobile buttons) -->
 <div id="skillBar" class="hidden"></div>
 
 <div id="aimHint" class="hidden">🖱️ Di chuột để ngắm • Giữ chuột trái để bắn • Phím <b>WASD</b> di chuyển • <b>1-5</b> kỹ năng</div>
 
-<!-- ====== TEST BOSS DEV PANEL ====== -->
 <div id="devPanel" class="hidden" style="position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);z-index:60;background:rgba(10,20,26,0.97);border:2px solid #b46bff;border-radius:14px;padding:18px 20px;width:min(340px,92vw);box-shadow:0 0 40px rgba(180,107,255,0.5);display:flex;flex-direction:column;gap:12px;max-height:90vh;overflow-y:auto">
   <div style="font-size:15px;font-weight:800;letter-spacing:2px;color:#e0c6ff;text-align:center;margin-bottom:4px">⚙️ DEV PANEL</div>
   <div style="display:flex;justify-content:space-between;align-items:center;gap:8px">
@@ -393,7 +389,6 @@ let W = innerWidth, H = innerHeight;
 const DPR = Math.min(devicePixelRatio || 1, 2);
 let cam = { x: 0, y: 0 };
 
-// Detect touch device to hide joysticks on desktop
 const isTouchDevice = ('ontouchstart' in window) || (navigator.maxTouchPoints > 0);
 
 function rr(x, y, w, h, r) {
@@ -522,11 +517,9 @@ function show(name) {
     canvasEl.classList.remove('hidden');
     hudEl.classList.remove('hidden');
     puHudEl.classList.remove('hidden');
-    // Only show joysticks on touch devices — desktop uses mouse
     if (isTouchDevice) {
       touchControlsEl.classList.remove('hidden');
     } else {
-      // Hide joysticks on desktop to avoid accidental mouse-drag capture
       document.getElementById('joyLeft').style.display = 'none';
       document.getElementById('joyRight').style.display = 'none';
       document.getElementById('aimHint').classList.remove('hidden');
@@ -578,7 +571,6 @@ document.getElementById('btnChangeName').onclick = () => {
   showNameScreen();
 };
 
-/* ============ TEST BOSS MENU ============ */
 const bossTestMenu = document.getElementById('bossTestMenu');
 document.getElementById('btnTestBoss').onclick = () => {
   bossTestMenu.classList.toggle('hidden');
@@ -594,7 +586,6 @@ bossTestMenu.querySelectorAll('[data-boss]').forEach(btn => {
   };
 });
 
-/* ============ JOYSTICK ============ */
 function setupJoystick(el, knob, onMove, onEnd) {
   const maxR = 50;
   let activePointerId = null;
@@ -743,7 +734,6 @@ setupJoystick(
   }
 );
 
-/* ============ BOT CFG ============ */
 const BOT_CFG = {
   easy: { speedBonus: 0.60, aimJitter: 0.55, shootRange: 500, dodge: false, dodgeRange: 0, smart: false, lead: 0, fireRate: 550, damage: 5, idealDist: 450, hp: 70, name: 'BOT DỄ', color: '#7bd66b', aimSpeed: 0.15 },
   normal: { speedBonus: 0.80, aimJitter: 0.28, shootRange: 650, dodge: true, dodgeRange: 140, smart: false, lead: 0.2, fireRate: 360, damage: 8, idealDist: 380, hp: 90, name: 'BOT THƯỜNG', color: '#4dd9ff', aimSpeed: 0.22 },
@@ -752,7 +742,6 @@ const BOT_CFG = {
 };
 const DIFF_NAME = { easy: 'DỄ', normal: 'BÌNH THƯỜNG', hard: 'KHÁ', insane: 'SIÊU KHÓ' };
 
-/* ============ MANA CONFIG ============ */
 const MANA_MAX = 100;
 const MANA_REGEN = 32;
 const MANA_COST_SHOT = 4;
@@ -761,13 +750,11 @@ const MANA_COST_BOMB = 20;
 const MANA_COST_BOT_SHOT = 3;
 const MANA_REGEN_BOT = 18;
 
-/* ============ XP ORB CONFIG ============ */
 const XP_ORB_RADIUS = 34;
 const XP_ORB_MAGNET_RANGE = 90;
 const XP_ORB_MAGNET_SPEED = 400;
 const MAGNET_POWERUP_RANGE = 600;
 
-/* ============ SKILL CONFIG ============ */
 const BOSS_SKILLS = [
   { key: 'charge',  name: 'LAO TỚI',   color: '#b46bff', icon: '🐂', cd: 6,   cost: 15, desc: 'Tích lực rồi lao thẳng' },
   { key: 'flame',   name: 'PHUN LỬA',  color: '#ff8c1a', icon: '🔥', cd: 4,   cost: 20, desc: 'Bắn 5 tia lửa' },
@@ -775,9 +762,8 @@ const BOSS_SKILLS = [
   { key: 'drain',   name: 'HÚT MÁU',   color: '#ff4d6d', icon: '🩸', cd: 8,   cost: 25, desc: 'Hút máu quái xung quanh' },
   { key: 'split',   name: 'PHÂN CHIA', color: '#ff66b2', icon: '🧬', cd: 10,  cost: 30, desc: 'Triệu hồi 2 quái nhỏ' },
 ];
-const SKILL_DROP_CHANCE = 1.0;   // 100% boss rơi skill
+const SKILL_DROP_CHANCE = 0.5;   // 50% boss rơi skill
 
-/* ============ STATE ============ */
 let state = null, lastTime = performance.now();
 const myId = 'PLAYER';
 
@@ -874,17 +860,13 @@ function initGame(mode, difficulty) {
     document.getElementById('xpBarWrapP1').style.display = '';
     document.getElementById('lvlWrapP1').style.display = '';
     document.getElementById('p2Hud').classList.add('hidden');
-    // Tặng 2 skill ngẫu nhiên để test ngay
-    const allKeys = BOSS_SKILLS.map(s => s.key);
-    const shuffled = allKeys.slice().sort(() => Math.random() - 0.5);
-    state.players[myId].skills = shuffled.slice(0, 2);
-    state.players[myId].skills.forEach(k => { state.players[myId].skillCooldowns[k] = 0; });
+    // KHÔNG tặng free skill nữa — player bắt đầu với skills rỗng,
+    // chỉ nhận skill khi kill boss (50% chance)
     startNewWave();
   }
   updateSkillBarUI();
 }
 
-/* ============ WAVE ============ */
 function buildWaveQueue(wave) {
   const baseCount = 10 + Math.floor(wave * 4);
   const maxCount = 90;
@@ -1057,7 +1039,6 @@ document.getElementById('btnNormal').onclick = () => startGame('bot', 'normal');
 document.getElementById('btnHard').onclick = () => startGame('bot', 'hard');
 document.getElementById('btnInsane').onclick = () => startGame('bot', 'insane');
 
-/* ============ SKILL BAR UI ============ */
 function updateSkillBarUI() {
   if (!state) { skillBarEl.innerHTML = ''; return; }
   const me = state.players[myId];
@@ -1114,7 +1095,6 @@ function updateSkillCooldownUI() {
   });
 }
 
-/* ============ SKILL SYSTEM ============ */
 function triggerSkill(skillKey) {
   if (!state || state.over) return;
   const me = state.players[myId];
@@ -1136,7 +1116,13 @@ function triggerSkill(skillKey) {
   me.skillCooldowns[skillKey] = sk.cd * me.skillCdMultiplier;
   state.events.push('skill');
 
-  const aim = me.aim || 0;
+  // Aim: ưu tiên joystick phải nếu đang active (mobile),
+  // không thì dùng me.aim (PC mouse hoặc hướng cuối trên mobile)
+  let aim = me.aim || 0;
+  if (isTouchDevice && touch.aimActive) {
+    const al = Math.hypot(touch.aimX, touch.aimY);
+    if (al > 0.2) aim = Math.atan2(touch.aimY, touch.aimX);
+  }
 
   if (skillKey === 'charge') {
     me.chargeState = 'charging';
@@ -1213,7 +1199,6 @@ function triggerSkill(skillKey) {
   updateSkillCooldownUI();
 }
 
-/* ============ TEST BOSS ============ */
 function startBossTest(bossType) {
   initAudio();
   hideOverlay();
@@ -1292,7 +1277,6 @@ document.getElementById('btnRestart').onclick = () => {
 };
 function hideOverlay() { document.getElementById('overlay').classList.add('hidden'); }
 
-/* ============ DEV PANEL ============ */
 function updateDevPanelUI() {
   if (!state || !state.isBossTest) return;
   const me = state.players[myId];
@@ -1398,7 +1382,6 @@ document.getElementById('dvOpen').onclick = () => {
   updateDevPanelUI();
 };
 
-/* ============ HUD ============ */
 function updateHUD(st) {
   if (!st) return;
   const me = st.players[myId];
@@ -1477,7 +1460,6 @@ function updatePowerupHUD(st) {
   puHudEl.innerHTML = html;
 }
 
-/* ============ POWER-UPS ============ */
 const POWERUPS = [
   { type: 'health',    color: '#2ee07a', weight: 14, bad: false },
   { type: 'mana',      color: '#4dd9ff', weight: 16, bad: false },
@@ -1718,6 +1700,7 @@ function killEnemy(e, ownerId) {
     if (Math.random() < 0.18) spawnPowerup(e.x, e.y);
 
     if (e.isBoss) {
+      // 50% chance rơi skill (SKILL_DROP_CHANCE = 0.5)
       if (Math.random() < SKILL_DROP_CHANCE) {
         const bossSkillKey = BOSS_TYPES[e.bossType].skillKey;
         if (!owner.skills.includes(bossSkillKey)) {
@@ -1755,7 +1738,6 @@ function killEnemy(e, ownerId) {
   }
 }
 
-/* ============ BOSS AI ============ */
 function updateBoss(e, target, dt, st) {
   const dx = target.x - e.x, dy = target.y - e.y;
   const d = Math.hypot(dx, dy) || 1;
@@ -2032,7 +2014,6 @@ function updateBoss(e, target, dt, st) {
   }
 }
 
-/* ============ BOT AI ============ */
 function computeBotInput(bot, player, pvx, pvy) {
   const cfg = BOT_CFG[bot.difficulty];
   if (!cfg || bot.hp <= 0 || player.hp <= 0) {
@@ -2135,7 +2116,6 @@ function computeBotInput(bot, player, pvx, pvy) {
   return { x: mx, y: my, aim, shoot };
 }
 
-/* ============ GAME LOOP ============ */
 function gameLoop(now) {
   if (!state || state.over) return;
   const dt = Math.min((now - lastTime) / 1000, 0.1);
@@ -2264,6 +2244,17 @@ function gameLoop(now) {
     if (p.chargeState && p.chargeState !== 'idle') {
       p.chargeTimer -= dt;
       if (p.chargeState === 'charging') {
+        // Cho phép điều chỉnh hướng charge trong lúc tích lực:
+        // PC → theo mouse aim (p.aim cập nhật từ getInputs)
+        // Mobile → theo joystick phải nếu đang active
+        let chargeAim = p.aim || 0;
+        if (isTouchDevice && touch.aimActive) {
+          const al = Math.hypot(touch.aimX, touch.aimY);
+          if (al > 0.2) chargeAim = Math.atan2(touch.aimY, touch.aimX);
+        }
+        p.chargeDirX = Math.cos(chargeAim);
+        p.chargeDirY = Math.sin(chargeAim);
+
         p.x += Math.cos(state.time * 40) * 1.5;
         p.y += Math.sin(state.time * 40) * 1.5;
         if (p.chargeTimer <= 0) {
@@ -2271,6 +2262,7 @@ function gameLoop(now) {
           p.chargeTimer = 0.4;
           playSound('roar');
         }
+        p._prevX = p.x; p._prevY = p.y;
         continue;
       } else if (p.chargeState === 'dashing') {
         const dashSpeed = 1200;
@@ -2289,6 +2281,7 @@ function gameLoop(now) {
         if (p.chargeTimer <= 0) {
           p.chargeState = 'idle';
         }
+        p._prevX = p.x; p._prevY = p.y;
         continue;
       }
     }
@@ -2420,7 +2413,10 @@ function gameLoop(now) {
   }
 
   if (isPvE) {
-    for (const e of state.enemies) {
+    // Snapshot để tránh bug khi killEnemy/spawnSplitChildren thay đổi state.enemies trong lúc lặp
+    const enemiesSnapshot = state.enemies.slice();
+    for (const e of enemiesSnapshot) {
+      if (!state.enemies.includes(e)) continue;
       if (e.spawnAnim > 0) { e.spawnAnim -= dt; e.wobble += dt * 8; continue; }
       e.wobble += dt * 4;
 
@@ -2644,11 +2640,9 @@ function showOverlay(title, color, p1, p2) {
   if (state) { updateHUD(state); drawGame(state); }
 }
 
-/* ============ INPUT ============ */
 const keys = Object.create(null);
 const mouse = { x: W / 2, y: H / 2, down: false };
 
-// FIX #1: dùng e.code để nhận diện phím số trên MỌI keyboard layout
 function getDigitFromEvent(e) {
   const code = e.code || '';
   if (code === 'Digit1' || code === 'Numpad1') return 1;
@@ -2656,14 +2650,13 @@ function getDigitFromEvent(e) {
   if (code === 'Digit3' || code === 'Numpad3') return 3;
   if (code === 'Digit4' || code === 'Numpad4') return 4;
   if (code === 'Digit5' || code === 'Numpad5') return 5;
-  // Fallback cho trình duyệt cũ không hỗ trợ e.code
   const n = parseInt(e.key, 10);
   return (n >= 1 && n <= 5) ? n : 0;
 }
 
 addEventListener('keydown', e => {
   keys[e.key.toLowerCase()] = true;
-  if (e.repeat) return;   // tránh bắn skill liên tục khi giữ phím
+  if (e.repeat) return;
 
   const num = getDigitFromEvent(e);
   if (num && state && !state.over) {
@@ -2685,7 +2678,6 @@ canvasEl.addEventListener('mousedown', e => {
 addEventListener('mouseup', () => { mouse.down = false; });
 canvasEl.addEventListener('contextmenu', e => e.preventDefault());
 
-// FIX #2: Aim tính theo VỊ TRÍ THỰC của player trên màn hình, không phải tâm
 function getInputs() {
   let mx = 0, my = 0;
 
@@ -2702,15 +2694,21 @@ function getInputs() {
   let aim, shoot;
   const aimLen = Math.hypot(touch.aimX, touch.aimY);
   if (touch.aimActive && aimLen > 0.2) {
-    // Touch aim — dùng joystick phải
+    // Mobile: joystick phải đang active → aim theo joystick
     aim = Math.atan2(touch.aimY, touch.aimX);
     shoot = touch.shooting;
   } else if (touch.aimActive) {
     const me = state && state.players[myId];
     aim = me ? me.aim : 0;
     shoot = false;
+  } else if (isTouchDevice) {
+    // Mobile: joystick phải đã thả → giữ nguyên hướng ngắm cũ,
+    // KHÔNG tính theo mouse (mouse không tồn tại trên mobile)
+    const me = state && state.players[myId];
+    aim = me ? me.aim : 0;
+    shoot = false;
   } else {
-    // Desktop mouse aim — DÙNG VỊ TRÍ THỰC CỦA PLAYER, không phải tâm màn hình!
+    // PC: aim theo mouse, dùng vị trí thực của player trên màn hình
     const me = state && state.players[myId];
     let px = W / 2, py = H / 2;
     if (me) {
@@ -2723,7 +2721,6 @@ function getInputs() {
   return { x: mx, y: my, aim, shoot };
 }
 
-/* ============ RENDER ============ */
 function resize() {
   W = innerWidth; H = innerHeight;
   canvasEl.width = Math.floor(W * DPR); canvasEl.height = Math.floor(H * DPR);
@@ -3215,7 +3212,6 @@ function drawPlayer(p, isMe, st) {
   ctx.fillStyle = '#4dd9ff';
   ctx.fillRect(-w/2, -18, w * mpPct, 3);
 
-  // AIM LINE cho player — cho thấy hướng sắp bắn
   if (isMe && p.hp > 0) {
     ctx.save();
     ctx.globalAlpha = 0.35 + 0.15 * Math.sin(performance.now() * 0.005);
@@ -3227,7 +3223,6 @@ function drawPlayer(p, isMe, st) {
     ctx.lineTo(Math.cos(p.aim) * 160, Math.sin(p.aim) * 160);
     ctx.stroke();
     ctx.setLineDash([]);
-    // Điểm đầu aim
     ctx.globalAlpha = 0.6;
     ctx.fillStyle = '#9df3c4';
     ctx.beginPath();
