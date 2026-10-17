@@ -59,6 +59,8 @@
     letter-spacing:2px;cursor:pointer;transition:.15s;margin-top:6px}
   .btn-change-name:hover{background:#12463a;color:#9df3c4;border-color:#2ee07a}
 
+  #bossTestMenu button { padding: 14px 10px; font-size: 13px; font-weight: 800; letter-spacing: 1px; }
+
   #hud{position:fixed;inset:0;pointer-events:none;padding:18px;
     display:flex;justify-content:space-between;align-items:flex-start;
     text-shadow:0 2px 8px #000;font-weight:700}
@@ -76,7 +78,6 @@
     box-shadow:0 0 10px #ffd93d}
   .hpText{font-size:12px;margin-top:3px;opacity:.85}
 
-  /* ==== MANA BAR ==== */
   .manabar{width:min(240px,45vw);height:12px;border-radius:6px;background:#101c24;
     border:2px solid #26485a;overflow:hidden;position:relative;
     transition:border-color 0.2s, box-shadow 0.2s;box-shadow:0 0 14px #4dd9ff22}
@@ -148,52 +149,27 @@
   #joyRight .knob{background:rgba(255,91,110,0.75);border-color:#ff5b6e;
     box-shadow:0 0 25px #ff5b6e88}
 
-  /* ==== Bộ đếm quái - cố định góc trên phải ==== */
   #enemiesLeftBox{
-    position: fixed;
-    top: 16px;
-    right: 16px;
-    z-index: 10;
-    pointer-events: none;
-    padding: 6px 14px 5px;
-    border-radius: 12px;
-    background: rgba(10, 20, 26, 0.92);
-    border: 2px solid #ff5b6e;
+    position: fixed; top: 16px; right: 16px; z-index: 10; pointer-events: none;
+    padding: 6px 14px 5px; border-radius: 12px;
+    background: rgba(10, 20, 26, 0.92); border: 2px solid #ff5b6e;
     box-shadow: 0 0 22px rgba(255, 91, 110, 0.4);
-    text-align: center;
-    font-size: 9px;
-    letter-spacing: 1.5px;
-    color: #ffb0b8;
-    font-weight: 800;
-    min-width: 88px;
+    text-align: center; font-size: 9px; letter-spacing: 1.5px;
+    color: #ffb0b8; font-weight: 800; min-width: 88px;
     transition: border-color .2s, background .2s, box-shadow .2s;
   }
-  #enemiesLeftBox b{
-    display: block;
-    font-size: 24px;
-    line-height: 1;
-    color: #ff5b6e;
-    font-weight: 900;
-    text-shadow: 0 0 12px #ff5b6e;
-    margin-top: 2px;
-  }
-  #enemiesLeftBox.clear{
-    border-color: #2ee07a;
-    background: rgba(10, 30, 20, 0.92);
-    box-shadow: 0 0 22px rgba(46, 224, 122, 0.45);
-    color: #9df3c4;
-  }
+  #enemiesLeftBox b{ display: block; font-size: 24px; line-height: 1;
+    color: #ff5b6e; font-weight: 900; text-shadow: 0 0 12px #ff5b6e; margin-top: 2px; }
+  #enemiesLeftBox.clear{ border-color: #2ee07a; background: rgba(10, 30, 20, 0.92);
+    box-shadow: 0 0 22px rgba(46, 224, 122, 0.45); color: #9df3c4; }
   #enemiesLeftBox.clear b{ color: #2ee07a; text-shadow: 0 0 12px #2ee07a; }
   #enemiesLeftBox.urgent{ animation: enemiesUrgent .8s infinite; }
-  @keyframes enemiesUrgent{
-    0%, 100%{ box-shadow: 0 0 22px rgba(255, 91, 110, 0.4); }
-    50%     { box-shadow: 0 0 36px rgba(255, 91, 110, 0.95); }
-  }
+  @keyframes enemiesUrgent{ 0%, 100%{ box-shadow: 0 0 22px rgba(255, 91, 110, 0.4); }
+    50% { box-shadow: 0 0 36px rgba(255, 91, 110, 0.95); } }
 </style>
 </head>
 <body>
 
-<!-- Màn hình nhập tên -->
 <div id="nameScreen" class="screen">
   <h1>TANK ARENA</h1>
   <div class="panel">
@@ -204,7 +180,6 @@
   <div class="hint">Tên được lưu lại cho lần chơi sau. Không cần tài khoản.</div>
 </div>
 
-<!-- Menu -->
 <div id="menuScreen" class="screen hidden">
   <h1>TANK ARENA</h1>
   <div class="menu-stats">
@@ -222,6 +197,15 @@
     <button id="btnInsane" class="btn-diff insane">💀 SIÊU KHÓ</button>
   </div>
   <button id="btnChangeName" class="btn-change-name">✏️ ĐỔI TÊN</button>
+  <button id="btnTestBoss" class="btn-change-name" style="margin-top:14px;background:#2a1030;border-color:#b46bff;color:#e0c6ff">🧪 TEST BOSS</button>
+  <div id="bossTestMenu" class="hidden" style="display:flex;flex-direction:column;gap:10px;width:min(340px,92vw);margin-top:8px">
+    <button class="btn-diff" style="background:#2a1030;border-color:#b46bff;color:#e0c6ff" data-boss="0">🐂 BOSS BÒ (CHARGE)</button>
+    <button class="btn-diff" style="background:#2a1800;border-color:#ff8c1a;color:#ffd93d" data-boss="1">🔥 BOSS LỬA</button>
+    <button class="btn-diff" style="background:#001a26;border-color:#4dd9ff;color:#9df3f4" data-boss="2">❄️ BOSS BĂNG</button>
+    <button class="btn-diff" style="background:#2a0010;border-color:#ff4d6d;color:#ff8a9a" data-boss="3">🩸 BOSS HÚT MÁU</button>
+    <button class="btn-diff" style="background:#2a0020;border-color:#ff66b2;color:#ffb0d4" data-boss="4">🧬 BOSS PHÂN CHIA</button>
+    <button class="btn-diff" style="background:#1a1a1a;border-color:#888;color:#ccc" id="btnBackMenu">← QUAY LẠI</button>
+  </div>
 </div>
 
 <canvas id="game" class="hidden"></canvas>
@@ -232,12 +216,10 @@
       <div class="shieldFill" id="shieldFillP1"></div>
     </div>
     <div class="hpText" id="hpTextP1">100 / 100</div>
-    <!-- MANA -->
     <div class="manabar" id="manaBarP1">
       <div class="manaFill" id="manaFillP1"></div>
     </div>
     <div class="manaText" id="manaTextP1">MANA 100 / 100</div>
-    <!-- XP -->
     <div class="xpbar" id="xpBarWrapP1"><div class="xpFill" id="xpFillP1"></div></div>
     <div class="lvlText" id="lvlWrapP1">LV <span id="lvlValP1">1</span> • XP <span id="xpValP1">0</span>/<span id="xpNeedP1">5</span></div>
     <div id="p2Hud" class="hidden">
@@ -256,7 +238,6 @@
 </div>
 <div id="powerupHud" class="hidden"></div>
 
-<!-- Bộ đếm quái cố định góc trên phải -->
 <div id="enemiesLeftBox" class="hidden">
   QUÁI CÒN<b id="enemiesLeftVal">0</b>
 </div>
@@ -265,6 +246,52 @@
   <div id="joyLeft" class="joystick"><div class="knob" id="knobLeft"></div></div>
   <div id="joyRight" class="joystick"><div class="knob" id="knobRight"></div></div>
 </div>
+
+<!-- ====== TEST BOSS DEV PANEL ====== -->
+<div id="devPanel" class="hidden" style="position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);z-index:60;background:rgba(10,20,26,0.97);border:2px solid #b46bff;border-radius:14px;padding:18px 20px;width:min(340px,92vw);box-shadow:0 0 40px rgba(180,107,255,0.5);display:flex;flex-direction:column;gap:12px">
+  <div style="font-size:15px;font-weight:800;letter-spacing:2px;color:#e0c6ff;text-align:center;margin-bottom:4px">⚙️ DEV PANEL</div>
+  <div style="display:flex;justify-content:space-between;align-items:center;gap:8px">
+    <span style="font-size:12px;color:#cfe9d8">LV</span>
+    <span id="dvLvVal" style="font-size:14px;color:#ffd93d;font-weight:800;min-width:40px;text-align:center">1</span>
+    <button class="dvbtn" data-stat="level" data-delta="-1" style="padding:4px 14px;background:#3a1020;border:1px solid #ff5b6e;color:#ff8a9a;border-radius:6px;cursor:pointer;font-weight:800;font-size:16px">−</button>
+    <button class="dvbtn" data-stat="level" data-delta="1" style="padding:4px 14px;background:#12463a;border:1px solid #2ee07a;color:#9df3c4;border-radius:6px;cursor:pointer;font-weight:800;font-size:16px">+</button>
+  </div>
+  <div style="display:flex;justify-content:space-between;align-items:center;gap:8px">
+    <span style="font-size:12px;color:#cfe9d8">DAME</span>
+    <span id="dvDmgVal" style="font-size:14px;color:#ff8c1a;font-weight:800;min-width:40px;text-align:center">14</span>
+    <button class="dvbtn" data-stat="damage" data-delta="-2" style="padding:4px 14px;background:#3a1020;border:1px solid #ff5b6e;color:#ff8a9a;border-radius:6px;cursor:pointer;font-weight:800;font-size:16px">−</button>
+    <button class="dvbtn" data-stat="damage" data-delta="2" style="padding:4px 14px;background:#12463a;border:1px solid #2ee07a;color:#9df3c4;border-radius:6px;cursor:pointer;font-weight:800;font-size:16px">+</button>
+  </div>
+  <div style="display:flex;justify-content:space-between;align-items:center;gap:8px">
+    <span style="font-size:12px;color:#cfe9d8">MAX HP</span>
+    <span id="dvHpVal" style="font-size:14px;color:#2ee07a;font-weight:800;min-width:40px;text-align:center">100</span>
+    <button class="dvbtn" data-stat="maxHp" data-delta="-50" style="padding:4px 14px;background:#3a1020;border:1px solid #ff5b6e;color:#ff8a9a;border-radius:6px;cursor:pointer;font-weight:800;font-size:16px">−</button>
+    <button class="dvbtn" data-stat="maxHp" data-delta="50" style="padding:4px 14px;background:#12463a;border:1px solid #2ee07a;color:#9df3c4;border-radius:6px;cursor:pointer;font-weight:800;font-size:16px">+</button>
+  </div>
+  <div style="display:flex;justify-content:space-between;align-items:center;gap:8px">
+    <span style="font-size:12px;color:#cfe9d8">MAX MANA</span>
+    <span id="dvManaVal" style="font-size:14px;color:#4dd9ff;font-weight:800;min-width:40px;text-align:center">100</span>
+    <button class="dvbtn" data-stat="maxMana" data-delta="-20" style="padding:4px 14px;background:#3a1020;border:1px solid #ff5b6e;color:#ff8a9a;border-radius:6px;cursor:pointer;font-weight:800;font-size:16px">−</button>
+    <button class="dvbtn" data-stat="maxMana" data-delta="20" style="padding:4px 14px;background:#12463a;border:1px solid #2ee07a;color:#9df3c4;border-radius:6px;cursor:pointer;font-weight:800;font-size:16px">+</button>
+  </div>
+  <div style="display:flex;justify-content:space-between;align-items:center;gap:8px">
+    <span style="font-size:12px;color:#cfe9d8">FIRE RATE</span>
+    <span id="dvFrVal" style="font-size:14px;color:#ff66b2;font-weight:800;min-width:40px;text-align:center">180</span>
+    <button class="dvbtn" data-stat="fireRate" data-delta="20" style="padding:4px 14px;background:#3a1020;border:1px solid #ff5b6e;color:#ff8a9a;border-radius:6px;cursor:pointer;font-weight:800;font-size:16px">−</button>
+    <button class="dvbtn" data-stat="fireRate" data-delta="-20" style="padding:4px 14px;background:#12463a;border:1px solid #2ee07a;color:#9df3c4;border-radius:6px;cursor:pointer;font-weight:800;font-size:16px">+</button>
+  </div>
+
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:4px">
+    <button id="dvFullHeal" style="padding:10px;background:#12463a;border:2px solid #2ee07a;color:#9df3c4;border-radius:8px;cursor:pointer;font-size:12px;font-weight:800">💚 FULL HP</button>
+    <button id="dvFullMana" style="padding:10px;background:#0d3a44;border:2px solid #4dd9ff;color:#9df3f4;border-radius:8px;cursor:pointer;font-size:12px;font-weight:800">💙 FULL MANA</button>
+    <button id="dvGodMode" style="padding:10px;background:#2a1800;border:2px solid #ffd93d;color:#ffd93d;border-radius:8px;cursor:pointer;font-size:12px;font-weight:800">🛡 GOD MODE</button>
+    <button id="dvResetBoss" style="padding:10px;background:#3a1020;border:2px solid #ff5b6e;color:#ff8a9a;border-radius:8px;cursor:pointer;font-size:12px;font-weight:800">🔄 RESPAWN BOSS</button>
+  </div>
+
+  <button id="dvClose" style="padding:10px;background:#1a1a1a;border:2px solid #888;color:#ccc;border-radius:8px;cursor:pointer;font-size:12px;font-weight:800;margin-top:4px">ĐÓNG</button>
+</div>
+
+<button id="dvOpen" class="hidden" style="position:fixed;top:70px;right:16px;z-index:59;padding:8px 14px;background:#2a1030;border:2px solid #b46bff;color:#e0c6ff;border-radius:8px;cursor:pointer;font-size:12px;font-weight:800">⚙️ DEV</button>
 
 <div id="overlay" class="hidden">
   <h1 id="ovTitle">GAME OVER</h1>
@@ -296,7 +323,6 @@ function hexA(hex, a) {
   return 'rgba(' + ((n >> 16) & 255) + ',' + ((n >> 8) & 255) + ',' + (n & 255) + ',' + a + ')';
 }
 
-/* ============ RENDER STATE ============ */
 const canvasEl = document.getElementById('game');
 const ctx = canvasEl.getContext('2d');
 let W = innerWidth, H = innerHeight;
@@ -315,7 +341,6 @@ function rr(x, y, w, h, r) {
   ctx.closePath();
 }
 
-/* ============ ÂM THANH ============ */
 let audioCtx = null;
 function initAudio() {
   if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
@@ -362,7 +387,6 @@ function triggerHitEffect() {
   if (bar) { bar.classList.add('hurt'); setTimeout(() => bar.classList.remove('hurt'), 200); }
 }
 
-/* ============ LƯU TÊN + ĐIỂM ============ */
 const NAME_KEY = 'tankArenaPlayerName';
 const SCORES_KEY = 'tankArenaScores';
 function getScores() { try { return JSON.parse(localStorage.getItem(SCORES_KEY) || '{}'); } catch (e) { return {}; } }
@@ -388,7 +412,6 @@ function recordBotWin() {
 }
 let currentUser = localStorage.getItem(NAME_KEY);
 
-/* ============ UI ============ */
 const screens = {
   name: document.getElementById('nameScreen'),
   menu: document.getElementById('menuScreen')
@@ -397,7 +420,6 @@ const hudEl = document.getElementById('hud');
 const puHudEl = document.getElementById('powerupHud');
 const touchControlsEl = document.getElementById('touchControls');
 
-/* ============ JOYSTICK STATE (khai báo TRƯỚC khi dùng) ============ */
 const touch = {
   moveX: 0, moveY: 0,
   aimX: 0, aimY: 0,
@@ -422,6 +444,8 @@ function show(name) {
   puHudEl.classList.add('hidden');
   touchControlsEl.classList.add('hidden');
   document.getElementById('enemiesLeftBox').classList.add('hidden');
+  document.getElementById('devPanel').classList.add('hidden');
+  document.getElementById('dvOpen').classList.add('hidden');
   if (name !== 'game') resetTouchState();
   if (name === 'game') {
     canvasEl.classList.remove('hidden');
@@ -450,7 +474,6 @@ function showNameScreen() {
 
 if (currentUser) showMenu(); else showNameScreen();
 
-/* Nhập tên → vào game */
 const inputName = document.getElementById('inputName');
 const btnEnter = document.getElementById('btnEnterGame');
 const nameMsg = document.getElementById('nameMsg');
@@ -475,7 +498,23 @@ document.getElementById('btnChangeName').onclick = () => {
   showNameScreen();
 };
 
-/* ============ JOYSTICK (Pointer Events + fallback) ============ */
+/* ============ TEST BOSS MENU ============ */
+const bossTestMenu = document.getElementById('bossTestMenu');
+document.getElementById('btnTestBoss').onclick = () => {
+  bossTestMenu.classList.toggle('hidden');
+};
+document.getElementById('btnBackMenu').onclick = () => {
+  bossTestMenu.classList.add('hidden');
+};
+bossTestMenu.querySelectorAll('[data-boss]').forEach(btn => {
+  btn.onclick = () => {
+    const bossType = parseInt(btn.dataset.boss, 10);
+    bossTestMenu.classList.add('hidden');
+    startBossTest(bossType);
+  };
+});
+
+/* ============ JOYSTICK ============ */
 function setupJoystick(el, knob, onMove, onEnd) {
   const maxR = 50;
   let activePointerId = null;
@@ -633,7 +672,7 @@ const BOT_CFG = {
 };
 const DIFF_NAME = { easy: 'DỄ', normal: 'BÌNH THƯỜNG', hard: 'KHÁ', insane: 'SIÊU KHÓ' };
 
-/* ============ MANA CONFIG (cân bằng) ============ */
+/* ============ MANA CONFIG ============ */
 const MANA_MAX = 100;
 const MANA_REGEN = 32;
 const MANA_COST_SHOT = 4;
@@ -704,7 +743,11 @@ function initGame(mode, difficulty) {
     waveSpawnTimer: 0,
     waveClearDelay: 0,
     waveActive: false,
-    bossAlive: false
+    bossAlive: false,
+    isBossTest: false,
+    testBossType: null,
+    testWinShown: false,
+    godMode: false
   };
 
   if (mode === 'bot') {
@@ -734,7 +777,7 @@ function initGame(mode, difficulty) {
   }
 }
 
-/* ============ WAVE SYSTEM (PvE) ============ */
+/* ============ WAVE ============ */
 function buildWaveQueue(wave) {
   const baseCount = 10 + Math.floor(wave * 4);
   const maxCount = 90;
@@ -758,7 +801,6 @@ function buildWaveQueue(wave) {
   return { queue, hasBoss };
 }
 
-/* ============ SPAWN QUANH PLAYER (ngoài màn hình) ============ */
 function spawnEnemyInArena(typeIdx, wave) {
   if (!state) return;
   if (state.enemies.length > 320) return;
@@ -775,9 +817,7 @@ function spawnEnemyInArena(typeIdx, wave) {
   const maxDist = minDist + 260;
 
   let angle = Math.random() * TAU;
-  if (Math.random() < 0.35) {
-    angle = me.aim + rand(-0.6, 0.6);
-  }
+  if (Math.random() < 0.35) angle = me.aim + rand(-0.6, 0.6);
 
   const d = rand(minDist, maxDist);
   let spawnX = me.x + Math.cos(angle) * d;
@@ -813,7 +853,6 @@ function spawnEnemyInArena(typeIdx, wave) {
   });
 }
 
-/* ============ BOSS TYPES ============ */
 const BOSS_TYPES = [
   { name: 'BÒ',        color: '#b46bff', stroke: '#6a2f9e', r: 48, hp: 1800, speed: 60, dmg: 40, xp: 30 },
   { name: 'LỬA',       color: '#ff8c1a', stroke: '#a04d00', r: 46, hp: 1500, speed: 65, dmg: 25, xp: 30 },
@@ -910,22 +949,161 @@ document.getElementById('btnNormal').onclick = () => startGame('bot', 'normal');
 document.getElementById('btnHard').onclick = () => startGame('bot', 'hard');
 document.getElementById('btnInsane').onclick = () => startGame('bot', 'insane');
 
+/* ============ TEST BOSS ============ */
+function startBossTest(bossType) {
+  initAudio();
+  hideOverlay();
+  shakeTime = 0; shakeIntensity = 0; hitFlash = 0;
+  state = null;
+
+  initGame('pve', null);
+
+  state.isBossTest = true;
+  state.testBossType = bossType;
+  state.testWinShown = false;
+  state.godMode = false;
+  state.wave = 1;
+  state.waveActive = false;
+  state.waveSpawnQueue = [];
+  state.waveTotal = 0;
+  state.waveKilled = 0;
+  state.waveSpawned = 0;
+  state.enemies = [];
+  state.ebullets = [];
+  state.bossIndex = bossType;
+  state.arena = { w: 2200, h: 2200 };
+
+  const me = state.players[myId];
+  me.x = 0; me.y = 0;
+  me.hp = me.maxHp;
+  me.mana = me.maxMana;
+
+  spawnBossInArena();
+  state.bossIndex = bossType;
+
+  const bossName = BOSS_TYPES[bossType].name;
+  state.announce = { text: 'TEST: BOSS ' + bossName, t: 2.5 };
+
+  document.getElementById('modeTag').textContent = '🧪 TEST: ' + bossName;
+  document.getElementById('modeTag').style.color = BOSS_TYPES[bossType].color;
+
+  show('game');
+  lastTime = performance.now();
+  requestAnimationFrame(gameLoop);
+
+  document.getElementById('devPanel').classList.remove('hidden');
+  document.getElementById('dvOpen').classList.add('hidden');
+  document.getElementById('dvGodMode').textContent = '🛡 GOD MODE';
+  document.getElementById('dvGodMode').style.background = '#2a1800';
+  document.getElementById('dvGodMode').style.color = '#ffd93d';
+  document.getElementById('dvGodMode').style.borderColor = '#ffd93d';
+  updateDevPanelUI();
+}
+
 document.getElementById('btnMenu').onclick = () => {
   if (confirm('Thoát về menu? Tiến trình sẽ mất.')) { state = null; showMenu(); }
 };
 document.getElementById('btnToMenu').onclick = () => { state = null; hideOverlay(); showMenu(); };
 document.getElementById('btnRestart').onclick = () => {
   hideOverlay();
+  const wasTest = state && state.isBossTest;
+  const testType = state && state.testBossType;
   const mode = state ? state.mode : 'pve';
   const diff = state ? state.difficulty : null;
   state = null;
   shakeTime = 0; shakeIntensity = 0; hitFlash = 0;
-  initGame(mode, diff);
-  show('game');
-  lastTime = performance.now();
-  requestAnimationFrame(gameLoop);
+  if (wasTest) {
+    startBossTest(testType);
+  } else {
+    initGame(mode, diff);
+    show('game');
+    lastTime = performance.now();
+    requestAnimationFrame(gameLoop);
+  }
 };
 function hideOverlay() { document.getElementById('overlay').classList.add('hidden'); }
+
+/* ============ DEV PANEL ============ */
+function updateDevPanelUI() {
+  if (!state || !state.isBossTest) return;
+  const me = state.players[myId];
+  if (!me) return;
+  document.getElementById('dvLvVal').textContent = me.level;
+  document.getElementById('dvDmgVal').textContent = me.damage;
+  document.getElementById('dvHpVal').textContent = me.maxHp;
+  document.getElementById('dvManaVal').textContent = me.maxMana;
+  document.getElementById('dvFrVal').textContent = me.fireRate;
+}
+
+document.querySelectorAll('.dvbtn').forEach(btn => {
+  btn.onclick = () => {
+    if (!state || !state.isBossTest) return;
+    const me = state.players[myId];
+    const stat = btn.dataset.stat;
+    const delta = parseInt(btn.dataset.delta, 10);
+
+    if (stat === 'level') {
+      me.level = Math.max(1, me.level + delta);
+      const lv = me.level;
+      me.maxHp = 100 + (lv - 1) * 10;
+      me.hp = Math.min(me.hp, me.maxHp);
+      me.damage = 14 + (lv - 1) * 2;
+      me.fireRate = Math.max(60, 180 - (lv - 1) * 8);
+      me.maxMana = 100 + (lv - 1) * 6;
+      me.mana = Math.min(me.mana, me.maxMana);
+    } else if (stat === 'damage') {
+      me.damage = Math.max(1, me.damage + delta);
+    } else if (stat === 'maxHp') {
+      me.maxHp = Math.max(10, me.maxHp + delta);
+      me.hp = Math.min(me.hp, me.maxHp);
+    } else if (stat === 'maxMana') {
+      me.maxMana = Math.max(10, me.maxMana + delta);
+      me.mana = Math.min(me.mana, me.maxMana);
+    } else if (stat === 'fireRate') {
+      me.fireRate = Math.max(30, me.fireRate + delta);
+    }
+    updateDevPanelUI();
+  };
+});
+
+document.getElementById('dvFullHeal').onclick = () => {
+  if (!state || !state.isBossTest) return;
+  const me = state.players[myId];
+  me.hp = me.maxHp;
+};
+document.getElementById('dvFullMana').onclick = () => {
+  if (!state || !state.isBossTest) return;
+  const me = state.players[myId];
+  me.mana = me.maxMana;
+};
+document.getElementById('dvGodMode').onclick = (e) => {
+  if (!state || !state.isBossTest) return;
+  state.godMode = !state.godMode;
+  e.target.textContent = state.godMode ? '🛡 GOD: ON' : '🛡 GOD MODE';
+  e.target.style.background = state.godMode ? '#12463a' : '#2a1800';
+  e.target.style.color = state.godMode ? '#9df3c4' : '#ffd93d';
+  e.target.style.borderColor = state.godMode ? '#2ee07a' : '#ffd93d';
+};
+document.getElementById('dvResetBoss').onclick = () => {
+  if (!state || !state.isBossTest) return;
+  state.enemies = [];
+  state.ebullets = [];
+  state.testWinShown = false;
+  state.bossIndex = state.testBossType;
+  spawnBossInArena();
+  state.bossIndex = state.testBossType;
+  const bossName = BOSS_TYPES[state.testBossType].name;
+  state.announce = { text: 'RESPAWN: BOSS ' + bossName, t: 1.5 };
+};
+document.getElementById('dvClose').onclick = () => {
+  document.getElementById('devPanel').classList.add('hidden');
+  document.getElementById('dvOpen').classList.remove('hidden');
+};
+document.getElementById('dvOpen').onclick = () => {
+  document.getElementById('devPanel').classList.remove('hidden');
+  document.getElementById('dvOpen').classList.add('hidden');
+  updateDevPanelUI();
+};
 
 /* ============ HUD ============ */
 function updateHUD(st) {
@@ -972,7 +1150,7 @@ function updateHUD(st) {
   }
 
   const elLeft = document.getElementById('enemiesLeftBox');
-  if (st.mode === 'pve' && st.waveActive) {
+  if (st.mode === 'pve' && st.waveActive && !st.isBossTest) {
     const remaining = st.waveSpawnQueue.length + st.enemies.length;
     elLeft.classList.remove('hidden');
     elLeft.classList.toggle('clear', remaining === 0);
@@ -1072,7 +1250,6 @@ function applyPickup(p, k) {
   if (PU_BAD.includes(k.type)) { p.curseFlash = 1; state.events.push('curse'); }
 }
 
-/* ============ PARTICLES ============ */
 function spawnParticles(x, y, color, count, speed) {
   if (!state) return;
   for (let i = 0; i < count; i++) {
@@ -1148,7 +1325,6 @@ function explodeBomb(x, y, ownerId) {
   playSound('boom');
 }
 
-/* ============ ENEMIES ============ */
 const TYPES = [
   { behavior: 'chase',    hp: 22,  speed: 96, r: 15, dmg: 8,  score: 10, color: '#7bd66b', stroke: '#3d8a35', xp: 1 },
   { behavior: 'chase',    hp: 52,  speed: 72, r: 23, dmg: 15, score: 25, color: '#e8a13a', stroke: '#a86a15', xp: 2 },
@@ -1158,7 +1334,6 @@ const TYPES = [
   { behavior: 'splitter', hp: 80,  speed: 55, r: 26, dmg: 18, score: 45, color: '#ff66b2', stroke: '#8a1f4d', xp: 3 }
 ];
 
-/* Tạo 4 boss con khi boss phân chia chết */
 function spawnSplitChildren(boss, ownerId) {
   if (!state) return;
   const level = boss.splitLevel || 2;
@@ -1219,12 +1394,8 @@ function killEnemy(e, ownerId) {
     if (e.isBoss) state.bossAlive = false;
   }
 
-  if (e.isBoss && e.bossType === 4) {
-    spawnSplitChildren(e, ownerId);
-  }
-  if (e.isMiniBoss && e.splitLevel > 0) {
-    spawnSplitChildren(e, ownerId);
-  }
+  if (e.isBoss && e.bossType === 4) spawnSplitChildren(e, ownerId);
+  if (e.isMiniBoss && e.splitLevel > 0) spawnSplitChildren(e, ownerId);
 
   if (e.behavior === 'splitter' && state.enemies.length < 300) {
     for (let k = 0; k < 2; k++) {
@@ -1245,7 +1416,6 @@ function updateBoss(e, target, dt, st) {
   const d = Math.hypot(dx, dy) || 1;
   const ux = dx / d, uy = dy / d;
 
-  // ===== CONTACT DAMAGE =====
   if (!e._contactCd) e._contactCd = 0;
   e._contactCd -= dt;
   if (d < e.r + 22 && e._contactCd <= 0 && !(e.bossType === 0 && e.chargeState === 'charging')) {
@@ -1265,7 +1435,6 @@ function updateBoss(e, target, dt, st) {
     shakeTime = 0.15; shakeIntensity = 8;
   }
 
-  // ===== BURST 5 ĐẠN (trừ bò và hút máu) =====
   if (!e._burstCd) e._burstCd = rand(2.5, 3.5);
   if (e.bossType !== 0 && e.bossType !== 3) {
     e._burstCd -= dt;
@@ -1277,8 +1446,7 @@ function updateBoss(e, target, dt, st) {
         const a = baseA + k * 0.16;
         st.ebullets.push({
           x: e.x, y: e.y,
-          vx: Math.cos(a) * 280,
-          vy: Math.sin(a) * 280,
+          vx: Math.cos(a) * 280, vy: Math.sin(a) * 280,
           r: 7, dmg: Math.floor(e.dmg * 0.3),
           life: 3, color: e.color
         });
@@ -1287,9 +1455,7 @@ function updateBoss(e, target, dt, st) {
     }
   }
 
-  // ===== SKILL CHÍNH THEO LOẠI BOSS =====
   if (e.bossType === 0) {
-    // ===== BÒ: charge + đạn tỉa khi idle =====
     e.chargeTimer -= dt;
     if (e.chargeState === 'idle') {
       e.x += ux * e.speed * dt;
@@ -1365,7 +1531,6 @@ function updateBoss(e, target, dt, st) {
       }
     }
   } else if (e.bossType === 1) {
-    // ===== LỬA: phun 5 tia + vòng lửa 360 khi áp sát =====
     if (d > 280) { e.x += ux * e.speed * dt; e.y += uy * e.speed * dt; }
     else if (d < 200) { e.x -= ux * e.speed * 0.7 * dt; e.y -= uy * e.speed * 0.7 * dt; }
     else {
@@ -1381,8 +1546,7 @@ function updateBoss(e, target, dt, st) {
         const a = baseAngle + k * 0.18;
         st.ebullets.push({
           x: e.x, y: e.y,
-          vx: Math.cos(a) * 400,
-          vy: Math.sin(a) * 400,
+          vx: Math.cos(a) * 400, vy: Math.sin(a) * 400,
           r: 12, dmg: Math.floor(e.dmg * 0.4),
           life: 1.6, color: '#ff8c1a',
           isFire: true, trail: []
@@ -1402,7 +1566,6 @@ function updateBoss(e, target, dt, st) {
       playSound('fire');
     }
   } else if (e.bossType === 2) {
-    // ===== BĂNG: đạn băng + 6 đạn băng tỏa khi áp sát =====
     if (d > 350) { e.x += ux * e.speed * dt; e.y += uy * e.speed * dt; }
     else if (d < 260) { e.x -= ux * e.speed * 0.6 * dt; e.y -= uy * e.speed * 0.6 * dt; }
     e.freezeCd -= dt;
@@ -1430,7 +1593,6 @@ function updateBoss(e, target, dt, st) {
       playSound('freeze');
     }
   } else if (e.bossType === 3) {
-    // ===== HÚT MÁU: hút + 3 đạn đỏ + teleport khi áp sát =====
     if (d > 260) { e.x += ux * e.speed * dt; e.y += uy * e.speed * dt; }
     e._snipeCd -= dt;
     if (e._snipeCd <= 0 && d < 800) {
@@ -1491,7 +1653,6 @@ function updateBoss(e, target, dt, st) {
       playSound('teleport');
     }
   } else if (e.bossType === 4) {
-    // ===== PHÂN CHIA: 4 đạn tỏa + đẻ quái nhỏ =====
     e.x += ux * e.speed * dt;
     e.y += uy * e.speed * dt;
     e.atkCd -= dt;
@@ -1680,7 +1841,20 @@ function gameLoop(now) {
   }
 
   if (isPvE) {
-    if (state.waveActive) {
+    if (state.isBossTest) {
+      if (state.enemies.length === 0 && !state.testWinShown) {
+        state.testWinShown = true;
+        const bt = state.testBossType;
+        setTimeout(() => {
+          if (!state || !state.isBossTest) return;
+          state.over = true;
+          recordPvEScore(state.players[myId].score);
+          showOverlay('✅ HẠ GỤC BOSS!', '#2ee07a',
+            'Boss: <b>' + BOSS_TYPES[bt].name + '</b>',
+            'Điểm: <b>' + state.players[myId].score + '</b> · Cấp: <b>' + state.players[myId].level + '</b>');
+        }, 1200);
+      }
+    } else if (state.waveActive) {
       if (state.waveSpawnQueue.length > 0) {
         state.waveSpawnTimer -= dt;
         if (state.waveSpawnTimer <= 0) {
@@ -1710,6 +1884,10 @@ function gameLoop(now) {
   for (const id in state.players) {
     const p = state.players[id];
     if (p.hp <= 0) continue;
+
+    // GOD MODE: luôn full HP
+    if (state.godMode && !p.isBot) p.hp = p.maxHp;
+
     if (p.pvpInvuln > 0) p.pvpInvuln -= dt;
     for (const k in p.powerups) if (p.powerups[k] > 0) p.powerups[k] = Math.max(0, p.powerups[k] - dt);
     if (p.levelUpFlash > 0) p.levelUpFlash -= dt;
@@ -1991,6 +2169,7 @@ function gameLoop(now) {
 
   updateHUD(state);
   updatePowerupHUD(state);
+  if (state.isBossTest) updateDevPanelUI();
   drawGame(state);
   requestAnimationFrame(gameLoop);
 }
@@ -2703,7 +2882,7 @@ function drawGame(st) {
     ctx.restore();
   }
 
-  if (st.mode === 'pve' && st.waveActive) {
+  if (st.mode === 'pve' && st.waveActive && !st.isBossTest) {
     const remaining = st.waveSpawnQueue.length + st.enemies.length;
     const total = st.waveTotal;
     const killed = total - remaining;
