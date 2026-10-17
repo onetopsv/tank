@@ -278,7 +278,7 @@ function hexA(hex, a) {
   return 'rgba(' + ((n >> 16) & 255) + ',' + ((n >> 8) & 255) + ',' + (n & 255) + ',' + a + ')';
 }
 
-/* ============ RENDER STATE (khai báo SỚM) ============ */
+/* ============ RENDER STATE ============ */
 const canvasEl = document.getElementById('game');
 const ctx = canvasEl.getContext('2d');
 let W = innerWidth, H = innerHeight;
@@ -533,10 +533,10 @@ setupJoystick(
 
 /* ============ BOT CFG ============ */
 const BOT_CFG = {
-  easy: { speedBonus: 0.60, aimJitter: 0.60, shootRange: 500, dodge: false, dodgeRange: 0, smart: false, lead: 0, fireRate: 550, damage: 5, idealDist: 450, hp: 70, name: 'BOT DỄ', color: '#7bd66b' },
-  normal: { speedBonus: 0.80, aimJitter: 0.30, shootRange: 650, dodge: true, dodgeRange: 140, smart: false, lead: 0.2, fireRate: 360, damage: 8, idealDist: 380, hp: 90, name: 'BOT THƯỜNG', color: '#4dd9ff' },
-  hard: { speedBonus: 0.95, aimJitter: 0.18, shootRange: 800, dodge: true, dodgeRange: 220, smart: true, lead: 0.5, fireRate: 260, damage: 12, idealDist: 330, hp: 110, name: 'BOT KHÁ', color: '#ff8c1a' },
-  insane: { speedBonus: 1.10, aimJitter: 0.10, shootRange: 900, dodge: true, dodgeRange: 280, smart: true, lead: 0.7, fireRate: 200, damage: 14, idealDist: 320, hp: 130, name: 'BOT SIÊU KHÓ', color: '#ff5b6e' }
+  easy: { speedBonus: 0.60, aimJitter: 0.55, shootRange: 500, dodge: false, dodgeRange: 0, smart: false, lead: 0, fireRate: 550, damage: 5, idealDist: 450, hp: 70, name: 'BOT DỄ', color: '#7bd66b', aimSpeed: 0.15 },
+  normal: { speedBonus: 0.80, aimJitter: 0.28, shootRange: 650, dodge: true, dodgeRange: 140, smart: false, lead: 0.2, fireRate: 360, damage: 8, idealDist: 380, hp: 90, name: 'BOT THƯỜNG', color: '#4dd9ff', aimSpeed: 0.22 },
+  hard: { speedBonus: 0.95, aimJitter: 0.16, shootRange: 800, dodge: true, dodgeRange: 220, smart: true, lead: 0.5, fireRate: 260, damage: 12, idealDist: 330, hp: 110, name: 'BOT KHÁ', color: '#ff8c1a', aimSpeed: 0.30 },
+  insane: { speedBonus: 1.10, aimJitter: 0.08, shootRange: 900, dodge: true, dodgeRange: 280, smart: true, lead: 0.7, fireRate: 200, damage: 14, idealDist: 320, hp: 130, name: 'BOT SIÊU KHÓ', color: '#ff5b6e', aimSpeed: 0.42 }
 };
 const DIFF_NAME = { easy: 'DỄ', normal: 'BÌNH THƯỜNG', hard: 'KHÁ', insane: 'SIÊU KHÓ' };
 
@@ -550,7 +550,7 @@ function makePlayer(id, name) {
   return {
     id, name, x: 0, y: 0,
     hp: 100, maxHp: 100, score: 0,
-    angle: -Math.PI/2, aim: 0,
+    angle: -Math.PI/2, aim: 0, aimJitter: 0,
     input: {x:0, y:0, aim:0, shoot:false},
     level: 1, xp: 0,
     fireRate: 180, damage: 14, bulletSpeed: 1000,
@@ -559,7 +559,7 @@ function makePlayer(id, name) {
     levelUpFlash: 0, curseFlash: 0, pvpInvuln: 0,
     isBot: false, difficulty: null,
     _prevX: 0, _prevY: 0,
-    smoothX: 0, smoothY: 0
+    smoothX: 0, smoothY: 0, aimSmooth: undefined
   };
 }
 function makeBot(difficulty) {
@@ -574,6 +574,8 @@ function makeBot(difficulty) {
   b.bulletSpeed = 1000;
   b.smoothX = 0;
   b.smoothY = 0;
+  b.aimSmooth = undefined;
+  b.aimJitter = cfg.aimJitter;
   return b;
 }
 
@@ -628,8 +630,9 @@ function initGame(mode, difficulty) {
 
 /* ============ WAVE SYSTEM (PvE) ============ */
 function buildWaveQueue(wave) {
-  const baseCount = 5 + Math.floor(wave * 1.8);
-  const maxCount = 40;
+  // Tăng mạnh số quái mỗi màn
+  const baseCount = 10 + Math.floor(wave * 4);
+  const maxCount = 90;
   const total = Math.min(maxCount, baseCount);
 
   const queue = [];
@@ -652,7 +655,7 @@ function buildWaveQueue(wave) {
 
 function spawnEnemyInArena(typeIdx, wave) {
   if (!state) return;
-  if (state.enemies.length > 220) return;
+  if (state.enemies.length > 320) return;
 
   const arena = state.arena;
   const halfW = arena.w / 2 - 120;
@@ -720,7 +723,7 @@ function startNewWave() {
   state.waveTotal = res.queue.length + (res.hasBoss ? 1 : 0);
   state.waveKilled = 0;
   state.waveSpawned = 0;
-  state.waveSpawnTimer = 0.4;
+  state.waveSpawnTimer = 0.3;
   state.waveClearDelay = 0;
   state.waveActive = true;
   state.bossAlive = false;
@@ -808,7 +811,7 @@ function updateHUD(st) {
     }
   }
 
-  /* ===== ĐẾM SỐ QUÁI CÒN LẠI (badge góc trên phải) ===== */
+  /* ===== ĐẾM SỐ QUÁI CÒN LẠI ===== */
   const elLeft = document.getElementById('enemiesLeftBox');
   if (st.mode === 'pve' && st.waveActive) {
     const remaining = st.waveSpawnQueue.length + st.enemies.length;
@@ -1021,7 +1024,7 @@ function killEnemy(e, ownerId) {
     if (e.isBoss) state.bossAlive = false;
   }
 
-  if (e.behavior === 'splitter' && state.enemies.length < 200) {
+  if (e.behavior === 'splitter' && state.enemies.length < 300) {
     for (let k = 0; k < 2; k++) {
       state.enemies.push({
         x: e.x+rand(-20,20), y: e.y+rand(-20,20),
@@ -1047,8 +1050,15 @@ function computeBotInput(bot, player, pvx, pvy) {
   const bulletTime = d / bulletSpeed;
   const px = player.x + pvx * bulletTime * cfg.lead;
   const py = player.y + pvy * bulletTime * cfg.lead;
-  const jitter = (Math.random() - 0.5) * cfg.aimJitter;
-  const aim = Math.atan2(py - bot.y, px - bot.x) + jitter;
+
+  // ---- AIM SMOOTHING (không còn giật) ----
+  const aimTarget = Math.atan2(py - bot.y, px - bot.x);
+  if (bot.aimSmooth === undefined || !isFinite(bot.aimSmooth)) bot.aimSmooth = aimTarget;
+  let aimDiff = aimTarget - bot.aimSmooth;
+  while (aimDiff > Math.PI) aimDiff -= TAU;
+  while (aimDiff < -Math.PI) aimDiff += TAU;
+  bot.aimSmooth += aimDiff * cfg.aimSpeed;
+  const aim = bot.aimSmooth;
 
   let mx = 0, my = 0, dodging = false;
 
@@ -1102,8 +1112,9 @@ function computeBotInput(bot, player, pvx, pvy) {
     if (d < cfg.idealDist - 100) { mx -= nx; my -= ny; }
     else if (d > cfg.idealDist + 100) { mx += nx * 0.7; my += ny * 0.7; }
     else {
-      const strafeSign = Math.sin(state.time * 1.5) > 0 ? 1 : -1;
-      mx += -ny * strafeSign * 0.8; my += nx * strafeSign * 0.8;
+      // ---- STRAFE MƯỢT (không còn lật dấu đột ngột) ----
+      const strafe = Math.sin(state.time * 1.2);
+      mx += -ny * strafe * 0.8; my += nx * strafe * 0.8;
       const keep = (d - cfg.idealDist) / 100;
       mx += nx * keep * 0.3;
       my += ny * keep * 0.3;
@@ -1113,19 +1124,19 @@ function computeBotInput(bot, player, pvx, pvy) {
   const ml = Math.hypot(mx, my);
   if (ml > 0) { mx /= ml; my /= ml; }
 
-  // Smoothing
+  // Smooth movement (giữ 0.85/0.15 để phản hồi nhanh nhưng vẫn mượt)
   bot.smoothX = bot.smoothX * 0.85 + mx * 0.15;
   bot.smoothY = bot.smoothY * 0.85 + my * 0.15;
 
   const sLen = Math.hypot(bot.smoothX, bot.smoothY);
-  if (sLen > 0.05) {
+  if (sLen > 0.08) {
     mx = bot.smoothX / sLen;
     my = bot.smoothY / sLen;
   } else {
     mx = 0;
     my = 0;
-    bot.smoothX = 0;
-    bot.smoothY = 0;
+    bot.smoothX *= 0.5;
+    bot.smoothY *= 0.5;
   }
 
   const shoot = d < cfg.shootRange;
@@ -1183,15 +1194,18 @@ function gameLoop(now) {
   }
 
   if (isPvE) {
-    // Wave system
+    // ---- WAVE SPAWN (nhanh + nhiều con 1 lần) ----
     if (state.waveActive) {
       if (state.waveSpawnQueue.length > 0) {
         state.waveSpawnTimer -= dt;
         if (state.waveSpawnTimer <= 0) {
-          const typeIdx = state.waveSpawnQueue.shift();
-          spawnEnemyInArena(typeIdx, state.wave);
-          state.waveSpawned++;
-          state.waveSpawnTimer = Math.max(0.15, 0.6 - state.wave * 0.03);
+          const perTick = state.wave >= 10 ? 3 : (state.wave >= 5 ? 2 : 1);
+          for (let i = 0; i < perTick && state.waveSpawnQueue.length > 0; i++) {
+            const typeIdx = state.waveSpawnQueue.shift();
+            spawnEnemyInArena(typeIdx, state.wave);
+            state.waveSpawned++;
+          }
+          state.waveSpawnTimer = Math.max(0.10, 0.35 - state.wave * 0.012);
         }
       }
       if (state.waveSpawnQueue.length === 0 && state.enemies.length === 0) {
@@ -1257,7 +1271,9 @@ function gameLoop(now) {
       const pierce = p.powerups.pierce > 0;
       const shots = p.powerups.tripleshot > 0 ? [-0.18, 0, 0.18] : [0];
       for (const off of shots) {
-        const a = p.aim + off;
+        // ---- MỖI VIÊN ĐẠN CÓ JITTER NGẪU NHIÊN (chỉ bot) ----
+        const jit = p.aimJitter ? (Math.random() - 0.5) * p.aimJitter : 0;
+        const a = p.aim + off + jit;
         state.bullets.push({ x: p.x + Math.cos(a) * 30, y: p.y + Math.sin(a) * 30, vx: Math.cos(a) * p.bulletSpeed, vy: Math.sin(a) * p.bulletSpeed, life: 1.2, owner: id, dmg, pierce, hitSet: [] });
       }
       if (p.powerups.laser > 0 && (!p.lastLaser || state.time - p.lastLaser > 0.4)) {
