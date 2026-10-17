@@ -79,7 +79,8 @@
     border:1px solid #26485a;overflow:hidden;margin-top:4px}
   .xpFill{height:100%;width:0%;background:linear-gradient(90deg,#ffd93d,#ff8c1a);transition:width .2s}
   .lvlText{font-size:11px;margin-top:2px;color:#ffd93d;letter-spacing:1px}
-  #scoreBox{text-align:right;font-size:12px;letter-spacing:2px;line-height:1.8;opacity:.9}
+  #scoreBox{text-align:right;font-size:12px;letter-spacing:2px;line-height:1.8;opacity:.9;
+    margin-top:78px}
   #scoreBox b{font-size:22px;color:#9df3c4;display:block}
   #modeTag{color:#ff8a9a;font-size:14px;letter-spacing:2px;display:block;
     margin-bottom:8px;font-weight:800}
@@ -134,6 +135,48 @@
   }
   #joyRight .knob{background:rgba(255,91,110,0.75);border-color:#ff5b6e;
     box-shadow:0 0 25px #ff5b6e88}
+
+  /* ==== Bộ đếm quái - cố định góc trên phải ==== */
+  #enemiesLeftBox{
+    position: fixed;
+    top: 16px;
+    right: 16px;
+    z-index: 10;
+    pointer-events: none;
+    padding: 6px 14px 5px;
+    border-radius: 12px;
+    background: rgba(10, 20, 26, 0.92);
+    border: 2px solid #ff5b6e;
+    box-shadow: 0 0 22px rgba(255, 91, 110, 0.4);
+    text-align: center;
+    font-size: 9px;
+    letter-spacing: 1.5px;
+    color: #ffb0b8;
+    font-weight: 800;
+    min-width: 88px;
+    transition: border-color .2s, background .2s, box-shadow .2s;
+  }
+  #enemiesLeftBox b{
+    display: block;
+    font-size: 24px;
+    line-height: 1;
+    color: #ff5b6e;
+    font-weight: 900;
+    text-shadow: 0 0 12px #ff5b6e;
+    margin-top: 2px;
+  }
+  #enemiesLeftBox.clear{
+    border-color: #2ee07a;
+    background: rgba(10, 30, 20, 0.92);
+    box-shadow: 0 0 22px rgba(46, 224, 122, 0.45);
+    color: #9df3c4;
+  }
+  #enemiesLeftBox.clear b{ color: #2ee07a; text-shadow: 0 0 12px #2ee07a; }
+  #enemiesLeftBox.urgent{ animation: enemiesUrgent .8s infinite; }
+  @keyframes enemiesUrgent{
+    0%, 100%{ box-shadow: 0 0 22px rgba(255, 91, 110, 0.4); }
+    50%     { box-shadow: 0 0 36px rgba(255, 91, 110, 0.95); }
+  }
 </style>
 </head>
 <body>
@@ -195,6 +238,11 @@
 </div>
 <div id="powerupHud" class="hidden"></div>
 
+<!-- Bộ đếm quái cố định góc trên phải -->
+<div id="enemiesLeftBox" class="hidden">
+  QUÁI CÒN<b id="enemiesLeftVal">0</b>
+</div>
+
 <div id="touchControls" class="hidden">
   <div id="joyLeft" class="joystick"><div class="knob" id="knobLeft"></div></div>
   <div id="joyRight" class="joystick"><div class="knob" id="knobRight"></div></div>
@@ -230,7 +278,7 @@ function hexA(hex, a) {
   return 'rgba(' + ((n >> 16) & 255) + ',' + ((n >> 8) & 255) + ',' + (n & 255) + ',' + a + ')';
 }
 
-/* ============ RENDER STATE (khai báo SỚM để tránh TDZ) ============ */
+/* ============ RENDER STATE (khai báo SỚM) ============ */
 const canvasEl = document.getElementById('game');
 const ctx = canvasEl.getContext('2d');
 let W = innerWidth, H = innerHeight;
@@ -327,6 +375,7 @@ function show(name) {
   hudEl.classList.add('hidden');
   puHudEl.classList.add('hidden');
   touchControlsEl.classList.add('hidden');
+  document.getElementById('enemiesLeftBox').classList.add('hidden');
   if (name === 'game') {
     canvasEl.classList.remove('hidden');
     hudEl.classList.remove('hidden');
@@ -375,12 +424,11 @@ inputName.addEventListener('keydown', e => {
   if (e.key === 'Enter') submitName();
 });
 
-/* Đổi tên */
 document.getElementById('btnChangeName').onclick = () => {
   showNameScreen();
 };
 
-/* ============ JOYSTICK: PC (chuột) + Mobile (touch) ============ */
+/* ============ JOYSTICK ============ */
 const touch = {
   moveX: 0, moveY: 0,
   aimX: 0, aimY: 0,
@@ -523,7 +571,7 @@ function makeBot(difficulty) {
   b.maxHp = cfg.hp;
   b.fireRate = cfg.fireRate;
   b.damage = cfg.damage;
-  b.bulletSpeed = 1000;   /* FIX: trước đây thiếu → NaN aim */
+  b.bulletSpeed = 1000;
   b.smoothX = 0;
   b.smoothY = 0;
   return b;
@@ -532,14 +580,23 @@ function makeBot(difficulty) {
 function initGame(mode, difficulty) {
   state = {
     mode, difficulty,
-    time: 0, wave: 1, spawnTimer: 1, bossIndex: 0, over: false,
-    bossSpawnedWave: 0,
+    time: 0, wave: 1, over: false,
+    bossIndex: 0, bossSpawnedWave: 0,
     players: { [myId]: makePlayer(myId, currentUser) },
     enemies: [], bullets: [], ebullets: [], pickups: [],
     particles: [], beams: [], events: [],
-    arena: mode === 'bot' ? { w: 1400, h: 1400 } : null,
+    arena: mode === 'bot' ? { w: 1400, h: 1400 } : { w: 2400, h: 2400 },
     pickupTimer: 2.5,
-    announce: null, winner: null
+    announce: null, winner: null,
+    // Wave state (PvE)
+    waveTotal: 0,
+    waveKilled: 0,
+    waveSpawned: 0,
+    waveSpawnQueue: [],
+    waveSpawnTimer: 0,
+    waveClearDelay: 0,
+    waveActive: false,
+    bossAlive: false
   };
 
   if (mode === 'bot') {
@@ -557,13 +614,130 @@ function initGame(mode, difficulty) {
     document.getElementById('lvlWrapP1').style.display = 'none';
     document.getElementById('p2Hud').classList.remove('hidden');
   } else {
+    state.players[myId].x = 0;
+    state.players[myId].y = 0;
     state.announce = { text: 'MÀN 1', t: 2 };
     document.getElementById('modeTag').textContent = '🎯 PvE';
     document.getElementById('modeTag').style.color = '#9df3c4';
     document.getElementById('xpBarWrapP1').style.display = '';
     document.getElementById('lvlWrapP1').style.display = '';
     document.getElementById('p2Hud').classList.add('hidden');
+    startNewWave();
   }
+}
+
+/* ============ WAVE SYSTEM (PvE) ============ */
+function buildWaveQueue(wave) {
+  const baseCount = 5 + Math.floor(wave * 1.8);
+  const maxCount = 40;
+  const total = Math.min(maxCount, baseCount);
+
+  const queue = [];
+  let available = [0];
+  if (wave >= 2) available.push(4);
+  if (wave >= 3) available.push(1);
+  if (wave >= 4) available.push(3);
+  if (wave >= 5) available.push(5);
+  if (wave >= 6) available.push(2);
+
+  for (let i = 0; i < total; i++) {
+    let idx = available[Math.floor(Math.random() * available.length)];
+    if (Math.random() < 0.05 + wave * 0.015) idx = 2;
+    queue.push(idx);
+  }
+
+  const hasBoss = (wave % 3 === 0);
+  return { queue, hasBoss };
+}
+
+function spawnEnemyInArena(typeIdx, wave) {
+  if (!state) return;
+  if (state.enemies.length > 120) return;
+
+  const arena = state.arena;
+  const halfW = arena.w / 2 - 120;
+  const halfH = arena.h / 2 - 120;
+
+  let spawnX, spawnY, tries = 0;
+  do {
+    const side = Math.floor(Math.random() * 4);
+    if (side === 0) { spawnX = rand(-halfW, halfW); spawnY = -halfH; }
+    else if (side === 1) { spawnX = halfW; spawnY = rand(-halfH, halfH); }
+    else if (side === 2) { spawnX = rand(-halfW, halfW); spawnY = halfH; }
+    else { spawnX = -halfW; spawnY = rand(-halfH, halfH); }
+    tries++;
+  } while (tries < 10 && dist(spawnX, spawnY, state.players[myId].x, state.players[myId].y) < 350);
+
+  const t = TYPES[typeIdx];
+  const hpScale = 1 + (wave - 1) * 0.12;
+
+  state.enemies.push({
+    x: spawnX, y: spawnY,
+    behavior: t.behavior, hp: t.hp * hpScale, maxHp: t.hp * hpScale,
+    speed: t.speed * (1 + wave * 0.015), r: t.r, dmg: t.dmg,
+    score: t.score, xp: t.xp, color: t.color, stroke: t.stroke,
+    angle: 0, hitFlash: 0, seed: Math.random() * 10,
+    isBig: typeIdx === 2, isBoss: false, atkCd: rand(1, 3),
+    spawnAnim: 0.4, wobble: Math.random() * 100
+  });
+}
+
+function spawnBossInArena() {
+  if (!state) return;
+  const type = state.bossIndex % 6; state.bossIndex++;
+  const stats = [
+    { hp: 1800, speed: 70, r: 48, color: '#b46bff', stroke: '#6a2f9e', xp: 30 },
+    { hp: 1400, speed: 85, r: 46, color: '#ff4d6d', stroke: '#8a1f35', xp: 30 },
+    { hp: 1100, speed: 100, r: 44, color: '#ff8c1a', stroke: '#a04d00', xp: 30 },
+    { hp: 1500, speed: 60, r: 46, color: '#1ac4c4', stroke: '#0a7272', xp: 30 },
+    { hp: 1300, speed: 90, r: 45, color: '#e0e0e0', stroke: '#555', xp: 30 },
+    { hp: 1700, speed: 45, r: 50, color: '#ffd93d', stroke: '#8a6d1a', xp: 30 }
+  ];
+  const s = stats[type];
+  const arena = state.arena;
+  const bx = rand(-arena.w / 4, arena.w / 4);
+  const by = -arena.h / 2 + 150;
+
+  state.enemies.push({
+    x: bx, y: by,
+    hp: s.hp + state.wave * 250, maxHp: s.hp + state.wave * 250,
+    speed: s.speed, r: s.r, dmg: 50 + state.wave * 5, score: 500 + state.wave * 50,
+    xp: s.xp, color: s.color, stroke: s.stroke, angle: 0, hitFlash: 0, seed: Math.random() * 10,
+    isBoss: true, bossType: type, atkCd: 1.2, spawnAnim: 0.8, wobble: Math.random() * 100
+  });
+  state.bossAlive = true;
+  state.bossSpawnedWave = state.wave;
+  state.events.push('pickup');
+  state.announce = { text: 'BOSS XUẤT HIỆN!', t: 2.5 };
+}
+
+function startNewWave() {
+  if (!state) return;
+  const wave = state.wave;
+  const res = buildWaveQueue(wave);
+
+  state.waveSpawnQueue = res.queue;
+  state.waveTotal = res.queue.length + (res.hasBoss ? 1 : 0);
+  state.waveKilled = 0;
+  state.waveSpawned = 0;
+  state.waveSpawnTimer = 0.4;
+  state.waveClearDelay = 0;
+  state.waveActive = true;
+  state.bossAlive = false;
+
+  if (res.hasBoss) {
+    spawnBossInArena();
+  }
+
+  state.announce = { text: 'MÀN ' + wave, t: 2 };
+}
+
+function onWaveCleared() {
+  if (!state) return;
+  state.waveActive = false;
+  state.waveClearDelay = 2.0;
+  state.announce = { text: 'MÀN ' + state.wave + ' HOÀN THÀNH!', t: 2.0 };
+  state.events.push('pickup');
 }
 
 function startGame(mode, difficulty) {
@@ -632,6 +806,18 @@ function updateHUD(st) {
       document.getElementById('hpTextP2').textContent =
         bot.name + ' · ' + Math.max(0, Math.round(bot.hp)) + ' / ' + Math.round(maxHp);
     }
+  }
+
+  /* ===== ĐẾM SỐ QUÁI CÒN LẠI (badge góc trên phải) ===== */
+  const elLeft = document.getElementById('enemiesLeftBox');
+  if (st.mode === 'pve' && st.waveActive) {
+    const remaining = st.waveSpawnQueue.length + st.enemies.length;
+    elLeft.classList.remove('hidden');
+    elLeft.classList.toggle('clear', remaining === 0);
+    elLeft.classList.toggle('urgent', remaining > 0 && remaining <= 3);
+    document.getElementById('enemiesLeftVal').textContent = remaining;
+  } else {
+    elLeft.classList.add('hidden');
   }
 }
 
@@ -805,67 +991,6 @@ const TYPES = [
   { behavior: 'splitter', hp: 80,  speed: 55, r: 26, dmg: 18, score: 45, color: '#ff66b2', stroke: '#8a1f4d', xp: 3 }
 ];
 
-function spawnEnemy() {
-  if (!state) return;
-  if (state.enemies.length > 100) return;
-  const margin = 100;
-  const maxW = innerWidth / 2 + margin, maxH = innerHeight / 2 + margin;
-  let spawnX, spawnY;
-  const side = Math.floor(Math.random() * 4);
-  if (side === 0) { spawnX = (Math.random() * 2 - 1) * maxW; spawnY = -maxH; }
-  else if (side === 1) { spawnX = maxW; spawnY = (Math.random() * 2 - 1) * maxH; }
-  else if (side === 2) { spawnX = (Math.random() * 2 - 1) * maxW; spawnY = maxH; }
-  else { spawnX = -maxW; spawnY = (Math.random() * 2 - 1) * maxH; }
-
-  let avgX = 0, avgY = 0, count = 0;
-  for (const id in state.players) {
-    if (state.players[id].hp > 0) { avgX += state.players[id].x; avgY += state.players[id].y; count++; }
-  }
-  if (count > 0) { avgX /= count; avgY /= count; }
-
-  let available = [0, 1, 2];
-  if (state.wave >= 2) available.push(4);
-  if (state.wave >= 3) available.push(3);
-  if (state.wave >= 4) available.push(5);
-  let idx = available[Math.floor(Math.random() * available.length)];
-  if (Math.random() < 0.1 + state.wave * 0.02) idx = 2;
-  const t = TYPES[idx];
-  const hpScale = 1 + (state.wave - 1) * 0.1;
-
-  state.enemies.push({
-    x: avgX + spawnX, y: avgY + spawnY,
-    behavior: t.behavior, hp: t.hp * hpScale, maxHp: t.hp * hpScale,
-    speed: t.speed * (1 + state.wave * 0.02), r: t.r, dmg: t.dmg,
-    score: t.score, xp: t.xp, color: t.color, stroke: t.stroke,
-    angle: 0, hitFlash: 0, seed: Math.random() * 10,
-    isBig: idx === 2, isBoss: false, atkCd: rand(1,3),
-    spawnAnim: 0.4, wobble: Math.random()*100
-  });
-}
-function spawnBoss() {
-  if (!state) return;
-  const type = state.bossIndex % 6; state.bossIndex++;
-  const stats = [
-    { hp: 1800, speed: 70, r: 48, color: '#b46bff', stroke: '#6a2f9e', xp: 30 },
-    { hp: 1400, speed: 85, r: 46, color: '#ff4d6d', stroke: '#8a1f35', xp: 30 },
-    { hp: 1100, speed: 100, r: 44, color: '#ff8c1a', stroke: '#a04d00', xp: 30 },
-    { hp: 1500, speed: 60, r: 46, color: '#1ac4c4', stroke: '#0a7272', xp: 30 },
-    { hp: 1300, speed: 90, r: 45, color: '#e0e0e0', stroke: '#555', xp: 30 },
-    { hp: 1700, speed: 45, r: 50, color: '#ffd93d', stroke: '#8a6d1a', xp: 30 }
-  ];
-  const s = stats[type];
-  let avgX = 0, avgY = 0, count = 0;
-  for (const id in state.players) { avgX += state.players[id].x; avgY += state.players[id].y; count++; }
-  if (count > 0) { avgX /= count; avgY /= count; }
-  state.enemies.push({
-    x: avgX + 700, y: avgY,
-    hp: s.hp + state.wave * 250, maxHp: s.hp + state.wave * 250,
-    speed: s.speed, r: s.r, dmg: 50 + state.wave * 5, score: 500 + state.wave * 50,
-    xp: s.xp, color: s.color, stroke: s.stroke, angle: 0, hitFlash: 0, seed: Math.random() * 10,
-    isBoss: true, bossType: type, atkCd: 1.2, spawnAnim: 0.8, wobble: Math.random()*100
-  });
-  state.events.push('pickup');
-}
 function killEnemy(e, ownerId) {
   if (!state) return;
   const idx = state.enemies.indexOf(e);
@@ -889,6 +1014,13 @@ function killEnemy(e, ownerId) {
     }
     if (Math.random() < 0.18) spawnPowerup(e.x, e.y);
   }
+
+  // Wave tracking
+  if (state.mode === 'pve' && state.waveActive) {
+    state.waveKilled++;
+    if (e.isBoss) state.bossAlive = false;
+  }
+
   if (e.behavior === 'splitter' && state.enemies.length < 100) {
     for (let k = 0; k < 2; k++) {
       state.enemies.push({
@@ -972,17 +1104,21 @@ function computeBotInput(bot, player, pvx, pvy) {
     else {
       const strafeSign = Math.sin(state.time * 1.5) > 0 ? 1 : -1;
       mx += -ny * strafeSign * 0.8; my += nx * strafeSign * 0.8;
+      const keep = (d - cfg.idealDist) / 100;
+      mx += nx * keep * 0.3;
+      my += ny * keep * 0.3;
     }
   }
 
   const ml = Math.hypot(mx, my);
   if (ml > 0) { mx /= ml; my /= ml; }
 
-  bot.smoothX = bot.smoothX * 0.92 + mx * 0.08;
-  bot.smoothY = bot.smoothY * 0.92 + my * 0.08;
+  // Smoothing
+  bot.smoothX = bot.smoothX * 0.85 + mx * 0.15;
+  bot.smoothY = bot.smoothY * 0.85 + my * 0.15;
 
   const sLen = Math.hypot(bot.smoothX, bot.smoothY);
-  if (sLen > 0.15) {
+  if (sLen > 0.05) {
     mx = bot.smoothX / sLen;
     my = bot.smoothY / sLen;
   } else {
@@ -1027,7 +1163,7 @@ function gameLoop(now) {
     if (aliveCount === 0) {
       state.over = true;
       recordPvEScore(state.players[myId].score);
-      showOverlay('GAME OVER', '#ff5b6e', 'Điểm: <b>' + state.players[myId].score + '</b>', 'Cấp đạt được: <b>' + state.players[myId].level + '</b>');
+      showOverlay('GAME OVER', '#ff5b6e', 'Điểm: <b>' + state.players[myId].score + '</b>', 'Cấp đạt được: <b>' + state.players[myId].level + ' · Màn ' + state.wave + '</b>');
       return;
     }
   } else {
@@ -1047,22 +1183,28 @@ function gameLoop(now) {
   }
 
   if (isPvE) {
-    if (state.time > state.wave * 15) {
-      state.wave++;
-      state.events.push('pickup');
-      state.announce = { text: 'MÀN ' + state.wave, t: 2 };
-    }
-    state.spawnTimer -= dt;
-    if (state.spawnTimer <= 0) {
-      state.spawnTimer = Math.max(0.3, 1.5 - state.wave * 0.1);
-      let num = state.wave >= 10 ? 4 : state.wave >= 6 ? 3 : state.wave >= 3 ? 2 : 1;
-      for (let i=0; i<num; i++) spawnEnemy();
-    }
-    if (state.wave % 3 === 0 && state.bossSpawnedWave !== state.wave &&
-        !state.enemies.some(e=>e.isBoss) && state.time > state.wave*15 - 1) {
-      spawnBoss();
-      state.bossSpawnedWave = state.wave;
-      state.announce = { text: 'BOSS XUẤT HIỆN!', t: 2.5 };
+    // Wave system
+    if (state.waveActive) {
+      if (state.waveSpawnQueue.length > 0) {
+        state.waveSpawnTimer -= dt;
+        if (state.waveSpawnTimer <= 0) {
+          const typeIdx = state.waveSpawnQueue.shift();
+          spawnEnemyInArena(typeIdx, state.wave);
+          state.waveSpawned++;
+          state.waveSpawnTimer = Math.max(0.15, 0.6 - state.wave * 0.03);
+        }
+      }
+      if (state.waveSpawnQueue.length === 0 && state.enemies.length === 0) {
+        onWaveCleared();
+      }
+    } else {
+      if (state.waveClearDelay > 0) {
+        state.waveClearDelay -= dt;
+        if (state.waveClearDelay <= 0) {
+          state.wave++;
+          startNewWave();
+        }
+      }
     }
   }
 
@@ -1875,11 +2017,38 @@ function drawGame(st) {
     ctx.restore();
   }
 
+  // Wave progress (PvE)
+  if (st.mode === 'pve' && st.waveActive) {
+    const remaining = st.waveSpawnQueue.length + st.enemies.length;
+    const total = st.waveTotal;
+    const killed = total - remaining;
+    const w = Math.min(360, W - 80);
+    const x = (W - w) / 2;
+    const y = H - 58;
+    ctx.save();
+    ctx.fillStyle = 'rgba(0,0,0,0.55)';
+    rr(x - 5, y - 5, w + 10, 34, 9); ctx.fill();
+    ctx.fillStyle = '#101c24';
+    rr(x, y, w, 24, 6); ctx.fill();
+    const pct = total > 0 ? killed / total : 0;
+    const grad = ctx.createLinearGradient(x, 0, x + w, 0);
+    grad.addColorStop(0, '#2ee07a');
+    grad.addColorStop(1, '#9df3c4');
+    ctx.fillStyle = grad;
+    rr(x, y, w * pct, 24, 6); ctx.fill();
+    ctx.fillStyle = '#fff';
+    ctx.font = 'bold 12px system-ui,sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText('QUÁI: ' + killed + ' / ' + total + '   (còn ' + remaining + ')', W / 2, y + 12);
+    ctx.restore();
+  }
+
   if (st.mode === 'pve') {
     const boss = st.enemies.find(e => e.isBoss);
     if (boss) {
       const w = Math.min(520, W - 80);
-      const x = (W - w) / 2, y = 62;
+      const x = (W - w) / 2, y = 96;
       const g2 = ctx.createLinearGradient(x, 0, x + w, 0);
       g2.addColorStop(0, boss.color);
       g2.addColorStop(1, '#ffffff');
