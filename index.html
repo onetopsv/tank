@@ -2555,31 +2555,45 @@ function gameLoop(now) {
     k.life -= dt; k.bob += dt * 4;
     if (k.life <= 0) { state.pickups.splice(i, 1); continue; }
 
-    if (k.type === 'xp') {
-      if (k.vx || k.vy) {
-        k.x += k.vx * dt;
-        k.y += k.vy * dt;
-        k.vx *= 0.9;
-        k.vy *= 0.9;
-        if (Math.abs(k.vx) < 5) k.vx = 0;
-        if (Math.abs(k.vy) < 5) k.vy = 0;
+    // Vận tốc bay ban đầu (XP orb có vx/vy khi văng ra)
+    if (k.vx || k.vy) {
+      k.x += k.vx * dt;
+      k.y += k.vy * dt;
+      k.vx *= 0.9;
+      k.vy *= 0.9;
+      if (Math.abs(k.vx) < 5) k.vx = 0;
+      if (Math.abs(k.vy) < 5) k.vy = 0;
+    }
+
+    // ===== MAGNET =====
+    // Nam châm hút CẢ XP orb VÀ các power-up khác (kể cả power-up xấu)
+    const me = state.players[myId];
+    if (me && me.hp > 0) {
+      let magnetRange, magnetSpeed;
+      if (k.type === 'xp') {
+        // XP: luôn có lực hút nhẹ ở gần (XP_ORB_MAGNET_RANGE),
+        // khi có power-up magnet thì hút mạnh + xa hơn
+        magnetRange = (me.powerups.magnet > 0) ? MAGNET_POWERUP_RANGE : XP_ORB_MAGNET_RANGE;
+        magnetSpeed = XP_ORB_MAGNET_SPEED;
+      } else {
+        // Power-up khác: CHỈ bị hút khi player đang có magnet
+        magnetRange = (me.powerups.magnet > 0) ? MAGNET_POWERUP_RANGE : 0;
+        magnetSpeed = XP_ORB_MAGNET_SPEED;
       }
-      const me = state.players[myId];
-      if (me && me.hp > 0) {
-        const magnetRange = (me.powerups.magnet > 0)
-          ? MAGNET_POWERUP_RANGE
-          : XP_ORB_MAGNET_RANGE;
+      if (magnetRange > 0) {
         const ddx = me.x - k.x, ddy = me.y - k.y;
         const dd = Math.hypot(ddx, ddy);
-        if (dd < magnetRange) {
+        if (dd < magnetRange && dd > 1) {
           k.magnetized = true;
-          const nx = ddx / (dd || 1), ny = ddy / (dd || 1);
-          const speed = XP_ORB_MAGNET_SPEED * (1 - dd / magnetRange) + 150;
+          const nx = ddx / dd, ny = ddy / dd;
+          const speed = magnetSpeed * (1 - dd / magnetRange) + 150;
           k.x += nx * speed * dt;
           k.y += ny * speed * dt;
         } else {
           k.magnetized = false;
         }
+      } else {
+        k.magnetized = false;
       }
     }
 
@@ -2860,6 +2874,17 @@ function drawPickup(k) {
   ctx.save();
   ctx.translate(k.x, k.y);
   ctx.globalAlpha = k.life < 3 ? (Math.floor(performance.now() * 0.01) % 2 ? 0.3 : 1) : 1;
+
+  // Hiệu ứng glow khi power-up đang bị nam châm hút
+  if (k.magnetized) {
+    ctx.save();
+    ctx.shadowColor = '#b46bff';
+    ctx.shadowBlur = 24;
+    ctx.strokeStyle = '#b46bff';
+    ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.arc(0, 0, 26 * pulse, 0, TAU); ctx.stroke();
+    ctx.restore();
+  }
 
   ctx.save();
   ctx.shadowColor = ringColor; ctx.shadowBlur = 22;
