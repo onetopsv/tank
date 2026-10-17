@@ -229,6 +229,14 @@ function hexA(hex, a) {
   const n = parseInt(hex.slice(1), 16);
   return 'rgba(' + ((n >> 16) & 255) + ',' + ((n >> 8) & 255) + ',' + (n & 255) + ',' + a + ')';
 }
+
+/* ============ RENDER STATE (khai báo SỚM để tránh TDZ) ============ */
+const canvasEl = document.getElementById('game');
+const ctx = canvasEl.getContext('2d');
+let W = innerWidth, H = innerHeight;
+const DPR = Math.min(devicePixelRatio || 1, 2);
+let cam = { x: 0, y: 0 };
+
 function rr(x, y, w, h, r) {
   w = Math.max(w, 1); h = Math.max(h, 1);
   r = Math.min(r, w / 2, h / 2);
@@ -281,8 +289,8 @@ function triggerHitEffect() {
 /* ============ LƯU TÊN + ĐIỂM ============ */
 const NAME_KEY = 'tankArenaPlayerName';
 const SCORES_KEY = 'tankArenaScores';
-function getScores() { try { return JSON.parse(localStorage.getItem(SCORES_KEY) || '{}'); } catch { return {}; } }
-function saveScores(a) { localStorage.setItem(SCORES_KEY, JSON.stringify(a)); }
+function getScores() { try { return JSON.parse(localStorage.getItem(SCORES_KEY) || '{}'); } catch (e) { return {}; } }
+function saveScores(a) { try { localStorage.setItem(SCORES_KEY, JSON.stringify(a)); } catch (e) {} }
 function getPlayerData(name) {
   const s = getScores();
   return s[name] || { highScore: 0, botWins: 0 };
@@ -309,7 +317,6 @@ const screens = {
   name: document.getElementById('nameScreen'),
   menu: document.getElementById('menuScreen')
 };
-const canvasEl = document.getElementById('game');
 const hudEl = document.getElementById('hud');
 const puHudEl = document.getElementById('powerupHud');
 const touchControlsEl = document.getElementById('touchControls');
@@ -476,7 +483,7 @@ setupJoystick(
   }
 );
 
-/* ============ BOT CFG (ĐÃ GIẢM BUFF TOÀN BỘ) ============ */
+/* ============ BOT CFG ============ */
 const BOT_CFG = {
   easy: { speedBonus: 0.60, aimJitter: 0.60, shootRange: 500, dodge: false, dodgeRange: 0, smart: false, lead: 0, fireRate: 550, damage: 5, idealDist: 450, hp: 70, name: 'BOT DỄ', color: '#7bd66b' },
   normal: { speedBonus: 0.80, aimJitter: 0.30, shootRange: 650, dodge: true, dodgeRange: 140, smart: false, lead: 0.2, fireRate: 360, damage: 8, idealDist: 380, hp: 90, name: 'BOT THƯỜNG', color: '#4dd9ff' },
@@ -500,7 +507,7 @@ function makePlayer(id, name) {
     level: 1, xp: 0,
     fireRate: 180, damage: 14, bulletSpeed: 1000,
     powerups: { laser:0, bomb:0, shield:0, speed:0, pierce:0, tripleshot:0, curse:0, slow:0, burn:0, confuse:0, freeze:0, jam:0 },
-    shieldHp: 0, burnTick: 0, lastShoot: 0,
+    shieldHp: 0, burnTick: 0, lastShoot: 0, lastLaser: 0, lastBomb: 0,
     levelUpFlash: 0, curseFlash: 0, pvpInvuln: 0,
     isBot: false, difficulty: null,
     _prevX: 0, _prevY: 0,
@@ -516,6 +523,9 @@ function makeBot(difficulty) {
   b.maxHp = cfg.hp;
   b.fireRate = cfg.fireRate;
   b.damage = cfg.damage;
+  b.bulletSpeed = 1000;   /* FIX: trước đây thiếu → NaN aim */
+  b.smoothX = 0;
+  b.smoothY = 0;
   return b;
 }
 
@@ -534,11 +544,10 @@ function initGame(mode, difficulty) {
 
   if (mode === 'bot') {
     state.players['BOT'] = makeBot(difficulty);
-    
-    // BUFF NHẸ CHO PLAYER KHI ĐẤU BOT
-    state.players[myId].fireRate = 130; 
+
+    state.players[myId].fireRate = 130;
     state.players[myId].bulletSpeed = 1300;
-    
+
     state.players[myId].x = -350;
     state.players['BOT'].x = 350;
     state.announce = { text: 'VS ' + BOT_CFG[difficulty].name, t: 2.5 };
@@ -836,7 +845,6 @@ function spawnEnemy() {
 function spawnBoss() {
   if (!state) return;
   const type = state.bossIndex % 6; state.bossIndex++;
-  // TĂNG MẠNH HP VÀ SÁT THƯƠNG CỦA BOSS
   const stats = [
     { hp: 1800, speed: 70, r: 48, color: '#b46bff', stroke: '#6a2f9e', xp: 30 },
     { hp: 1400, speed: 85, r: 46, color: '#ff4d6d', stroke: '#8a1f35', xp: 30 },
@@ -850,7 +858,7 @@ function spawnBoss() {
   for (const id in state.players) { avgX += state.players[id].x; avgY += state.players[id].y; count++; }
   if (count > 0) { avgX /= count; avgY /= count; }
   state.enemies.push({
-    x: avgX + 700, y: avgY, 
+    x: avgX + 700, y: avgY,
     hp: s.hp + state.wave * 250, maxHp: s.hp + state.wave * 250,
     speed: s.speed, r: s.r, dmg: 50 + state.wave * 5, score: 500 + state.wave * 50,
     xp: s.xp, color: s.color, stroke: s.stroke, angle: 0, hitFlash: 0, seed: Math.random() * 10,
@@ -881,7 +889,7 @@ function killEnemy(e, ownerId) {
     }
     if (Math.random() < 0.18) spawnPowerup(e.x, e.y);
   }
-  if (e.behavior === 'splitter') {
+  if (e.behavior === 'splitter' && state.enemies.length < 100) {
     for (let k = 0; k < 2; k++) {
       state.enemies.push({
         x: e.x+rand(-20,20), y: e.y+rand(-20,20),
@@ -894,7 +902,7 @@ function killEnemy(e, ownerId) {
   }
 }
 
-/* ============ BOT AI (LÀM MƯỢT TUYỆT ĐỐI) ============ */
+/* ============ BOT AI ============ */
 function computeBotInput(bot, player, pvx, pvy) {
   const cfg = BOT_CFG[bot.difficulty];
   if (!cfg || bot.hp <= 0 || player.hp <= 0) {
@@ -903,15 +911,15 @@ function computeBotInput(bot, player, pvx, pvy) {
   const dx = player.x - bot.x, dy = player.y - bot.y;
   const d = Math.hypot(dx, dy) || 1;
   const nx = dx / d, ny = dy / d;
-  const bulletTime = d / bot.bulletSpeed;
+  const bulletSpeed = bot.bulletSpeed || 1000;
+  const bulletTime = d / bulletSpeed;
   const px = player.x + pvx * bulletTime * cfg.lead;
   const py = player.y + pvy * bulletTime * cfg.lead;
   const jitter = (Math.random() - 0.5) * cfg.aimJitter;
   const aim = Math.atan2(py - bot.y, px - bot.x) + jitter;
-  
+
   let mx = 0, my = 0, dodging = false;
 
-  // 1. Né đạn (chỉ né khi thực sự nguy hiểm)
   if (cfg.dodge) {
     for (const b of state.bullets) {
       if (b.owner === bot.id) continue;
@@ -921,7 +929,7 @@ function computeBotInput(bot, player, pvx, pvy) {
       const blen = Math.hypot(b.vx, b.vy) || 1;
       const bnx = b.vx / blen, bny = b.vy / blen;
       const approaching = -(bdx * bnx + bdy * bny) / bd;
-      
+
       if (approaching > 0.6 && bd < cfg.dodgeRange * 0.8) {
         const perpX = -bny, perpY = bnx;
         const cross = bdx * bny - bdy * bnx;
@@ -934,7 +942,6 @@ function computeBotInput(bot, player, pvx, pvy) {
     }
   }
 
-  // 2. Đi nhặt power-up (nếu thông minh)
   if (cfg.smart && !dodging) {
     let bestGood = null, bestD = 500;
     for (const k of state.pickups) {
@@ -959,7 +966,6 @@ function computeBotInput(bot, player, pvx, pvy) {
     }
   }
 
-  // 3. Giữ khoảng cách và đi lòng vòng
   if (!dodging) {
     if (d < cfg.idealDist - 100) { mx -= nx; my -= ny; }
     else if (d > cfg.idealDist + 100) { mx += nx * 0.7; my += ny * 0.7; }
@@ -972,16 +978,15 @@ function computeBotInput(bot, player, pvx, pvy) {
   const ml = Math.hypot(mx, my);
   if (ml > 0) { mx /= ml; my /= ml; }
 
-  // 4. LÀM MƯỢT CHUYỂN ĐỘNG
   bot.smoothX = bot.smoothX * 0.92 + mx * 0.08;
   bot.smoothY = bot.smoothY * 0.92 + my * 0.08;
-  
+
   const sLen = Math.hypot(bot.smoothX, bot.smoothY);
   if (sLen > 0.15) {
     mx = bot.smoothX / sLen;
     my = bot.smoothY / sLen;
   } else {
-    mx = 0; 
+    mx = 0;
     my = 0;
     bot.smoothX = 0;
     bot.smoothY = 0;
@@ -1306,7 +1311,7 @@ function showOverlay(title, color, p1, p2) {
 
 /* ============ INPUT ============ */
 const keys = Object.create(null);
-const mouse = { x: innerWidth / 2, y: innerHeight / 2, down: false };
+const mouse = { x: W / 2, y: H / 2, down: false };
 addEventListener('keydown', e => { keys[e.key.toLowerCase()] = true; });
 addEventListener('keyup', e => { keys[e.key.toLowerCase()] = false; });
 canvasEl.addEventListener('mousemove', e => { mouse.x = e.clientX; mouse.y = e.clientY; });
@@ -1314,7 +1319,7 @@ canvasEl.addEventListener('mousedown', e => {
   if (e.target.closest && e.target.closest('.joystick')) return;
   mouse.down = true;
 });
-addEventListener('mouseup', e => { mouse.down = false; });
+addEventListener('mouseup', () => { mouse.down = false; });
 canvasEl.addEventListener('contextmenu', e => e.preventDefault());
 
 function getInputs() {
@@ -1342,16 +1347,14 @@ function getInputs() {
 }
 
 /* ============ RENDER ============ */
-const ctx = canvasEl.getContext('2d');
-let W = innerWidth, H = innerHeight;
-const DPR = Math.min(devicePixelRatio || 1, 2);
-let cam = { x: 0, y: 0 };
 function resize() {
   W = innerWidth; H = innerHeight;
   canvasEl.width = Math.floor(W * DPR); canvasEl.height = Math.floor(H * DPR);
   canvasEl.style.width = W + 'px'; canvasEl.style.height = H + 'px';
   ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
-  mouse.x = W / 2; mouse.y = H / 2;
+  if (!state || mouse.x > W || mouse.y > H || mouse.x < 0 || mouse.y < 0) {
+    mouse.x = W / 2; mouse.y = H / 2;
+  }
 }
 addEventListener('resize', resize); resize();
 
@@ -1663,15 +1666,16 @@ function drawBeams(st) {
       ctx.globalAlpha = a;
       ctx.translate(bm.x, bm.y);
       ctx.rotate(bm.angle);
-      const grad = ctx.createLinearGradient(0, 0, 2000, 0);
+      const beamLen = Math.min(2000, Math.hypot(W, H) * 1.5);
+      const grad = ctx.createLinearGradient(0, 0, beamLen, 0);
       grad.addColorStop(0, 'rgba(120, 230, 255, 0.9)');
       grad.addColorStop(0.7, 'rgba(80, 180, 255, 0.5)');
       grad.addColorStop(1, 'rgba(80, 180, 255, 0)');
       ctx.fillStyle = grad;
-      ctx.fillRect(0, -3, 2000, 6);
+      ctx.fillRect(0, -3, beamLen, 6);
       ctx.shadowColor = '#4dd9ff'; ctx.shadowBlur = 20;
       ctx.fillStyle = 'rgba(200, 240, 255, 0.9)';
-      ctx.fillRect(0, -1.5, 2000, 3);
+      ctx.fillRect(0, -1.5, beamLen, 3);
     }
     ctx.restore();
   }
@@ -1722,14 +1726,22 @@ function drawParticles(st) {
 function drawBotIndicator(st) {
   let targetObj = null;
   let targetColor = '#ff5b6e';
+  let targetRGB = '255,90,110';
   let labelName = 'BOT';
-  
+
   if (st.mode === 'bot') {
     const bot = st.players['BOT'];
-    if (bot && bot.hp > 0) { targetObj = bot; targetColor = '#ff5b6e'; labelName = 'BOT'; }
+    if (bot && bot.hp > 0) { targetObj = bot; targetColor = '#ff5b6e'; targetRGB = '255,90,110'; labelName = 'BOT'; }
   } else if (st.mode === 'pve') {
     const boss = st.enemies.find(e => e.isBoss);
-    if (boss) { targetObj = boss; targetColor = boss.color; labelName = 'BOSS'; }
+    if (boss) {
+      targetObj = boss; targetColor = boss.color; labelName = 'BOSS';
+      const c = boss.color.replace('#','');
+      if (c.length >= 6) {
+        const r = parseInt(c.substr(0,2),16), g = parseInt(c.substr(2,2),16), b = parseInt(c.substr(4,2),16);
+        targetRGB = r + ',' + g + ',' + b;
+      }
+    }
   }
 
   if (!targetObj) return;
@@ -1768,13 +1780,13 @@ function drawBotIndicator(st) {
   ctx.save();
   ctx.shadowColor = targetColor;
   ctx.shadowBlur = 18 + 8 * pulse;
-  ctx.strokeStyle = `rgba(${targetColor === '#ff5b6e' ? '255,90,110' : '200,100,255'},${(0.7 * pulse)})`;
+  ctx.strokeStyle = 'rgba(' + targetRGB + ',' + (0.7 * pulse) + ')';
   ctx.lineWidth = 2;
   ctx.beginPath(); ctx.arc(ex, ey, 24 + 4 * pulse, 0, TAU); ctx.stroke();
   ctx.restore();
 
   ctx.save();
-  ctx.fillStyle = `rgba(${targetColor === '#ff5b6e' ? '255,90,110' : '200,100,255'},${(0.15 * pulse)})`;
+  ctx.fillStyle = 'rgba(' + targetRGB + ',' + (0.15 * pulse) + ')';
   ctx.beginPath(); ctx.arc(ex, ey, 20, 0, TAU); ctx.fill();
   ctx.restore();
 
@@ -1848,7 +1860,7 @@ function drawGame(st) {
 
   if (hitFlash > 0) {
     hitFlash -= 0.05;
-    ctx.fillStyle = `rgba(255, 30, 30, ${hitFlash * 0.4})`;
+    ctx.fillStyle = 'rgba(255, 30, 30, ' + (hitFlash * 0.4) + ')';
     ctx.fillRect(0, 0, W, H);
   }
 
