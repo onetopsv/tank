@@ -2,83 +2,99 @@
 <html lang="vi">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no">
-<title>Tank Arena P2P</title>
-<script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Tank Arena</title>
 <style>
   *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
   html,body{width:100%;height:100%;overflow:hidden;background:#080c11;
-    font-family:system-ui,"Segoe UI",Arial,sans-serif;user-select:none;color:#dff5e8;
-    touch-action:none}
-  canvas{display:block;position:fixed;inset:0;cursor:crosshair;touch-action:none}
+    font-family:system-ui,"Segoe UI",Arial,sans-serif;user-select:none;color:#dff5e8}
+  canvas{display:block;position:fixed;inset:0;cursor:crosshair}
   .hidden{display:none !important}
   .screen{position:fixed;inset:0;z-index:50;display:flex;flex-direction:column;
-    align-items:center;justify-content:center;gap:18px;padding:24px;
+    align-items:center;justify-content:center;gap:16px;padding:24px;
     background:radial-gradient(circle at 50% 40%,#0e1e26,#05080c 70%);
     overflow-y:auto;text-align:center}
-  .screen h1{font-size:clamp(32px,7vw,56px);letter-spacing:6px;color:#9df3c4;
-    text-shadow:0 0 40px #2ee07a66;margin-bottom:10px}
+  .screen h1{font-size:clamp(30px,6vw,52px);letter-spacing:6px;color:#9df3c4;
+    text-shadow:0 0 40px #2ee07a66;margin-bottom:6px}
   .panel{background:#0a141a;border:2px solid #1e3a30;border-radius:14px;
-    padding:22px;display:flex;flex-direction:column;gap:12px;width:min(340px,90vw)}
+    padding:20px;display:flex;flex-direction:column;gap:12px;width:min(360px,92vw)}
   .panel input{padding:12px 14px;border-radius:10px;background:#0e1a20;
     border:2px solid #26485a;color:#dff5e8;font-size:15px;outline:none;
     font-family:inherit;text-align:center;letter-spacing:2px}
   .panel input:focus{border-color:#2ee07a}
-  .panel button{padding:12px;border-radius:10px;background:#12463a;
+  .panel button{padding:13px;border-radius:10px;background:#12463a;
     color:#9df3c4;border:2px solid #2ee07a;font-size:14px;font-weight:800;
     letter-spacing:2px;cursor:pointer;transition:.15s}
-  .panel button:hover{background:#2ee07a;color:#04140c}
+  .panel button:hover{background:#2ee07a;color:#04140c;transform:scale(1.02)}
   .panel button.ghost{background:#0e1a20;color:#cfe9d8;border-color:#26485a}
   .panel button.ghost:hover{background:#12463a;border-color:#2ee07a;color:#9df3c4}
-  .panel button.pvp{background:#3a1020;color:#ff8a9a;border-color:#ff5b6e}
-  .panel button.pvp:hover{background:#ff5b6e;color:#1a0410}
   .auth-tabs{display:flex;gap:8px}
   .auth-tabs button{padding:10px 26px;border-radius:10px 10px 0 0;
     background:#0e1a20;color:#7a9a92;border:2px solid #1e3a30;
     font-weight:800;letter-spacing:2px;cursor:pointer;font-size:13px;transition:.15s}
   .auth-tabs button.active{background:#12463a;color:#9df3c4;border-color:#2ee07a}
-  #msg{font-size:13px;min-height:20px;letter-spacing:1px;color:#ff8a9a}
   #authMsg{font-size:13px;text-align:center;min-height:20px;letter-spacing:1px;color:#ff8a9a}
-  .menu-stats{display:flex;flex-direction:column;gap:6px;padding:16px 24px;border-radius:12px;
-    background:#0a141a;border:2px solid #1e3a30;font-size:14px;letter-spacing:1px;
-    min-width:min(320px,90vw);text-align:center;margin-bottom:10px}
-  .menu-stats b{color:#9df3c4;font-size:18px}
-  #codeDisplay{font-size:32px;letter-spacing:10px;color:#9df3c4;font-weight:800;margin:8px 0}
-  .hint{font-size:12px;color:#6ea8a0;letter-spacing:1px;line-height:1.7}
+  .menu-stats{display:flex;flex-direction:column;gap:5px;padding:14px 22px;border-radius:12px;
+    background:#0a141a;border:2px solid #1e3a30;font-size:13px;letter-spacing:1px;
+    min-width:min(340px,92vw);text-align:center}
+  .menu-stats b{color:#9df3c4;font-size:16px}
+  .hint{font-size:12px;color:#6ea8a0;letter-spacing:1px;line-height:1.7;max-width:400px}
+
+  .btn-pve{padding:16px 24px;border-radius:12px;background:#0e2a1e;
+    color:#9df3c4;border:2px solid #2ee07a;font-size:15px;font-weight:800;
+    letter-spacing:2px;cursor:pointer;transition:.15s;width:min(340px,92vw);
+    box-shadow:0 0 20px #2ee07a22}
+  .btn-pve:hover{background:#2ee07a;color:#04140c;transform:scale(1.03);
+    box-shadow:0 0 30px #2ee07a88}
+  .mode-divider{font-size:13px;color:#ff8a9a;font-weight:800;letter-spacing:2px;
+    margin-top:8px;margin-bottom:2px}
+  .diff-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;
+    width:min(340px,92vw)}
+  .btn-diff{padding:14px 8px;border-radius:10px;font-size:13px;font-weight:800;
+    letter-spacing:1px;cursor:pointer;transition:.15s;border:2px solid}
+  .btn-diff:hover{transform:scale(1.04)}
+  .btn-diff.easy{background:#12463a;border-color:#2ee07a;color:#9df3c4}
+  .btn-diff.easy:hover{background:#2ee07a;color:#04140c}
+  .btn-diff.normal{background:#0d3a44;border-color:#4dd9ff;color:#9df3f4}
+  .btn-diff.normal:hover{background:#4dd9ff;color:#04141a}
+  .btn-diff.hard{background:#3a2a10;border-color:#ff8c1a;color:#ffd93d}
+  .btn-diff.hard:hover{background:#ff8c1a;color:#1a0e00}
+  .btn-diff.insane{background:#3a1020;border-color:#ff5b6e;color:#ff8a9a}
+  .btn-diff.insane:hover{background:#ff5b6e;color:#1a0410}
+
   #hud{position:fixed;inset:0;pointer-events:none;padding:18px;
     display:flex;justify-content:space-between;align-items:flex-start;
     text-shadow:0 2px 8px #000;font-weight:700}
-  #hudLeft{display:flex;flex-direction:column;gap:8px}
-  .hpbar{width:220px;height:16px;border-radius:8px;background:#101c24;
+  #hudLeft{display:flex;flex-direction:column;gap:6px}
+  .hpbar{width:240px;height:18px;border-radius:9px;background:#101c24;
     border:2px solid #26485a;overflow:hidden;position:relative;
-    transition:border-color 0.2s}
+    transition:border-color 0.2s;box-shadow:0 0 18px #0af3}
   .hpbar.hurt{border-color:#ff5b6e;box-shadow:0 0 15px #ff5b6e88}
-  .hpFill{height:100%;width:100%;border-radius:6px;position:absolute;top:0;left:0;
+  .hpFill{height:100%;width:100%;border-radius:7px;position:absolute;top:0;left:0;
     background:linear-gradient(90deg,#2ee07a,#9df3c4);transition:width .1s;z-index:2}
   .hpFill.p2{background:linear-gradient(90deg,#3a8fe0,#9dd8ff)}
   .shieldFill{position:absolute;top:0;left:0;height:100%;width:0%;
     background:linear-gradient(90deg,#ffd93d,#fff2a8);
-    border-radius:6px;transition:width .15s;z-index:3;opacity:.85;
+    border-radius:7px;transition:width .15s;z-index:3;opacity:.85;
     box-shadow:0 0 10px #ffd93d}
-  .hpText{font-size:12px;margin-top:4px;opacity:.85}
-  .xpbar{width:220px;height:8px;border-radius:4px;background:#101c24;
-    border:1px solid #26485a;overflow:hidden;margin-top:6px}
+  .hpText{font-size:12px;margin-top:3px;opacity:.85}
+  .xpbar{width:240px;height:8px;border-radius:4px;background:#101c24;
+    border:1px solid #26485a;overflow:hidden;margin-top:4px}
   .xpFill{height:100%;width:0%;background:linear-gradient(90deg,#ffd93d,#ff8c1a);transition:width .2s}
-  .lvlText{font-size:11px;margin-top:3px;color:#ffd93d;letter-spacing:1px}
+  .lvlText{font-size:11px;margin-top:2px;color:#ffd93d;letter-spacing:1px}
   #scoreBox{text-align:right;font-size:12px;letter-spacing:2px;line-height:1.8;opacity:.9}
   #scoreBox b{font-size:22px;color:#9df3c4;display:block}
-  #hudRoomCode{color:#6ea8a0;font-size:14px;margin-bottom:5px;display:block}
-  #hudRoomCode span{color:#ffd93d;font-size:18px;letter-spacing:3px}
-  #modeTag{color:#ff8a9a;font-size:11px;letter-spacing:2px;display:block;margin-bottom:3px}
+  #modeTag{color:#ff8a9a;font-size:14px;letter-spacing:2px;display:block;
+    margin-bottom:8px;font-weight:800}
   #btnMenu{pointer-events:auto;cursor:pointer;margin-top:10px;padding:8px 16px;
     border-radius:8px;background:#0e1a20;color:#cfe9d8;border:2px solid #26485a;
     font-size:11px;font-weight:800;letter-spacing:2px}
   #btnMenu:hover{background:#12463a;border-color:#2ee07a;color:#9df3c4}
   #powerupHud{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);
-    display:flex;gap:10px;flex-wrap:wrap;justify-content:center;
+    display:flex;gap:8px;flex-wrap:wrap;justify-content:center;
     pointer-events:none;z-index:30;max-width:90vw}
-  .pu-badge{padding:8px 14px;border-radius:10px;background:#0a141a;
-    border:2px solid #ffd93d;font-size:12px;font-weight:800;letter-spacing:1px;
+  .pu-badge{padding:7px 12px;border-radius:10px;background:#0a141a;
+    border:2px solid #ffd93d;font-size:11px;font-weight:800;letter-spacing:1px;
     color:#ffd93d;text-shadow:0 0 10px #ffd93d;animation:pulse 1s infinite}
   .pu-badge.bad{border-color:#ff5b6e;color:#ff5b6e;text-shadow:0 0 10px #ff5b6e}
   @keyframes pulse{0%,100%{opacity:1}50%{opacity:.6}}
@@ -90,52 +106,18 @@
   #overlay p{font-size:18px;letter-spacing:2px;opacity:.85;text-align:center}
   #overlay p b{color:#9df3c4;font-size:26px}
   .ov-btns{display:flex;gap:12px;flex-wrap:wrap;justify-content:center;margin-top:10px}
-  .ov-btns button{padding:14px 34px;border-radius:12px;font-size:15px;font-weight:800;
+  .ov-btns button{padding:14px 30px;border-radius:12px;font-size:15px;font-weight:800;
     letter-spacing:2px;transition:.15s;cursor:pointer;border:2px solid}
-  #btnRestart{border-color:#2ee07a;background:#0e2a1e;color:#9df3c4;}
-  #btnRestart:hover{background:#2ee07a;color:#04140c}
-  #btnToMenu{border-color:#26485a;background:#0e1a20;color:#cfe9d8;}
+  #btnRestart{border-color:#2ee07a;background:#0e2a1e;color:#9df3c4}
+  #btnRestart:hover{background:#2ee07a;color:#04140c;transform:scale(1.03)}
+  #btnToMenu{border-color:#26485a;background:#0e1a20;color:#cfe9d8}
   #btnToMenu:hover{background:#12463a;border-color:#2ee07a;color:#9df3c4}
-
-  /* ============ JOYSTICK MOBILE ============ */
-  #joystickLayer{position:fixed;inset:0;pointer-events:none;z-index:25;touch-action:none}
-  .joystick{position:absolute;bottom:30px;width:140px;height:140px;
-    pointer-events:auto;touch-action:none;opacity:.7;transition:opacity .15s}
-  .joystick.active{opacity:1}
-  #joyMove{left:30px}
-  #joyShoot{right:30px}
-  .joyBase{position:absolute;inset:0;border-radius:50%;
-    background:radial-gradient(circle,rgba(46,224,122,0.08),rgba(46,224,122,0.02));
-    border:2px solid rgba(46,224,122,0.4);
-    box-shadow:inset 0 0 20px rgba(46,224,122,0.1),0 0 15px rgba(46,224,122,0.2)}
-  #joyShoot .joyBase{background:radial-gradient(circle,rgba(255,91,110,0.08),rgba(255,91,110,0.02));
-    border-color:rgba(255,91,110,0.5);
-    box-shadow:inset 0 0 20px rgba(255,91,110,0.1),0 0 15px rgba(255,91,110,0.2)}
-  .joyStick{position:absolute;width:60px;height:60px;border-radius:50%;
-    left:50%;top:50%;transform:translate(-50%,-50%);
-    background:radial-gradient(circle at 30% 30%,#9df3c4,#2ee07a);
-    border:2px solid #2ee07a;
-    box-shadow:0 0 15px #2ee07a88,inset 0 0 10px #ffffff44;
-    transition:transform .05s linear;pointer-events:none}
-  #joyShoot .joyStick{background:radial-gradient(circle at 30% 30%,#ffb0b8,#ff5b6e);
-    border-color:#ff5b6e;box-shadow:0 0 15px #ff5b6e88,inset 0 0 10px #ffffff44}
-  .joyLabel{position:absolute;bottom:-22px;width:100%;text-align:center;
-    font-size:10px;letter-spacing:2px;color:#9df3c4;font-weight:800;opacity:.7;
-    pointer-events:none}
-  #joyShoot .joyLabel{color:#ff8a9a}
-
-  @media (pointer: coarse) {
-    canvas{cursor:none}
-  }
-  @media (min-width: 1024px) and (hover: hover) {
-    #joystickLayer{display:none !important}
-  }
 </style>
 </head>
 <body>
 
 <div id="authScreen" class="screen">
-  <h1>TANK ARENA P2P</h1>
+  <h1>TANK ARENA</h1>
   <div class="auth-tabs">
     <button id="tabLogin" class="active">ĐĂNG NHẬP</button>
     <button id="tabRegister">ĐĂNG KÝ</button>
@@ -146,76 +128,48 @@
     <button id="btnAuthSubmit">ĐĂNG NHẬP</button>
     <div id="authMsg"></div>
   </div>
-  <div class="hint">Tài khoản được lưu trên trình duyệt của bạn.</div>
+  <div class="hint">Tài khoản lưu trên trình duyệt của bạn.</div>
 </div>
 
 <div id="menuScreen" class="screen hidden">
-  <h1>MENU</h1>
+  <h1>TANK ARENA</h1>
   <div class="menu-stats">
     <div>Xin chào, <b id="menuUsername">Player</b></div>
-    <div>🏆 Điểm cao nhất (PvE): <b id="menuHighScore">0</b></div>
+    <div>🏆 Kỷ lục PvE: <b id="menuHighScore">0</b></div>
+    <div>⚔️ Thắng bot: <b id="menuBotWins">0</b></div>
   </div>
-  <div class="panel">
-    <button id="btnCreatePvE">🌊 TẠO PHÒNG PvE (ĐẤU QUÁI)</button>
-    <button id="btnCreatePvP" class="pvp">⚔️ TẠO PHÒNG PvP (ĐẤU NHAU)</button>
-    <input id="inpCode" placeholder="NHẬP MÃ PHÒNG" maxlength="4" style="text-transform:uppercase">
-    <button id="btnJoin">VÀO PHÒNG BẰNG MÃ</button>
-    <button id="btnLogout" class="ghost" style="margin-top:10px">ĐĂNG XUẤT</button>
-    <div id="msg"></div>
+  <button id="btnPvE" class="btn-pve">🎯 CÀY CẤP - ĐÁNH QUÁI</button>
+  <div class="mode-divider">— HOẶC —</div>
+  <div class="mode-divider" style="color:#9df3c4">🤖 ĐẤU BOT</div>
+  <div class="diff-grid">
+    <button id="btnEasy" class="btn-diff easy">😊 DỄ</button>
+    <button id="btnNormal" class="btn-diff normal">😐 BÌNH THƯỜNG</button>
+    <button id="btnHard" class="btn-diff hard">😠 KHÁ</button>
+    <button id="btnInsane" class="btn-diff insane">💀 SIÊU KHÓ</button>
   </div>
-</div>
-
-<div id="waitingScreen" class="screen hidden">
-  <h1>PHÒNG CHỜ</h1>
-  <div class="panel">
-    <div id="waitingMode" style="opacity:.7;font-size:13px;letter-spacing:2px"></div>
-    <div style="opacity:.7;font-size:13px;letter-spacing:2px">MÃ PHÒNG</div>
-    <div id="codeDisplay">----</div>
-    <div style="font-size:13px;letter-spacing:1px;opacity:.85">
-      Trạng thái: <span id="playerCount">Đang kết nối...</span>
-    </div>
-    <button id="btnReady" class="hidden">BẮT ĐẦU CHIẾN</button>
-    <button id="btnLeave" class="ghost">RỜI PHÒNG</button>
-  </div>
+  <button id="btnLogout" class="panel ghost" style="padding:10px 20px;border-radius:10px;border:2px solid #26485a;background:#0e1a20;color:#cfe9d8;font-weight:800;letter-spacing:2px;cursor:pointer;margin-top:6px">ĐĂNG XUẤT</button>
+  <div class="hint">WASD di chuyển · Chuột trái bắn · Nhặt vòng XANH (tốt) - tránh vòng ĐỎ (xấu)</div>
 </div>
 
 <canvas id="game" class="hidden"></canvas>
-
-<!-- JOYSTICKS CHO MOBILE -->
-<div id="joystickLayer" class="hidden">
-  <div id="joyMove" class="joystick">
-    <div class="joyBase"></div>
-    <div class="joyStick" id="joyMoveStick"></div>
-    <div class="joyLabel">DI CHUYỂN</div>
-  </div>
-  <div id="joyShoot" class="joystick">
-    <div class="joyBase"></div>
-    <div class="joyStick" id="joyShootStick"></div>
-    <div class="joyLabel">BẮN</div>
-  </div>
-</div>
-
 <div id="hud" class="hidden">
   <div id="hudLeft">
-    <div id="p1Hud">
-      <div class="hpbar" id="hpBarP1">
-        <div class="hpFill" id="hpFillP1"></div>
-        <div class="shieldFill" id="shieldFillP1"></div>
-      </div>
-      <div class="hpText" id="hpTextP1">100 / 100</div>
-      <div class="xpbar" id="xpBarWrapP1"><div class="xpFill" id="xpFillP1"></div></div>
-      <div class="lvlText" id="lvlWrapP1">LV <span id="lvlValP1">1</span> • XP <span id="xpValP1">0</span>/<span id="xpNeedP1">5</span></div>
+    <div class="hpbar" id="hpBarP1">
+      <div class="hpFill" id="hpFillP1"></div>
+      <div class="shieldFill" id="shieldFillP1"></div>
     </div>
+    <div class="hpText" id="hpTextP1">100 / 100</div>
+    <div class="xpbar" id="xpBarWrapP1"><div class="xpFill" id="xpFillP1"></div></div>
+    <div class="lvlText" id="lvlWrapP1">LV <span id="lvlValP1">1</span> • XP <span id="xpValP1">0</span>/<span id="xpNeedP1">5</span></div>
     <div id="p2Hud" class="hidden">
-      <div class="hpbar" id="hpBarP2" style="margin-top:8px;border-color:#3a8fe0">
+      <div class="hpbar" id="hpBarP2" style="margin-top:10px;border-color:#3a8fe0">
         <div class="hpFill p2" id="hpFillP2"></div>
       </div>
-      <div class="hpText" id="hpTextP2">100 / 100</div>
+      <div class="hpText" id="hpTextP2">BOT · 100 / 100</div>
     </div>
   </div>
   <div id="scoreBox">
     <span id="modeTag"></span>
-    <span id="hudRoomCode">MÃ PHÒNG: <span></span></span>
     ĐIỂM<b id="scoreVal">0</b>
     SÓNG<b id="waveVal">1</b>
     <button id="btnMenu">☰ MENU</button>
@@ -225,8 +179,8 @@
 
 <div id="overlay" class="hidden">
   <h1 id="ovTitle">GAME OVER</h1>
-  <p id="ovP1">Điểm: <b id="finalScore">0</b></p>
-  <p id="ovP2" style="font-size:14px">Cấp đạt được: <b id="finalLevel" style="font-size:20px">1</b></p>
+  <p id="ovP1"></p>
+  <p id="ovP2" style="font-size:14px;opacity:.75"></p>
   <div class="ov-btns">
     <button id="btnRestart">CHƠI LẠI</button>
     <button id="btnToMenu">VỀ MENU</button>
@@ -264,9 +218,7 @@ function rr(x, y, w, h, r) {
   ctx.closePath();
 }
 
-/* ==========================================================
-   1. ÂM THANH
-   ========================================================== */
+/* ============ ÂM THANH ============ */
 let audioCtx = null;
 function initAudio() {
   if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
@@ -286,7 +238,8 @@ function playSound(type) {
     boom:   {t:'sawtooth', f1:80, f2:20, g:0.3, d:0.5},
     laser:  {t:'sawtooth', f1:1200, f2:200, g:0.12, d:0.3},
     curse:  {t:'sawtooth', f1:180, f2:60, g:0.18, d:0.35},
-    pvpkill:{t:'square', f1:800, f2:200, g:0.2, d:0.5},
+    win:    {t:'square', f1:800, f2:200, g:0.25, d:0.7},
+    lose:   {t:'sawtooth', f1:200, f2:40, g:0.25, d:0.8},
   };
   const m = map[type]; if (!m) { osc.disconnect(); gain.disconnect(); return; }
   osc.type = m.t; osc.frequency.setValueAtTime(m.f1, now);
@@ -302,61 +255,56 @@ function triggerHitEffect() {
   if (bar) { bar.classList.add('hurt'); setTimeout(() => bar.classList.remove('hurt'), 200); }
 }
 
-/* ==========================================================
-   2. TÀI KHOẢN
-   ========================================================== */
-const ACCOUNTS_KEY = 'tankArenaAccounts';
-const SESSION_KEY = 'tankArenaSession';
-function getAccounts() { try { return JSON.parse(localStorage.getItem(ACCOUNTS_KEY) || '{}'); } catch { return {}; } }
-function saveAccounts(a) { localStorage.setItem(ACCOUNTS_KEY, JSON.stringify(a)); }
+/* ============ TÀI KHOẢN ============ */
+const ACC_KEY = 'tankArenaAccounts';
+const SESS_KEY = 'tankArenaSession';
+function getAccounts() { try { return JSON.parse(localStorage.getItem(ACC_KEY) || '{}'); } catch { return {}; } }
+function saveAccounts(a) { localStorage.setItem(ACC_KEY, JSON.stringify(a)); }
 function hashPass(pw) { let h=5381; for(let i=0;i<pw.length;i++) h=((h<<5)+h+pw.charCodeAt(i))|0; return h.toString(36); }
 function registerUser(u, p) {
   if (u.length < 3) return { ok: false, msg: 'Tên phải có ít nhất 3 ký tự' };
   if (p.length < 4) return { ok: false, msg: 'Mật khẩu phải có ít nhất 4 ký tự' };
   const a = getAccounts();
   if (a[u]) return { ok: false, msg: 'Tên đăng nhập đã tồn tại' };
-  a[u] = { pass: hashPass(p), highScore: 0 }; saveAccounts(a); return { ok: true };
+  a[u] = { pass: hashPass(p), highScore: 0, botWins: 0 }; saveAccounts(a); return { ok: true };
 }
 function loginUser(u, p) {
   const a = getAccounts();
   if (!a[u]) return { ok: false, msg: 'Tài khoản không tồn tại' };
   if (a[u].pass !== hashPass(p)) return { ok: false, msg: 'Sai mật khẩu' };
-  localStorage.setItem(SESSION_KEY, u); return { ok: true };
+  localStorage.setItem(SESS_KEY, u); return { ok: true };
 }
-function updateHighScore(u, score) {
+function recordPvEScore(score) {
   const a = getAccounts();
-  if (!a[u]) return;
-  if (score > (a[u].highScore || 0)) {
-    a[u].highScore = score; saveAccounts(a);
-    document.getElementById('menuHighScore').textContent = score;
-  }
+  if (!a[currentUser]) return;
+  if (score > (a[currentUser].highScore || 0)) { a[currentUser].highScore = score; saveAccounts(a); }
 }
-let currentUser = localStorage.getItem(SESSION_KEY);
+function recordBotWin() {
+  const a = getAccounts();
+  if (!a[currentUser]) return;
+  a[currentUser].botWins = (a[currentUser].botWins || 0) + 1;
+  saveAccounts(a);
+}
+let currentUser = localStorage.getItem(SESS_KEY);
 
-/* ==========================================================
-   3. UI
-   ========================================================== */
+/* ============ UI ============ */
 const screens = {
   auth: document.getElementById('authScreen'),
-  menu: document.getElementById('menuScreen'),
-  waiting: document.getElementById('waitingScreen')
+  menu: document.getElementById('menuScreen')
 };
 const canvasEl = document.getElementById('game');
 const hudEl = document.getElementById('hud');
-const powerupHudEl = document.getElementById('powerupHud');
-const joystickLayer = document.getElementById('joystickLayer');
+const puHudEl = document.getElementById('powerupHud');
 
 function show(name) {
   Object.values(screens).forEach(s => s.classList.add('hidden'));
   canvasEl.classList.add('hidden');
   hudEl.classList.add('hidden');
-  powerupHudEl.classList.add('hidden');
-  joystickLayer.classList.add('hidden');
+  puHudEl.classList.add('hidden');
   if (name === 'game') {
     canvasEl.classList.remove('hidden');
     hudEl.classList.remove('hidden');
-    powerupHudEl.classList.remove('hidden');
-    if (isTouchDevice) joystickLayer.classList.remove('hidden');
+    puHudEl.classList.remove('hidden');
   } else if (screens[name]) screens[name].classList.remove('hidden');
 }
 function showMenu() {
@@ -364,14 +312,10 @@ function showMenu() {
   show('menu');
   document.getElementById('menuUsername').textContent = currentUser;
   const a = getAccounts();
-  document.getElementById('menuHighScore').textContent = (a[currentUser] && a[currentUser].highScore) || 0;
+  const acc = a[currentUser] || {};
+  document.getElementById('menuHighScore').textContent = (acc.highScore || 0) + ' điểm';
+  document.getElementById('menuBotWins').textContent = (acc.botWins || 0) + ' trận';
 }
-
-/* ==========================================================
-   PHÁT HIỆN THIẾT BỊ CẢM ỨNG
-   ========================================================== */
-const isTouchDevice = ('ontouchstart' in window) || (navigator.maxTouchPoints > 0);
-
 if (currentUser) showMenu(); else show('auth');
 
 let authMode = 'login';
@@ -400,312 +344,345 @@ btnAuth.onclick = () => {
   showMenu();
 };
 document.getElementById('btnLogout').onclick = () => {
-  localStorage.removeItem(SESSION_KEY); currentUser = null; show('auth');
+  localStorage.removeItem(SESS_KEY); currentUser = null; show('auth');
 };
 
-/* ==========================================================
-   4. P2P
-   ========================================================== */
-let peer = null, conn = null, isHost = false;
-let myId = Math.random().toString(36).substr(2, 5);
-let myRoomCode = '';
-let gameStarted = false;
-let pendingMode = 'pve';
-let pendingClient = null;
-
-function createRoom(mode) {
-  initAudio();
-  isHost = true;
-  pendingMode = mode;
-  myRoomCode = Math.random().toString(36).substr(2, 4).toUpperCase();
-  document.getElementById('codeDisplay').textContent = myRoomCode;
-  document.getElementById('waitingMode').textContent = mode === 'pvp' ? '⚔️ CHẾ ĐỘ PVP' : '🌊 CHẾ ĐỘ PVE';
-  document.getElementById('waitingMode').style.color = mode === 'pvp' ? '#ff8a9a' : '#9df3c4';
-  document.getElementById('playerCount').textContent = 'Đang tạo phòng...';
-  peer = new Peer('TANK-' + myRoomCode, { debug: 1 });
-  peer.on('open', () => {
-    document.getElementById('playerCount').textContent = 'Sẵn sàng (Host)';
-    document.getElementById('btnReady').classList.remove('hidden');
-    show('waiting');
-  });
-  peer.on('error', (err) => alert('Lỗi tạo phòng: ' + err.type));
-  peer.on('connection', (c) => { conn = c; setupConnection(); });
-}
-document.getElementById('btnCreatePvE').onclick = () => createRoom('pve');
-document.getElementById('btnCreatePvP').onclick = () => createRoom('pvp');
-
-document.getElementById('btnJoin').onclick = () => {
-  initAudio();
-  const code = document.getElementById('inpCode').value.trim().toUpperCase();
-  const msg = document.getElementById('msg');
-  if (code.length !== 4) { msg.textContent = 'Mã phải 4 ký tự'; return; }
-  msg.textContent = '';
-  isHost = false; myRoomCode = code;
-  document.getElementById('codeDisplay').textContent = myRoomCode;
-  document.getElementById('waitingMode').textContent = 'Đang tải chế độ...';
-  document.getElementById('playerCount').textContent = 'Đang kết nối...';
-  peer = new Peer({ debug: 1 });
-  peer.on('open', () => { conn = peer.connect('TANK-' + code, { reliable: true }); setupConnection(); });
-  peer.on('error', () => { document.getElementById('playerCount').textContent = 'Không tìm thấy phòng!'; });
-};
-
-function setupConnection() {
-  conn.on('open', () => {
-    conn.send({ type: 'join', name: currentUser, id: myId });
-    if (!isHost) {
-      document.getElementById('playerCount').textContent = 'Đã kết nối (Client)';
-      document.getElementById('btnReady').classList.remove('hidden');
-    }
-    show('waiting');
-  });
-  conn.on('data', (data) => {
-    if (isHost) {
-      if (data.type === 'join') {
-        pendingClient = { id: data.id, name: data.name };
-        if (state && !state.players[data.id]) {
-          state.players[data.id] = makePlayer(data.id, data.name || 'Player2', state.mode);
-          if (state.mode === 'pvp') {
-            state.players[data.id].x = 300;
-            state.players[data.id].y = 0;
-          }
-        }
-      }
-      if (data.type === 'ready' && !gameStarted) startGameAsHost();
-      if (data.type === 'input' && state && state.players[data.id]) state.players[data.id].input = data.input;
-      if (data.type === 'restartRequest' && state && state.over) restartGameAsHost();
-    } else {
-      if (data.type === 'state') {
-        state = data.state;
-        if (state.events && state.events.length) {
-          state.events.forEach(e => {
-            if (e && e.type === 'hurt') { playSound('hurt'); if (e.target === myId) triggerHitEffect(); }
-            else if (typeof e === 'string') playSound(e);
-          });
-          state.events = [];
-        }
-        if (!gameStarted) {
-          gameStarted = true; show('game');
-          document.getElementById('hudRoomCode').querySelector('span').textContent = myRoomCode;
-        }
-        updateHUD(state, myId);
-        updatePowerupHUD(state, myId);
-      }
-      if (data.type === 'restart') {
-        hideOverlay();
-        gameStarted = true;
-      }
-      if (data.type === 'gameover') {
-        showPvEGameOver(data.score || 0, data.level || 1);
-      }
-      if (data.type === 'pvpGameover') {
-        state.over = true;
-        state.winner = data.winner;
-        showPvPGameOver(data.winner);
-      }
-    }
-  });
-  conn.on('close', () => { if (gameStarted) { alert('Mất kết nối phòng!'); location.reload(); } });
-}
-
-/* ==========================================================
-   UPDATE HUD
-   ========================================================== */
-function updateHUD(st, myId) {
-  const isPvP = st.mode === 'pvp';
-  document.getElementById('xpBarWrapP1').style.display = isPvP ? 'none' : '';
-  document.getElementById('lvlWrapP1').style.display = isPvP ? 'none' : '';
-  document.getElementById('modeTag').textContent = isPvP ? '⚔️ PVP' : '🌊 PVE';
-  document.getElementById('modeTag').style.color = isPvP ? '#ff8a9a' : '#9df3c4';
-
-  const me = st.players[myId];
-  if (me) {
-    const maxHp = me.maxHp || 100;
-    const hpPct = Math.max(0, Math.min(100, (me.hp / maxHp) * 100));
-    const shieldPct = (me.powerups && me.powerups.shield > 0)
-      ? Math.max(0, Math.min(100, ((me.shieldHp || 0) / maxHp) * 100))
-      : 0;
-    document.getElementById('hpFillP1').style.width = hpPct + '%';
-    document.getElementById('shieldFillP1').style.width = shieldPct + '%';
-    const shieldTxt = (me.powerups && me.powerups.shield > 0) ? '  🛡' + Math.round(me.shieldHp || 0) : '';
-    document.getElementById('hpTextP1').textContent =
-      Math.max(0, Math.round(me.hp)) + ' / ' + Math.round(maxHp) + shieldTxt;
-    document.getElementById('scoreVal').textContent = me.score;
-    document.getElementById('waveVal').textContent = st.wave;
-    if (!isPvP) {
-      document.getElementById('lvlValP1').textContent = me.level || 1;
-      document.getElementById('xpValP1').textContent = Math.floor(me.xp || 0);
-      document.getElementById('xpNeedP1').textContent = xpNeeded(me.level || 1);
-      const xpPct = ((me.xp || 0) / xpNeeded(me.level || 1)) * 100;
-      document.getElementById('xpFillP1').style.width = Math.min(100, xpPct) + '%';
-    }
+/* ============ BOT CFG ============ */
+const BOT_CFG = {
+  easy: {
+    speedBonus: 0.65, aimJitter: 0.55, shootRange: 550,
+    dodge: false, dodgeRange: 0, smart: false, lead: 0,
+    fireRate: 500, damage: 6, idealDist: 450, hp: 80,
+    name: 'BOT DỄ', color: '#7bd66b'
+  },
+  normal: {
+    speedBonus: 0.85, aimJitter: 0.25, shootRange: 700,
+    dodge: true, dodgeRange: 160, smart: false, lead: 0.3,
+    fireRate: 330, damage: 10, idealDist: 380, hp: 100,
+    name: 'BOT THƯỜNG', color: '#4dd9ff'
+  },
+  hard: {
+    speedBonus: 1.05, aimJitter: 0.13, shootRange: 850,
+    dodge: true, dodgeRange: 260, smart: true, lead: 0.6,
+    fireRate: 220, damage: 14, idealDist: 330, hp: 130,
+    name: 'BOT KHÁ', color: '#ff8c1a'
+  },
+  insane: {
+    speedBonus: 1.25, aimJitter: 0.05, shootRange: 1000,
+    dodge: true, dodgeRange: 380, smart: true, lead: 1.0,
+    fireRate: 140, damage: 18, idealDist: 300, hp: 160,
+    name: 'BOT SIÊU KHÓ', color: '#ff5b6e'
   }
-  const p2 = Object.values(st.players).find(p => p.id !== myId);
-  if (p2) {
-    document.getElementById('p2Hud').classList.remove('hidden');
-    const maxHp2 = p2.maxHp || 100;
-    document.getElementById('hpFillP2').style.width =
-      Math.max(0, Math.min(100, (p2.hp / maxHp2) * 100)) + '%';
-    document.getElementById('hpTextP2').textContent =
-      Math.max(0, Math.round(p2.hp)) + ' / ' + Math.round(maxHp2) + '  (' + p2.name + ')';
-  } else document.getElementById('p2Hud').classList.add('hidden');
-}
-
-const PU_LABEL = {
-  laser: '⚡ LASER', bomb: '💣 BOM', shield: '🛡️ KHIÊN',
-  speed: '👟 TỐC ĐỘ', pierce: '🔱 XUYÊN', tripleshot: '🔥 3 TIA',
-  curse: '💀 YẾU', slow: '🐌 CHẬM', burn: '🔥 BỎNG', confuse: '🌀 RỐI',
-  freeze: '❄️ ĐÓNG BĂNG', jam: '🐢 KẸT SÚNG'
 };
-const PU_BAD = ['curse','slow','burn','confuse','freeze','jam'];
-function updatePowerupHUD(st, myId) {
-  const me = st.players[myId];
-  if (!me || !me.powerups) { powerupHudEl.innerHTML = ''; return; }
-  let html = '';
-  for (const k in me.powerups) {
-    const t = me.powerups[k];
-    if (t > 0) {
-      const isBad = PU_BAD.includes(k);
-      html += `<div class="pu-badge${isBad ? ' bad' : ''}">${PU_LABEL[k] || k} ${t.toFixed(1)}s</div>`;
-    }
-  }
-  powerupHudEl.innerHTML = html;
-}
+const DIFF_NAME = { easy: 'DỄ', normal: 'BÌNH THƯỜNG', hard: 'KHÁ', insane: 'SIÊU KHÓ' };
 
-/* ==========================================================
-   OVERLAY
-   ========================================================== */
-function hideOverlay() {
-  document.getElementById('overlay').classList.add('hidden');
-  document.getElementById('ovTitle').textContent = 'GAME OVER';
-  document.getElementById('ovTitle').style.color = '';
-  document.getElementById('ovP1').innerHTML = 'Điểm: <b id="finalScore">0</b>';
-  document.getElementById('ovP2').innerHTML = 'Cấp đạt được: <b id="finalLevel" style="font-size:20px">1</b>';
-}
-function showPvEGameOver(score, level) {
-  const titleEl = document.getElementById('ovTitle');
-  titleEl.textContent = 'GAME OVER';
-  titleEl.style.color = '#ff5b6e';
-  document.getElementById('ovP1').innerHTML = 'Điểm: <b id="finalScore">' + score + '</b>';
-  document.getElementById('ovP2').innerHTML = 'Cấp đạt được: <b id="finalLevel" style="font-size:20px">' + level + '</b>';
-  document.getElementById('overlay').classList.remove('hidden');
-}
-function showPvPGameOver(winnerId) {
-  const titleEl = document.getElementById('ovTitle');
-  const p1 = document.getElementById('ovP1');
-  const p2 = document.getElementById('ovP2');
-  if (winnerId === null || winnerId === undefined) {
-    titleEl.textContent = 'HÒA!';
-    titleEl.style.color = '#ffd93d';
-    p1.innerHTML = 'Cả 2 cùng gục ngã!';
-    p2.textContent = '';
-  } else if (winnerId === myId) {
-    titleEl.textContent = '🏆 BẠN THẮNG!';
-    titleEl.style.color = '#2ee07a';
-    p1.innerHTML = 'Bạn đã hạ gục đối thủ!';
-    p2.textContent = '';
-  } else {
-    const wname = (state && state.players[winnerId]) ? state.players[winnerId].name : 'Đối thủ';
-    titleEl.textContent = '💀 BẠN THUA!';
-    titleEl.style.color = '#ff5b6e';
-    p1.innerHTML = 'Người thắng: <b>' + wname + '</b>';
-    p2.textContent = '';
-  }
-  document.getElementById('overlay').classList.remove('hidden');
-}
+/* ============ STATE ============ */
+let state = null, lastTime = performance.now();
+const myId = 'PLAYER';
 
-document.getElementById('btnLeave').onclick = () => { if (peer) peer.destroy(); location.reload(); };
-document.getElementById('btnMenu').onclick = () => { if (confirm('Thoát về menu?')) { if (peer) peer.destroy(); location.reload(); } };
-document.getElementById('btnToMenu').onclick = () => { if (peer) peer.destroy(); location.reload(); };
-document.getElementById('btnRestart').onclick = () => {
-  hideOverlay();
-  if (isHost) restartGameAsHost();
-  else conn.send({ type: 'restartRequest' });
-};
-function restartGameAsHost() {
-  const mode = state.mode;
-  initGame(mode);
-  lastTime = performance.now(); sendTimer = 0;
-  if (conn && conn.open) conn.send({ type: 'restart' });
-  requestAnimationFrame(hostLoop);
-}
-function startGameAsHost() {
-  if (gameStarted) return;
-  gameStarted = true; show('game');
-  document.getElementById('hudRoomCode').querySelector('span').textContent = myRoomCode;
-  if (!state || state.over) {
-    initGame(pendingMode);
-  } else if (state.mode !== pendingMode) {
-    initGame(pendingMode);
-  }
-  lastTime = performance.now();
-  requestAnimationFrame(hostLoop);
-}
-document.getElementById('btnReady').onclick = () => {
-  initAudio();
-  if (isHost) startGameAsHost();
-  else { conn.send({ type: 'ready' }); requestAnimationFrame(clientLoop); }
-};
+function xpNeeded(lvl) { return 5 + (lvl - 1) * 3; }
 
-/* ==========================================================
-   5. GAME STATE
-   ========================================================== */
-let state = null, lastTime = performance.now(), sendTimer = 0;
-
-function xpNeeded(level) { return 5 + (level - 1) * 3; }
-
-function makePlayer(id, name, mode) {
-  mode = mode || 'pve';
+function makePlayer(id, name) {
   return {
     id, name, x: 0, y: 0,
     hp: 100, maxHp: 100, score: 0,
     angle: -Math.PI/2, aim: 0,
     input: {x:0, y:0, aim:0, shoot:false},
     level: 1, xp: 0,
-    fireRate: mode === 'pvp' ? 180 : 150,
-    damage:    mode === 'pvp' ? 14  : 20,
-    bulletSpeed: 1000,
+    fireRate: 180, damage: 14, bulletSpeed: 1000,
     powerups: {
       laser:0, bomb:0, shield:0, speed:0,
       pierce:0, tripleshot:0,
       curse:0, slow:0, burn:0, confuse:0,
       freeze:0, jam:0
     },
-    shieldHp: 0,
-    burnTick: 0,
-    lastShoot: 0,
-    levelUpFlash: 0,
-    curseFlash: 0,
-    pvpInvuln: 0
+    shieldHp: 0, burnTick: 0, lastShoot: 0,
+    levelUpFlash: 0, curseFlash: 0, pvpInvuln: 0,
+    isBot: false, difficulty: null,
+    _prevX: 0, _prevY: 0
   };
 }
+function makeBot(difficulty) {
+  const cfg = BOT_CFG[difficulty];
+  const b = makePlayer('BOT', cfg.name);
+  b.isBot = true;
+  b.difficulty = difficulty;
+  b.hp = cfg.hp;
+  b.maxHp = cfg.hp;
+  b.fireRate = cfg.fireRate;
+  b.damage = cfg.damage;
+  return b;
+}
 
-function initGame(mode) {
-  mode = mode || 'pve';
+function initGame(mode, difficulty) {
   state = {
-    mode,
+    mode, difficulty,
     time: 0, wave: 1, spawnTimer: 1, bossIndex: 0, over: false,
-    players: { [myId]: makePlayer(myId, currentUser, mode) },
+    players: { [myId]: makePlayer(myId, currentUser) },
     enemies: [], bullets: [], ebullets: [], pickups: [],
-    particles: [], beams: [],
-    events: [],
-    arena: mode === 'pvp' ? { w: 1600, h: 1600 } : null,
-    pvpSpawnTimer: 2.5,
-    winner: null,
-    announce: null
+    particles: [], beams: [], events: [],
+    arena: mode === 'bot' ? { w: 1400, h: 1400 } : null,
+    pickupTimer: 2.5,
+    announce: null, winner: null
   };
-  if (isHost && pendingClient) {
-    state.players[pendingClient.id] = makePlayer(pendingClient.id, pendingClient.name, mode);
-  }
-  if (mode === 'pvp') {
-    const ids = Object.keys(state.players);
-    ids.forEach((id, i) => {
-      state.players[id].x = i === 0 ? -300 : 300;
-      state.players[id].y = 0;
-    });
-    state.announce = { text: 'PVP - HẠ GỤC ĐỐI THỦ', t: 2.5 };
+
+  if (mode === 'bot') {
+    state.players['BOT'] = makeBot(difficulty);
+    state.players[myId].x = -350;
+    state.players['BOT'].x = 350;
+    state.announce = { text: 'VS ' + BOT_CFG[difficulty].name, t: 2.5 };
+    document.getElementById('modeTag').textContent = '⚔️ ' + DIFF_NAME[difficulty].toUpperCase();
+    document.getElementById('modeTag').style.color = BOT_CFG[difficulty].color;
+    document.getElementById('xpBarWrapP1').style.display = 'none';
+    document.getElementById('lvlWrapP1').style.display = 'none';
+    document.getElementById('p2Hud').classList.remove('hidden');
+  } else {
+    state.announce = { text: 'SÓNG 1', t: 2 };
+    document.getElementById('modeTag').textContent = '🎯 PvE';
+    document.getElementById('modeTag').style.color = '#9df3c4';
+    document.getElementById('xpBarWrapP1').style.display = '';
+    document.getElementById('lvlWrapP1').style.display = '';
+    document.getElementById('p2Hud').classList.add('hidden');
   }
 }
 
+/* ============ MENU BUTTONS ============ */
+function startGame(mode, difficulty) {
+  initAudio();
+  hideOverlay();
+  initGame(mode, difficulty);
+  show('game');
+  lastTime = performance.now();
+  requestAnimationFrame(gameLoop);
+}
+document.getElementById('btnPvE').onclick = () => startGame('pve', null);
+document.getElementById('btnEasy').onclick = () => startGame('bot', 'easy');
+document.getElementById('btnNormal').onclick = () => startGame('bot', 'normal');
+document.getElementById('btnHard').onclick = () => startGame('bot', 'hard');
+document.getElementById('btnInsane').onclick = () => startGame('bot', 'insane');
+
+document.getElementById('btnMenu').onclick = () => {
+  if (confirm('Thoát về menu? Tiến trình sẽ mất.')) {
+    state = null;
+    showMenu();
+  }
+};
+document.getElementById('btnToMenu').onclick = () => {
+  state = null;
+  hideOverlay();
+  showMenu();
+};
+document.getElementById('btnRestart').onclick = () => {
+  hideOverlay();
+  const mode = state ? state.mode : 'pve';
+  const diff = state ? state.difficulty : null;
+  initGame(mode, diff);
+  show('game');
+  lastTime = performance.now();
+  requestAnimationFrame(gameLoop);
+};
+function hideOverlay() { document.getElementById('overlay').classList.add('hidden'); }
+
+/* ============ HUD ============ */
+function updateHUD(st) {
+  const me = st.players[myId];
+  if (me) {
+    const maxHp = me.maxHp || 100;
+    const hpPct = Math.max(0, Math.min(100, (me.hp / maxHp) * 100));
+    const shieldPct = (me.powerups.shield > 0)
+      ? Math.max(0, Math.min(100, ((me.shieldHp || 0) / maxHp) * 100)) : 0;
+    document.getElementById('hpFillP1').style.width = hpPct + '%';
+    document.getElementById('shieldFillP1').style.width = shieldPct + '%';
+    const shieldTxt = (me.powerups.shield > 0) ? '  🛡' + Math.round(me.shieldHp || 0) : '';
+    document.getElementById('hpTextP1').textContent =
+      Math.max(0, Math.round(me.hp)) + ' / ' + Math.round(maxHp) + shieldTxt;
+    document.getElementById('scoreVal').textContent = me.score;
+    document.getElementById('waveVal').textContent = st.mode === 'bot' ? '-' : st.wave;
+    if (st.mode === 'pve') {
+      document.getElementById('lvlValP1').textContent = me.level || 1;
+      document.getElementById('xpValP1').textContent = Math.floor(me.xp || 0);
+      document.getElementById('xpNeedP1').textContent = xpNeeded(me.level || 1);
+      document.getElementById('xpFillP1').style.width =
+        Math.min(100, ((me.xp || 0) / xpNeeded(me.level || 1)) * 100) + '%';
+    }
+  }
+  if (st.mode === 'bot') {
+    const bot = st.players['BOT'];
+    if (bot) {
+      const maxHp = bot.maxHp || 100;
+      document.getElementById('hpFillP2').style.width =
+        Math.max(0, Math.min(100, (bot.hp / maxHp) * 100)) + '%';
+      document.getElementById('hpTextP2').textContent =
+        bot.name + ' · ' + Math.max(0, Math.round(bot.hp)) + ' / ' + Math.round(maxHp);
+    }
+  }
+}
+
+const PU_LABEL = {
+  laser: '⚡ LASER', bomb: '💣 BOM', shield: '🛡️ KHIÊN',
+  speed: '👟 TỐC ĐỘ', pierce: '🔱 XUYÊN', tripleshot: '🔥 3 TIA',
+  curse: '💀 YẾU', slow: '🐌 CHẬM', burn: '🔥 BỎNG', confuse: '🌀 RỐI',
+  freeze: '❄️ BĂNG', jam: '🐢 KẸT SÚNG'
+};
+const PU_BAD = ['curse','slow','burn','confuse','freeze','jam'];
+function updatePowerupHUD(st) {
+  const me = st.players[myId];
+  if (!me) { puHudEl.innerHTML = ''; return; }
+  let html = '';
+  for (const k in me.powerups) {
+    const t = me.powerups[k];
+    if (t > 0) {
+      const bad = PU_BAD.includes(k);
+      html += `<div class="pu-badge${bad ? ' bad' : ''}">${PU_LABEL[k] || k} ${t.toFixed(1)}s</div>`;
+    }
+  }
+  puHudEl.innerHTML = html;
+}
+
+/* ============ POWER-UPS ============ */
+const POWERUPS = [
+  { type: 'health',    color: '#2ee07a', weight: 16, bad: false },
+  { type: 'laser',     color: '#4dd9ff', weight: 9,  bad: false },
+  { type: 'bomb',      color: '#ff5b6e', weight: 9,  bad: false },
+  { type: 'shield',    color: '#ffd93d', weight: 10, bad: false },
+  { type: 'speed',     color: '#ff8c1a', weight: 10, bad: false },
+  { type: 'pierce',    color: '#b46bff', weight: 9,  bad: false },
+  { type: 'tripleshot',color: '#ff66b2', weight: 9,  bad: false },
+  { type: 'curse',     color: '#8a1f35', weight: 6,  bad: true },
+  { type: 'slow',      color: '#5a4a8a', weight: 5,  bad: true },
+  { type: 'burn',      color: '#ff3a1a', weight: 5,  bad: true },
+  { type: 'confuse',   color: '#8a1f8a', weight: 4,  bad: true },
+  { type: 'freeze',    color: '#4dd9ff', weight: 5,  bad: true },
+  { type: 'jam',       color: '#888888', weight: 5,  bad: true },
+];
+const PU_ICON = {
+  health: '+', laser: '⚡', bomb: '💣', shield: '🛡', speed: '»',
+  pierce: '➤', tripleshot: '⋔', curse: '💀', slow: '🐌',
+  burn: '🔥', confuse: '🌀', freeze: '❄', jam: '🐢'
+};
+const PU_COLOR = {
+  health: '#2ee07a', laser: '#4dd9ff', bomb: '#ff5b6e',
+  shield: '#ffd93d', speed: '#ff8c1a', pierce: '#b46bff',
+  tripleshot: '#ff66b2',
+  curse: '#8a1f35', slow: '#5a4a8a', burn: '#ff3a1a',
+  confuse: '#8a1f8a', freeze: '#4dd9ff', jam: '#888888'
+};
+function pickPUType() {
+  const total = POWERUPS.reduce((s,p)=>s+p.weight,0);
+  let r = Math.random()*total;
+  for (const p of POWERUPS) { r -= p.weight; if (r <= 0) return p.type; }
+  return 'health';
+}
+function spawnPowerup(x, y) {
+  const type = pickPUType();
+  const def = POWERUPS.find(p=>p.type===type) || POWERUPS[0];
+  state.pickups.push({
+    x, y, type, color: def.color, bad: def.bad,
+    life: 18, bob: Math.random()*Math.PI*2
+  });
+}
+function applyPickup(p, k) {
+  switch (k.type) {
+    case 'health': p.hp = Math.min(p.maxHp, p.hp + 40); break;
+    case 'laser': p.powerups.laser = Math.min(15, p.powerups.laser + 8); break;
+    case 'bomb': p.powerups.bomb = Math.min(15, p.powerups.bomb + 8); break;
+    case 'shield': p.powerups.shield = Math.min(15, p.powerups.shield + 8); p.shieldHp = 40; break;
+    case 'speed': p.powerups.speed = Math.min(15, p.powerups.speed + 8); break;
+    case 'pierce': p.powerups.pierce = Math.min(15, p.powerups.pierce + 8); break;
+    case 'tripleshot': p.powerups.tripleshot = Math.min(15, p.powerups.tripleshot + 8); break;
+    case 'curse': p.powerups.curse = Math.min(15, p.powerups.curse + 10); break;
+    case 'slow': p.powerups.slow = Math.min(15, p.powerups.slow + 8); break;
+    case 'burn': p.powerups.burn = Math.min(15, p.powerups.burn + 6); break;
+    case 'confuse': p.powerups.confuse = Math.min(15, p.powerups.confuse + 5); break;
+    case 'freeze': p.powerups.freeze = Math.min(15, p.powerups.freeze + 6); break;
+    case 'jam': p.powerups.jam = Math.min(15, p.powerups.jam + 7); break;
+  }
+  state.events.push('pickup');
+  spawnParticles(k.x, k.y, k.color, 15, 250);
+  if (PU_BAD.includes(k.type)) {
+    p.curseFlash = 1;
+    state.events.push('curse');
+  }
+}
+
+/* ============ PARTICLES / EFFECTS ============ */
+function spawnParticles(x, y, color, count, speed) {
+  for (let i = 0; i < count; i++) {
+    const a = Math.random() * TAU;
+    const s = speed * (0.3 + Math.random() * 0.7);
+    state.particles.push({
+      x, y, vx: Math.cos(a)*s, vy: Math.sin(a)*s,
+      life: 0.4 + Math.random()*0.4, maxLife: 0.8,
+      color, r: 2 + Math.random()*3
+    });
+  }
+}
+function spawnLaser(x, y, angle, ownerId) {
+  state.beams.push({ x, y, angle, life: 0.15, maxLife: 0.15, owner: ownerId });
+  const len = 2000;
+  for (const e of state.enemies) {
+    const dx = e.x - x, dy = e.y - y;
+    const proj = dx * Math.cos(angle) + dy * Math.sin(angle);
+    if (proj < 0 || proj > len) continue;
+    const perp = Math.abs(-dx * Math.sin(angle) + dy * Math.cos(angle));
+    if (perp < e.r + 8) {
+      e.hp -= 50; e.hitFlash = 0.15;
+      spawnParticles(e.x, e.y, e.color, 5, 150);
+      if (e.hp <= 0) killEnemy(e, ownerId);
+    }
+  }
+  for (const pid in state.players) {
+    if (pid === ownerId) continue;
+    const p = state.players[pid];
+    if (p.hp <= 0 || p.pvpInvuln > 0) continue;
+    const dx = p.x - x, dy = p.y - y;
+    const proj = dx * Math.cos(angle) + dy * Math.sin(angle);
+    if (proj < 0 || proj > len) continue;
+    const perp = Math.abs(-dx * Math.sin(angle) + dy * Math.cos(angle));
+    if (perp < 22) {
+      if (p.powerups.shield > 0) {
+        if (!p.shieldHp) p.shieldHp = 40;
+        p.shieldHp -= 30;
+        if (p.shieldHp <= 0) { p.powerups.shield = 0; p.shieldHp = 0; }
+        spawnParticles(p.x, p.y, '#ffd93d', 6, 150);
+      } else {
+        p.hp -= 30; p.pvpInvuln = 0.3;
+        spawnParticles(p.x, p.y, '#4dd9ff', 8, 200);
+      }
+      state.events.push({ type: 'hurt', target: pid });
+    }
+  }
+}
+function explodeBomb(x, y, ownerId) {
+  const R = 200;
+  state.beams.push({ x, y, angle: 0, life: 0.4, maxLife: 0.4, owner: ownerId, bomb: true, radius: R });
+  for (let i = state.enemies.length - 1; i >= 0; i--) {
+    const e = state.enemies[i];
+    if (dist(x, y, e.x, e.y) < R + e.r) {
+      e.hp -= 100; e.hitFlash = 0.2;
+      spawnParticles(e.x, e.y, '#ff5b6e', 8, 200);
+      if (e.hp <= 0) killEnemy(e, ownerId);
+    }
+  }
+  for (const pid in state.players) {
+    if (pid === ownerId) continue;
+    const p = state.players[pid];
+    if (p.hp <= 0 || p.pvpInvuln > 0) continue;
+    if (dist(x, y, p.x, p.y) < R + 20) {
+      if (p.powerups.shield > 0) {
+        if (!p.shieldHp) p.shieldHp = 40;
+        p.shieldHp -= 55;
+        if (p.shieldHp <= 0) { p.powerups.shield = 0; p.shieldHp = 0; }
+      } else { p.hp -= 55; p.pvpInvuln = 0.3; }
+      spawnParticles(p.x, p.y, '#ff5b6e', 12, 250);
+      state.events.push({ type: 'hurt', target: pid });
+    }
+  }
+  spawnParticles(x, y, '#ff8c1a', 40, 400);
+  playSound('boom');
+}
+
+/* ============ ENEMY TYPES (PvE) ============ */
 const TYPES = [
   { behavior: 'chase',    hp: 22,  speed: 96, r: 15, dmg: 8,  score: 10, color: '#7bd66b', stroke: '#3d8a35', xp: 1 },
   { behavior: 'chase',    hp: 52,  speed: 72, r: 23, dmg: 15, score: 25, color: '#e8a13a', stroke: '#a86a15', xp: 2 },
@@ -752,7 +729,6 @@ function spawnEnemy() {
     spawnAnim: 0.4, wobble: Math.random()*100
   });
 }
-
 function spawnBoss() {
   const type = state.bossIndex % 6; state.bossIndex++;
   const stats = [
@@ -774,125 +750,6 @@ function spawnBoss() {
     isBoss: true, bossType: type, atkCd: 1.5, spawnAnim: 0.8, wobble: Math.random()*100
   });
   state.events.push('pickup');
-}
-
-/* ==========================================================
-   6. POWER-UPS
-   ========================================================== */
-const POWERUPS = [
-  { type: 'health',    color: '#2ee07a', icon: '+', weight: 16, bad: false },
-  { type: 'laser',     color: '#4dd9ff', icon: '⚡', weight: 9,  bad: false },
-  { type: 'bomb',      color: '#ff5b6e', icon: '💣', weight: 9,  bad: false },
-  { type: 'shield',    color: '#ffd93d', icon: '🛡', weight: 10, bad: false },
-  { type: 'speed',     color: '#ff8c1a', icon: '»', weight: 10, bad: false },
-  { type: 'pierce',    color: '#b46bff', icon: '➤', weight: 9,  bad: false },
-  { type: 'tripleshot',color: '#ff66b2', icon: '⋔', weight: 9,  bad: false },
-  { type: 'curse',     color: '#8a1f35', icon: '💀', weight: 6,  bad: true },
-  { type: 'slow',      color: '#5a4a8a', icon: '🐌', weight: 5,  bad: true },
-  { type: 'burn',      color: '#ff3a1a', icon: '🔥', weight: 5,  bad: true },
-  { type: 'confuse',   color: '#8a1f8a', icon: '🌀', weight: 4,  bad: true },
-  { type: 'freeze',    color: '#4dd9ff', icon: '❄', weight: 5,  bad: true },
-  { type: 'jam',       color: '#888888', icon: '🐢', weight: 5,  bad: true },
-];
-function pickPowerupType() {
-  const total = POWERUPS.reduce((s,p)=>s+p.weight,0);
-  let r = Math.random()*total;
-  for (const p of POWERUPS) { r -= p.weight; if (r <= 0) return p.type; }
-  return 'health';
-}
-function spawnPowerup(x, y, forceType) {
-  const type = forceType || pickPowerupType();
-  const def = POWERUPS.find(p=>p.type===type) || POWERUPS[0];
-  state.pickups.push({
-    x, y, type, color: def.color, icon: def.icon, bad: def.bad,
-    life: 15, bob: Math.random()*Math.PI*2
-  });
-}
-
-/* ==========================================================
-   7. PARTICLES / EFFECTS
-   ========================================================== */
-function spawnParticles(x, y, color, count, speed) {
-  for (let i = 0; i < count; i++) {
-    const a = Math.random() * TAU;
-    const s = speed * (0.3 + Math.random() * 0.7);
-    state.particles.push({
-      x, y, vx: Math.cos(a)*s, vy: Math.sin(a)*s,
-      life: 0.4 + Math.random()*0.4, maxLife: 0.8,
-      color, r: 2 + Math.random()*3
-    });
-  }
-}
-function spawnLaser(x, y, angle, owner) {
-  state.beams.push({ x, y, angle, life: 0.15, maxLife: 0.15, owner });
-  const len = 2000;
-  for (const e of state.enemies) {
-    const dx = e.x - x, dy = e.y - y;
-    const proj = dx * Math.cos(angle) + dy * Math.sin(angle);
-    if (proj < 0 || proj > len) continue;
-    const perp = Math.abs(-dx * Math.sin(angle) + dy * Math.cos(angle));
-    if (perp < e.r + 8) {
-      e.hp -= 50; e.hitFlash = 0.15;
-      spawnParticles(e.x, e.y, e.color, 5, 150);
-      if (e.hp <= 0) killEnemy(e, owner);
-    }
-  }
-  if (state.mode === 'pvp') {
-    for (const id in state.players) {
-      if (id === owner) continue;
-      const p = state.players[id];
-      if (p.hp <= 0 || p.pvpInvuln > 0) continue;
-      const dx = p.x - x, dy = p.y - y;
-      const proj = dx * Math.cos(angle) + dy * Math.sin(angle);
-      if (proj < 0 || proj > len) continue;
-      const perp = Math.abs(-dx * Math.sin(angle) + dy * Math.cos(angle));
-      if (perp < 20) {
-        if (p.powerups.shield > 0) {
-          if (!p.shieldHp) p.shieldHp = 40;
-          p.shieldHp -= 30;
-          if (p.shieldHp <= 0) { p.powerups.shield = 0; p.shieldHp = 0; }
-        } else {
-          p.hp -= 30;
-          p.pvpInvuln = 0.3;
-        }
-        spawnParticles(p.x, p.y, '#4dd9ff', 8, 200);
-        state.events.push({ type: 'hurt', target: id });
-      }
-    }
-  }
-}
-function explodeBomb(x, y, owner) {
-  const R = 220;
-  state.beams.push({ x, y, angle: 0, life: 0.4, maxLife: 0.4, owner, bomb: true, radius: R });
-  for (let i = state.enemies.length - 1; i >= 0; i--) {
-    const e = state.enemies[i];
-    if (dist(x, y, e.x, e.y) < R + e.r) {
-      e.hp -= 120; e.hitFlash = 0.2;
-      spawnParticles(e.x, e.y, '#ff5b6e', 8, 200);
-      if (e.hp <= 0) killEnemy(e, owner);
-    }
-  }
-  if (state.mode === 'pvp') {
-    for (const id in state.players) {
-      if (id === owner) continue;
-      const p = state.players[id];
-      if (p.hp <= 0 || p.pvpInvuln > 0) continue;
-      if (dist(x, y, p.x, p.y) < R + 20) {
-        if (p.powerups.shield > 0) {
-          if (!p.shieldHp) p.shieldHp = 40;
-          p.shieldHp -= 60;
-          if (p.shieldHp <= 0) { p.powerups.shield = 0; p.shieldHp = 0; }
-        } else {
-          p.hp -= 60;
-          p.pvpInvuln = 0.3;
-        }
-        spawnParticles(p.x, p.y, '#ff5b6e', 12, 250);
-        state.events.push({ type: 'hurt', target: id });
-      }
-    }
-  }
-  spawnParticles(x, y, '#ff8c1a', 40, 400);
-  playSound('boom');
 }
 function killEnemy(e, ownerId) {
   const idx = state.enemies.indexOf(e);
@@ -929,11 +786,92 @@ function killEnemy(e, ownerId) {
   }
 }
 
-/* ==========================================================
-   8. HOST LOOP
-   ========================================================== */
-function hostLoop(now) {
-  if (!isHost || !state || state.over) return;
+/* ============ BOT AI ============ */
+function computeBotInput(bot, player, pvx, pvy) {
+  const cfg = BOT_CFG[bot.difficulty];
+  if (!cfg || bot.hp <= 0 || player.hp <= 0) {
+    return { x: 0, y: 0, aim: bot.aim || 0, shoot: false };
+  }
+  const dx = player.x - bot.x, dy = player.y - bot.y;
+  const d = Math.hypot(dx, dy) || 1;
+  const nx = dx / d, ny = dy / d;
+
+  const bulletTime = d / bot.bulletSpeed;
+  const px = player.x + pvx * bulletTime * cfg.lead;
+  const py = player.y + pvy * bulletTime * cfg.lead;
+
+  const jitter = (Math.random() - 0.5) * cfg.aimJitter;
+  const aim = Math.atan2(py - bot.y, px - bot.x) + jitter;
+
+  let mx = 0, my = 0, dodging = false;
+
+  if (cfg.dodge) {
+    for (const b of state.bullets) {
+      if (b.owner === bot.id) continue;
+      const bdx = b.x - bot.x, bdy = b.y - bot.y;
+      const bd = Math.hypot(bdx, bdy);
+      if (bd > cfg.dodgeRange || bd < 10) continue;
+      const blen = Math.hypot(b.vx, b.vy) || 1;
+      const bnx = b.vx / blen, bny = b.vy / blen;
+      const approaching = -(bdx * bnx + bdy * bny) / bd;
+      if (approaching > 0.3) {
+        const perpX = -bny, perpY = bnx;
+        const cross = bdx * bny - bdy * bnx;
+        const side = cross > 0 ? 1 : -1;
+        const urgency = 1 - bd / cfg.dodgeRange;
+        mx += perpX * side * urgency * 2.5;
+        my += perpY * side * urgency * 2.5;
+        dodging = true;
+      }
+    }
+  }
+
+  if (cfg.smart && !dodging) {
+    let bestGood = null, bestD = 500;
+    for (const k of state.pickups) {
+      if (PU_BAD.includes(k.type)) continue;
+      const pd = Math.hypot(k.x - bot.x, k.y - bot.y);
+      if (pd < bestD) { bestD = pd; bestGood = k; }
+    }
+    if (bestGood) {
+      const pdx = bestGood.x - bot.x, pdy = bestGood.y - bot.y;
+      const pl = Math.hypot(pdx, pdy) || 1;
+      mx += pdx / pl * 1.2;
+      my += pdy / pl * 1.2;
+    }
+    for (const k of state.pickups) {
+      if (!PU_BAD.includes(k.type)) continue;
+      const pd = Math.hypot(k.x - bot.x, k.y - bot.y);
+      if (pd < 220) {
+        const pdx = bot.x - k.x, pdy = bot.y - k.y;
+        const pl = Math.hypot(pdx, pdy) || 1;
+        const urgency = (220 - pd) / 220;
+        mx += pdx / pl * urgency * 2;
+        my += pdy / pl * urgency * 2;
+      }
+    }
+  }
+
+  if (!dodging) {
+    if (d < cfg.idealDist - 100) { mx -= nx; my -= ny; }
+    else if (d > cfg.idealDist + 100) { mx += nx * 0.7; my += ny * 0.7; }
+    else {
+      const strafeSign = Math.sin(state.time * 1.7) > 0 ? 1 : -1;
+      mx += -ny * strafeSign * 0.8;
+      my += nx * strafeSign * 0.8;
+    }
+  }
+
+  const ml = Math.hypot(mx, my);
+  if (ml > 0) { mx /= ml; my /= ml; }
+
+  const shoot = d < cfg.shootRange;
+  return { x: mx, y: my, aim, shoot };
+}
+
+/* ============ GAME LOOP ============ */
+function gameLoop(now) {
+  if (!state || state.over) return;
   const dt = Math.min((now - lastTime) / 1000, 0.1);
   lastTime = now;
   state.time += dt;
@@ -943,63 +881,63 @@ function hostLoop(now) {
     if (state.announce.t <= 0) state.announce = null;
   }
 
-  const isPvP = state.mode === 'pvp';
+  const isPvE = state.mode === 'pve';
 
-  if (!isPvP) {
-    if (state.time > state.wave * 15) { state.wave++; state.events.push('pickup'); }
+  state.players[myId].input = getInputs();
+
+  if (state.mode === 'bot') {
+    const bot = state.players['BOT'];
+    const player = state.players[myId];
+    const pvx = dt > 0 ? (player.x - player._prevX) / dt : 0;
+    const pvy = dt > 0 ? (player.y - player._prevY) / dt : 0;
+    if (bot.hp > 0 && player.hp > 0) bot.input = computeBotInput(bot, player, pvx, pvy);
+    else bot.input = { x: 0, y: 0, aim: bot.aim || 0, shoot: false };
   }
 
-  let aliveCount = 0;
-  let aliveId = null;
-  for (const id in state.players) {
-    if (state.players[id].hp > 0) { aliveCount++; aliveId = id; }
-  }
+  let aliveCount = 0, aliveId = null;
+  for (const id in state.players) if (state.players[id].hp > 0) { aliveCount++; aliveId = id; }
 
-  if (isPvP) {
-    if (aliveCount <= 1) {
+  if (isPvE) {
+    if (aliveCount === 0) {
       state.over = true;
-      state.winner = aliveId;
-      if (conn && conn.open) {
-        conn.send({ type: 'pvpGameover', winner: state.winner });
-        conn.send({ type: 'state', state: JSON.parse(JSON.stringify(state)) });
-      }
-      if (state.winner === myId) playSound('pvpkill');
-      showPvPGameOver(state.winner);
+      recordPvEScore(state.players[myId].score);
+      showOverlay(
+        'GAME OVER', '#ff5b6e',
+        'Điểm: <b>' + state.players[myId].score + '</b>',
+        'Cấp đạt được: <b>' + state.players[myId].level + '</b>'
+      );
       return;
     }
   } else {
-    if (aliveCount === 0) {
+    if (aliveCount <= 1) {
       state.over = true;
-      const me = state.players[myId];
-      const finalScore = me ? me.score : 0;
-      const finalLevel = me ? me.level : 1;
-      if (conn && conn.open) {
-        conn.send({ type: 'gameover', score: finalScore, level: finalLevel });
-        conn.send({ type: 'state', state: JSON.parse(JSON.stringify(state)) });
+      state.winner = aliveId;
+      const diffTxt = 'Độ khó: ' + DIFF_NAME[state.difficulty];
+      if (state.winner === myId) {
+        playSound('win');
+        recordBotWin();
+        showOverlay('🏆 BẠN THẮNG!', '#2ee07a',
+          'Đã hạ gục <b>' + BOT_CFG[state.difficulty].name + '</b>', diffTxt);
+      } else {
+        playSound('lose');
+        showOverlay('💀 BẠN THUA!', '#ff5b6e',
+          '<b>' + BOT_CFG[state.difficulty].name + '</b> đã hạ gục bạn', diffTxt);
       }
-      updateHighScore(currentUser, finalScore);
-      showPvEGameOver(finalScore, finalLevel);
       return;
     }
   }
 
-  if (!isPvP) {
+  if (isPvE) {
+    if (state.time > state.wave * 15) { state.wave++; state.events.push('pickup'); state.announce = { text: 'SÓNG ' + state.wave, t: 2 }; }
     state.spawnTimer -= dt;
     if (state.spawnTimer <= 0) {
       state.spawnTimer = Math.max(0.3, 1.5 - state.wave * 0.1);
       let num = state.wave >= 10 ? 4 : state.wave >= 6 ? 3 : state.wave >= 3 ? 2 : 1;
       for (let i=0; i<num; i++) spawnEnemy();
     }
-    if (state.wave % 3 === 0 && !state.enemies.some(e=>e.isBoss) && state.time > state.wave*15 - 1) spawnBoss();
-  }
-
-  if (isPvP) {
-    state.pvpSpawnTimer -= dt;
-    if (state.pvpSpawnTimer <= 0 && state.pickups.length < 4) {
-      state.pvpSpawnTimer = 3 + Math.random() * 2;
-      const hw = state.arena.w / 2 - 100;
-      const hh = state.arena.h / 2 - 100;
-      spawnPowerup(rand(-hw, hw), rand(-hh, hh));
+    if (state.wave % 3 === 0 && !state.enemies.some(e=>e.isBoss) && state.time > state.wave*15 - 1) {
+      spawnBoss();
+      state.announce = { text: 'BOSS XUẤT HIỆN!', t: 2.5 };
     }
   }
 
@@ -1030,6 +968,7 @@ function hostLoop(now) {
     if (p.powerups.speed > 0) speedMul *= 1.6;
     if (p.powerups.slow > 0) speedMul *= 0.6;
     if (p.powerups.freeze > 0) speedMul *= 0.35;
+    if (p.isBot) speedMul *= BOT_CFG[p.difficulty].speedBonus;
 
     const len = Math.hypot(inX, inY);
     if (len > 0) {
@@ -1054,7 +993,6 @@ function hostLoop(now) {
       let dmg = p.damage;
       if (p.powerups.pierce > 0) dmg += 10;
       if (p.powerups.curse > 0) dmg *= 0.8;
-      if (isPvP) dmg *= 0.6;
       const pierce = p.powerups.pierce > 0;
       const shots = p.powerups.tripleshot > 0 ? [-0.18, 0, 0.18] : [0];
       for (const off of shots) {
@@ -1077,6 +1015,9 @@ function hostLoop(now) {
       }
       state.events.push('shoot');
     }
+
+    p._prevX = p.x;
+    p._prevY = p.y;
   }
 
   for (let i = state.bullets.length - 1; i >= 0; i--) {
@@ -1085,22 +1026,23 @@ function hostLoop(now) {
     if (b.life <= 0) { state.bullets.splice(i, 1); continue; }
 
     let consumed = false;
-    for (let j = state.enemies.length - 1; j >= 0; j--) {
-      const e = state.enemies[j];
-      if (b.hitSet && b.hitSet.includes(e)) continue;
-      if (dist(e.x, e.y, b.x, b.y) < e.r + 6) {
-        e.hp -= b.dmg; e.hitFlash = 0.12;
-        spawnParticles(b.x, b.y, '#fff8cc', 3, 120);
-        if (e.hp <= 0) killEnemy(e, b.owner);
-        if (b.pierce) { b.hitSet.push(e); }
-        else { consumed = true; break; }
-        state.events.push('hit');
-        if (consumed) break;
+    if (isPvE) {
+      for (let j = state.enemies.length - 1; j >= 0; j--) {
+        const e = state.enemies[j];
+        if (b.hitSet && b.hitSet.includes(e)) continue;
+        if (dist(e.x, e.y, b.x, b.y) < e.r + 6) {
+          e.hp -= b.dmg; e.hitFlash = 0.12;
+          spawnParticles(b.x, b.y, '#fff8cc', 3, 120);
+          state.events.push('hit');
+          if (e.hp <= 0) killEnemy(e, b.owner);
+          if (b.pierce) b.hitSet.push(e);
+          else { consumed = true; }
+          break;
+        }
       }
     }
-    if (consumed) { state.bullets.splice(i, 1); continue; }
 
-    if (state.mode === 'pvp') {
+    if (!consumed && state.mode === 'bot') {
       for (const pid in state.players) {
         if (pid === b.owner) continue;
         const p = state.players[pid];
@@ -1112,91 +1054,94 @@ function hostLoop(now) {
             if (p.shieldHp <= 0) { p.powerups.shield = 0; p.shieldHp = 0; }
             spawnParticles(p.x, p.y, '#ffd93d', 6, 150);
           } else {
-            p.hp -= b.dmg;
-            p.pvpInvuln = 0.25;
+            p.hp -= b.dmg; p.pvpInvuln = 0.25;
             spawnParticles(p.x, p.y, '#ff5b6e', 8, 200);
           }
           state.events.push({ type: 'hurt', target: pid });
-          state.bullets.splice(i, 1);
+          consumed = true;
           break;
         }
       }
     }
+
+    if (consumed) state.bullets.splice(i, 1);
   }
 
-  for (const e of state.enemies) {
-    if (e.spawnAnim > 0) { e.spawnAnim -= dt; e.wobble += dt * 8; continue; }
-    e.wobble += dt * 4;
-    let target = null, minD = Infinity;
-    for (const id in state.players) {
-      const p = state.players[id];
-      if (p.hp <= 0) continue;
-      const d = dist(p.x, p.y, e.x, e.y);
-      if (d < minD) { minD = d; target = p; }
-    }
-    if (!target) continue;
-    const dx = target.x - e.x, dy = target.y - e.y;
-    const d = Math.hypot(dx, dy) || 1;
-    const ux = dx/d, uy = dy/d;
-
-    if (e.isBoss) {
-      e.x += ux * e.speed * dt; e.y += uy * e.speed * dt;
-      e.atkCd -= dt;
-      if (e.atkCd <= 0) {
-        e.atkCd = 2.5;
-        for (let k = 0; k < 6; k++) {
-          const a = (k / 6) * Math.PI * 2 + state.time;
-          state.ebullets.push({ x: e.x, y: e.y, vx: Math.cos(a)*200, vy: Math.sin(a)*200, r: 9, dmg: e.dmg, life: 5, color: e.color });
-        }
+  if (isPvE) {
+    for (const e of state.enemies) {
+      if (e.spawnAnim > 0) { e.spawnAnim -= dt; e.wobble += dt * 8; continue; }
+      e.wobble += dt * 4;
+      let target = null, minD = Infinity;
+      for (const id in state.players) {
+        const p = state.players[id];
+        if (p.hp <= 0) continue;
+        const d = dist(p.x, p.y, e.x, e.y);
+        if (d < minD) { minD = d; target = p; }
       }
-    } else {
-      if (e.behavior === 'chase') { e.x += ux * e.speed * dt; e.y += uy * e.speed * dt; }
-      else if (e.behavior === 'zigzag') {
-        const px = -uy, py = ux, zig = Math.sin(state.time * 12 + e.seed) * 1.5;
-        e.x += (ux + px * zig) * e.speed * 0.8 * dt;
-        e.y += (uy + py * zig) * e.speed * 0.8 * dt;
-      } else if (e.behavior === 'shoot') {
-        if (d > 320) { e.x += ux * e.speed * dt; e.y += uy * e.speed * dt; }
-        else if (d < 250) { e.x -= ux * e.speed * dt; e.y -= uy * e.speed * dt; }
-        e.atkCd -= dt;
-        if (e.atkCd <= 0 && d < 600) {
-          e.atkCd = rand(2, 3.5);
-          state.ebullets.push({ x: e.x, y: e.y, vx: ux * 350, vy: uy * 350, r: 7, dmg: e.dmg, life: 4, color: '#b46bff' });
-        }
-      } else if (e.behavior === 'splitter') {
+      if (!target) continue;
+      const dx = target.x - e.x, dy = target.y - e.y;
+      const d = Math.hypot(dx, dy) || 1;
+      const ux = dx/d, uy = dy/d;
+
+      if (e.isBoss) {
         e.x += ux * e.speed * dt; e.y += uy * e.speed * dt;
-      }
-    }
-    if (d < e.r + 18 && target.hp > 0) {
-      let dmg = e.dmg * dt;
-      if (target.powerups.shield > 0) {
-        if (!target.shieldHp) target.shieldHp = 40;
-        target.shieldHp -= dmg * 2;
-        if (target.shieldHp <= 0) { target.powerups.shield = 0; target.shieldHp = 0; }
-      } else {
-        target.hp -= dmg;
-        if (Math.random() < 0.1) state.events.push({ type: 'hurt', target: target.id });
-      }
-    }
-  }
-
-  for (let i = state.ebullets.length - 1; i >= 0; i--) {
-    const b = state.ebullets[i];
-    b.x += b.vx * dt; b.y += b.vy * dt; b.life -= dt;
-    if (b.life <= 0) { state.ebullets.splice(i, 1); continue; }
-    for (const id in state.players) {
-      const p = state.players[id];
-      if (p.hp > 0 && dist(p.x, p.y, b.x, b.y) < 20 + b.r) {
-        if (p.powerups.shield > 0) {
-          if (!p.shieldHp) p.shieldHp = 40;
-          p.shieldHp -= b.dmg;
-          if (p.shieldHp <= 0) { p.powerups.shield = 0; p.shieldHp = 0; }
-        } else {
-          p.hp -= b.dmg;
-          state.events.push({ type: 'hurt', target: p.id });
+        e.atkCd -= dt;
+        if (e.atkCd <= 0) {
+          e.atkCd = 2.5;
+          for (let k = 0; k < 6; k++) {
+            const a = (k / 6) * Math.PI * 2 + state.time;
+            state.ebullets.push({ x: e.x, y: e.y, vx: Math.cos(a)*200, vy: Math.sin(a)*200, r: 9, dmg: e.dmg, life: 5, color: e.color });
+          }
         }
-        state.ebullets.splice(i, 1);
-        break;
+      } else {
+        if (e.behavior === 'chase') { e.x += ux * e.speed * dt; e.y += uy * e.speed * dt; }
+        else if (e.behavior === 'zigzag') {
+          const px = -uy, py = ux, zig = Math.sin(state.time * 12 + e.seed) * 1.5;
+          e.x += (ux + px * zig) * e.speed * 0.8 * dt;
+          e.y += (uy + py * zig) * e.speed * 0.8 * dt;
+        } else if (e.behavior === 'shoot') {
+          if (d > 320) { e.x += ux * e.speed * dt; e.y += uy * e.speed * dt; }
+          else if (d < 250) { e.x -= ux * e.speed * dt; e.y -= uy * e.speed * dt; }
+          e.atkCd -= dt;
+          if (e.atkCd <= 0 && d < 600) {
+            e.atkCd = rand(2, 3.5);
+            state.ebullets.push({ x: e.x, y: e.y, vx: ux * 350, vy: uy * 350, r: 7, dmg: e.dmg, life: 4, color: '#b46bff' });
+          }
+        } else if (e.behavior === 'splitter') {
+          e.x += ux * e.speed * dt; e.y += uy * e.speed * dt;
+        }
+      }
+      if (d < e.r + 18 && target.hp > 0) {
+        let dmg = e.dmg * dt;
+        if (target.powerups.shield > 0) {
+          if (!target.shieldHp) target.shieldHp = 40;
+          target.shieldHp -= dmg * 2;
+          if (target.shieldHp <= 0) { target.powerups.shield = 0; target.shieldHp = 0; }
+        } else {
+          target.hp -= dmg;
+          if (Math.random() < 0.1) state.events.push({ type: 'hurt', target: target.id });
+        }
+      }
+    }
+
+    for (let i = state.ebullets.length - 1; i >= 0; i--) {
+      const b = state.ebullets[i];
+      b.x += b.vx * dt; b.y += b.vy * dt; b.life -= dt;
+      if (b.life <= 0) { state.ebullets.splice(i, 1); continue; }
+      for (const id in state.players) {
+        const p = state.players[id];
+        if (p.hp > 0 && dist(p.x, p.y, b.x, b.y) < 20 + b.r) {
+          if (p.powerups.shield > 0) {
+            if (!p.shieldHp) p.shieldHp = 40;
+            p.shieldHp -= b.dmg;
+            if (p.shieldHp <= 0) { p.powerups.shield = 0; p.shieldHp = 0; }
+          } else {
+            p.hp -= b.dmg;
+            state.events.push({ type: 'hurt', target: p.id });
+          }
+          state.ebullets.splice(i, 1);
+          break;
+        }
       }
     }
   }
@@ -1213,6 +1158,16 @@ function hostLoop(now) {
         state.pickups.splice(i, 1);
         break;
       }
+    }
+  }
+
+  if (state.mode === 'bot') {
+    state.pickupTimer -= dt;
+    if (state.pickupTimer <= 0 && state.pickups.length < 4) {
+      state.pickupTimer = 3 + Math.random() * 2;
+      const hw = state.arena.w / 2 - 100;
+      const hh = state.arena.h / 2 - 100;
+      spawnPowerup(rand(-hw, hw), rand(-hh, hh));
     }
   }
 
@@ -1233,76 +1188,26 @@ function hostLoop(now) {
     if (e && e.type === 'hurt') { playSound('hurt'); if (e.target === myId) triggerHitEffect(); }
     else if (typeof e === 'string') playSound(e);
   });
+  state.events = [];
 
-  sendTimer += dt;
-  if (sendTimer > 0.05) {
-    sendTimer = 0;
-    if (conn && conn.open) {
-      const sendState = JSON.parse(JSON.stringify(state));
-      for (const id in sendState.players) delete sendState.players[id].input;
-      conn.send({ type: 'state', state: sendState });
-    }
-    state.events = [];
-  }
-
-  updateHUD(state, myId);
-  updatePowerupHUD(state, myId);
-  drawGame(state, myId);
-  requestAnimationFrame(hostLoop);
+  updateHUD(state);
+  updatePowerupHUD(state);
+  drawGame(state);
+  requestAnimationFrame(gameLoop);
 }
 
-function applyPickup(p, k) {
-  switch (k.type) {
-    case 'health': p.hp = Math.min(p.maxHp, p.hp + 40); break;
-    case 'laser': p.powerups.laser = Math.min(15, p.powerups.laser + 8); break;
-    case 'bomb': p.powerups.bomb = Math.min(15, p.powerups.bomb + 8); break;
-    case 'shield': p.powerups.shield = Math.min(15, p.powerups.shield + 8); p.shieldHp = 40; break;
-    case 'speed': p.powerups.speed = Math.min(15, p.powerups.speed + 8); break;
-    case 'pierce': p.powerups.pierce = Math.min(15, p.powerups.pierce + 8); break;
-    case 'tripleshot': p.powerups.tripleshot = Math.min(15, p.powerups.tripleshot + 8); break;
-    case 'curse': p.powerups.curse = Math.min(15, p.powerups.curse + 10); break;
-    case 'slow': p.powerups.slow = Math.min(15, p.powerups.slow + 8); break;
-    case 'burn': p.powerups.burn = Math.min(15, p.powerups.burn + 6); break;
-    case 'confuse': p.powerups.confuse = Math.min(15, p.powerups.confuse + 5); break;
-    case 'freeze': p.powerups.freeze = Math.min(15, p.powerups.freeze + 6); break;
-    case 'jam': p.powerups.jam = Math.min(15, p.powerups.jam + 7); break;
-  }
-  state.events.push('pickup');
-  spawnParticles(k.x, k.y, k.color, 15, 250);
-  if (PU_BAD.includes(k.type)) {
-    p.curseFlash = 1;
-    state.events.push('curse');
-    state.events.push({ type: 'hurt', target: p.id });
-  }
+function showOverlay(title, color, p1, p2) {
+  const t = document.getElementById('ovTitle');
+  t.textContent = title;
+  t.style.color = color;
+  document.getElementById('ovP1').innerHTML = p1;
+  document.getElementById('ovP2').innerHTML = p2;
+  document.getElementById('overlay').classList.remove('hidden');
+  updateHUD(state);
+  drawGame(state);
 }
 
-/* ==========================================================
-   9. CLIENT LOOP
-   ========================================================== */
-let inputTimer = 0;
-function clientLoop(now) {
-  if (isHost || (state && state.over)) return;
-  const dt = Math.min((now - lastTime) / 1000, 0.1);
-  lastTime = now;
-  inputTimer += dt;
-  if (inputTimer > 0.033 && conn && conn.open) {
-    inputTimer = 0;
-    conn.send({ type: 'input', id: myId, input: getInputs() });
-  }
-  if (state) {
-    if (!gameStarted) {
-      gameStarted = true; show('game');
-      document.getElementById('hudRoomCode').querySelector('span').textContent = myRoomCode;
-    }
-    updatePowerupHUD(state, myId);
-    drawGame(state, myId);
-  }
-  requestAnimationFrame(clientLoop);
-}
-
-/* ==========================================================
-   10. INPUT — CHUỘT/BÀN PHÍM + JOYSTICK
-   ========================================================== */
+/* ============ INPUT ============ */
 const keys = Object.create(null);
 const mouse = { x: innerWidth / 2, y: innerHeight / 2, down: false };
 addEventListener('keydown', e => { keys[e.key.toLowerCase()] = true; });
@@ -1311,184 +1216,17 @@ canvasEl.addEventListener('mousemove', e => { mouse.x = e.clientX; mouse.y = e.c
 canvasEl.addEventListener('mousedown', e => { mouse.down = true; });
 addEventListener('mouseup', e => { mouse.down = false; });
 canvasEl.addEventListener('contextmenu', e => e.preventDefault());
-
-/* ============ JOYSTICK ============ */
-const joyMove = document.getElementById('joyMove');
-const joyShoot = document.getElementById('joyShoot');
-const joyMoveStick = document.getElementById('joyMoveStick');
-const joyShootStick = document.getElementById('joyShootStick');
-
-const joyMoveState = { active: false, touchId: null, dx: 0, dy: 0 };
-const joyShootState = { active: false, touchId: null, dx: 0, dy: 0 };
-
-function getJoystickRadius(el) { return el.getBoundingClientRect().width / 2; }
-function getJoystickCenter(el) {
-  const r = el.getBoundingClientRect();
-  return { cx: r.left + r.width / 2, cy: r.top + r.height / 2 };
-}
-
-function handleJoyStart(e, joyEl, stickEl, state) {
-  const r = joyEl.getBoundingClientRect();
-  for (const t of e.changedTouches) {
-    if (t.clientX >= r.left - 40 && t.clientX <= r.right + 40 &&
-        t.clientY >= r.top - 40 && t.clientY <= r.bottom + 40) {
-      state.active = true;
-      state.touchId = t.identifier;
-      joyEl.classList.add('active');
-      updateJoyFromTouch(t, joyEl, stickEl, state);
-      e.preventDefault();
-      return true;
-    }
-  }
-  return false;
-}
-function updateJoyFromTouch(t, joyEl, stickEl, state) {
-  if (t.identifier !== state.touchId) return;
-  const { cx, cy } = getJoystickCenter(joyEl);
-  const radius = getJoystickRadius(joyEl) - 30;
-  let dx = t.clientX - cx;
-  let dy = t.clientY - cy;
-  const len = Math.hypot(dx, dy);
-  if (len > radius) { dx = dx / len * radius; dy = dy / len * radius; }
-  state.dx = dx / radius;
-  state.dy = dy / radius;
-  stickEl.style.transform = `translate(calc(-50% + ${dx}px), calc(-50% + ${dy}px))`;
-}
-function handleJoyMove(e, joyEl, stickEl, state) {
-  for (const t of e.changedTouches) {
-    if (t.identifier === state.touchId) {
-      updateJoyFromTouch(t, joyEl, stickEl, state);
-      e.preventDefault();
-      return;
-    }
-  }
-}
-function handleJoyEnd(e, joyEl, stickEl, state) {
-  for (const t of e.changedTouches) {
-    if (t.identifier === state.touchId) {
-      state.active = false;
-      state.touchId = null;
-      state.dx = 0; state.dy = 0;
-      joyEl.classList.remove('active');
-      stickEl.style.transform = 'translate(-50%,-50%)';
-      e.preventDefault();
-      return;
-    }
-  }
-}
-
-// Gắn sự kiện touch cho joystick trái
-joyMove.addEventListener('touchstart', (e) => {
-  handleJoyStart(e, joyMove, joyMoveStick, joyMoveState);
-}, { passive: false });
-joyMove.addEventListener('touchmove', (e) => {
-  handleJoyMove(e, joyMove, joyMoveStick, joyMoveState);
-}, { passive: false });
-joyMove.addEventListener('touchend', (e) => {
-  handleJoyEnd(e, joyMove, joyMoveStick, joyMoveState);
-}, { passive: false });
-joyMove.addEventListener('touchcancel', (e) => {
-  handleJoyEnd(e, joyMove, joyMoveStick, joyMoveState);
-}, { passive: false });
-
-// Gắn sự kiện touch cho joystick phải
-joyShoot.addEventListener('touchstart', (e) => {
-  handleJoyStart(e, joyShoot, joyShootStick, joyShootState);
-}, { passive: false });
-joyShoot.addEventListener('touchmove', (e) => {
-  handleJoyMove(e, joyShoot, joyShootStick, joyShootState);
-}, { passive: false });
-joyShoot.addEventListener('touchend', (e) => {
-  handleJoyEnd(e, joyShoot, joyShootStick, joyShootState);
-}, { passive: false });
-joyShoot.addEventListener('touchcancel', (e) => {
-  handleJoyEnd(e, joyShoot, joyShootStick, joyShootState);
-}, { passive: false });
-
-// Hỗ trợ chuột kéo joystick (test trên PC)
-[joyMove, joyShoot].forEach((joyEl, idx) => {
-  const stickEl = idx === 0 ? joyMoveStick : joyShootStick;
-  const state = idx === 0 ? joyMoveState : joyShootState;
-  let mouseDownJoy = false;
-
-  joyEl.addEventListener('mousedown', (e) => {
-    if (e.button !== 0) return;
-    mouseDownJoy = true;
-    state.active = true;
-    joyEl.classList.add('active');
-    updateJoyFromMouse(e, joyEl, stickEl, state);
-    e.preventDefault();
-    e.stopPropagation();
-  });
-  addEventListener('mousemove', (e) => {
-    if (mouseDownJoy) updateJoyFromMouse(e, joyEl, stickEl, state);
-  });
-  addEventListener('mouseup', () => {
-    if (mouseDownJoy) {
-      mouseDownJoy = false;
-      state.active = false;
-      state.dx = 0; state.dy = 0;
-      joyEl.classList.remove('active');
-      stickEl.style.transform = 'translate(-50%,-50%)';
-    }
-  });
-});
-
-function updateJoyFromMouse(e, joyEl, stickEl, state) {
-  const { cx, cy } = getJoystickCenter(joyEl);
-  const radius = getJoystickRadius(joyEl) - 30;
-  let dx = e.clientX - cx;
-  let dy = e.clientY - cy;
-  const len = Math.hypot(dx, dy);
-  if (len > radius) { dx = dx / len * radius; dy = dy / len * radius; }
-  state.dx = dx / radius;
-  state.dy = dy / radius;
-  stickEl.style.transform = `translate(calc(-50% + ${dx}px), calc(-50% + ${dy}px))`;
-}
-
-/* ============ GET INPUTS ============ */
 function getInputs() {
-  let mx = 0, my = 0, aim = 0, shoot = false;
-
-  if (isTouchDevice) {
-    // Di chuyển từ joystick trái
-    if (joyMoveState.active &&
-        (Math.abs(joyMoveState.dx) > 0.15 || Math.abs(joyMoveState.dy) > 0.15)) {
-      mx = joyMoveState.dx;
-      my = joyMoveState.dy;
-      const len = Math.hypot(mx, my);
-      if (len > 1) { mx /= len; my /= len; }
-    }
-    // Bắn từ joystick phải
-    if (joyShootState.active) {
-      const len = Math.hypot(joyShootState.dx, joyShootState.dy);
-      if (len > 0.25) {
-        aim = Math.atan2(joyShootState.dy, joyShootState.dx);
-        shoot = true;
-      } else if (len > 0.05) {
-        aim = Math.atan2(joyShootState.dy, joyShootState.dx);
-      }
-    }
-  } else {
-    // PC: WASD + chuột
-    if (keys['a'] || keys['arrowleft']) mx--;
-    if (keys['d'] || keys['arrowright']) mx++;
-    if (keys['w'] || keys['arrowup']) my--;
-    if (keys['s'] || keys['arrowdown']) my++;
-    aim = Math.atan2(mouse.y - innerHeight / 2, mouse.x - innerWidth / 2);
-    shoot = mouse.down || keys[' '];
-  }
-
-  return { x: mx, y: my, aim, shoot };
+  let mx = 0, my = 0;
+  if (keys['a'] || keys['arrowleft']) mx--;
+  if (keys['d'] || keys['arrowright']) mx++;
+  if (keys['w'] || keys['arrowup']) my--;
+  if (keys['s'] || keys['arrowdown']) my++;
+  const aim = Math.atan2(mouse.y - innerHeight / 2, mouse.x - innerWidth / 2);
+  return { x: mx, y: my, aim, shoot: mouse.down || keys[' '] };
 }
 
-setInterval(() => {
-  if (isHost && state && state.players[myId] && !state.over) state.players[myId].input = getInputs();
-}, 33);
-
-/* ==========================================================
-   11. RENDER
-   ========================================================== */
+/* ============ RENDER ============ */
 const ctx = canvasEl.getContext('2d');
 let W = innerWidth, H = innerHeight;
 const DPR = Math.min(devicePixelRatio || 1, 2);
@@ -1564,151 +1302,55 @@ function drawMap() {
 
 function drawArena(arena) {
   ctx.save();
-  ctx.strokeStyle = 'rgba(255,80,80,0.6)';
+  ctx.strokeStyle = 'rgba(255,80,80,0.55)';
   ctx.lineWidth = 4;
   ctx.setLineDash([20, 12]);
   ctx.lineDashOffset = -performance.now() * 0.05;
   const hw = arena.w / 2, hh = arena.h / 2;
   ctx.strokeRect(-hw, -hh, arena.w, arena.h);
   ctx.setLineDash([]);
-  ctx.fillStyle = 'rgba(255,50,50,0.04)';
+  ctx.fillStyle = 'rgba(255,50,50,0.03)';
   ctx.fillRect(-hw, -hh, arena.w, arena.h);
-  ctx.strokeStyle = 'rgba(255,80,80,0.2)';
+  ctx.strokeStyle = 'rgba(255,80,80,0.18)';
   ctx.lineWidth = 1;
   ctx.strokeRect(-hw + 20, -hh + 20, arena.w - 40, arena.h - 40);
   ctx.restore();
 }
 
-const PICKUP_COLORS = {
-  health: '#2ee07a', laser: '#4dd9ff', bomb: '#ff5b6e',
-  shield: '#ffd93d', speed: '#ff8c1a', pierce: '#b46bff',
-  tripleshot: '#ff66b2',
-  curse: '#8a1f35', slow: '#5a4a8a', burn: '#ff3a1a', confuse: '#8a1f8a',
-  freeze: '#4dd9ff', jam: '#888888'
-};
 function drawPickup(k) {
   const pulse = 1 + Math.sin(k.bob) * 0.12;
-  const col = PICKUP_COLORS[k.type] || k.color;
-  const isBad = PU_BAD.includes(k.type);
+  const isBad = k.bad;
+  const ringColor = isBad ? '#ff5b6e' : '#2ee07a';
+  const iconCol = PU_COLOR[k.type] || '#fff';
 
   ctx.save();
   ctx.translate(k.x, k.y);
   ctx.globalAlpha = k.life < 3 ? (Math.floor(performance.now() * 0.01) % 2 ? 0.3 : 1) : 1;
 
-  ctx.beginPath(); ctx.arc(0, 0, 22 * pulse, 0, TAU);
-  ctx.fillStyle = hexA(col, isBad ? 0.25 : 0.16); ctx.fill();
+  ctx.save();
+  ctx.shadowColor = ringColor; ctx.shadowBlur = 22;
+  ctx.strokeStyle = ringColor; ctx.lineWidth = 3.5;
+  ctx.beginPath(); ctx.arc(0, 0, 22 * pulse, 0, TAU); ctx.stroke();
+  ctx.restore();
 
-  ctx.beginPath(); ctx.arc(0, 0, 16 * pulse, 0, TAU);
+  ctx.save();
+  ctx.rotate(performance.now() * 0.002 * (isBad ? -1 : 1));
+  ctx.setLineDash([5, 4]);
+  ctx.strokeStyle = ringColor;
+  ctx.lineWidth = 1.5;
+  ctx.beginPath(); ctx.arc(0, 0, 17 * pulse, 0, TAU); ctx.stroke();
+  ctx.setLineDash([]);
+  ctx.restore();
+
+  ctx.beginPath(); ctx.arc(0, 0, 15 * pulse, 0, TAU);
   ctx.fillStyle = '#0e1a22'; ctx.fill();
-  ctx.strokeStyle = col; ctx.lineWidth = isBad ? 3 : 2.5; ctx.stroke();
+  ctx.strokeStyle = hexA(iconCol, 0.7); ctx.lineWidth = 1.5; ctx.stroke();
 
-  if (isBad) {
-    ctx.strokeStyle = col; ctx.lineWidth = 2;
-    ctx.beginPath(); ctx.arc(0, 0, 19 * pulse, 0, TAU); ctx.stroke();
-  }
+  ctx.font = 'bold 16px system-ui';
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.fillStyle = '#fff';
+  ctx.fillText(PU_ICON[k.type] || '?', 0, 1);
 
-  if (k.type === 'health') {
-    ctx.fillStyle = col;
-    ctx.fillRect(-6, -2, 12, 4);
-    ctx.fillRect(-2, -6, 4, 12);
-  } else if (k.type === 'laser') {
-    ctx.fillStyle = col;
-    ctx.beginPath();
-    ctx.moveTo(-2, -8); ctx.lineTo(5, -1); ctx.lineTo(1, -1);
-    ctx.lineTo(3, 8);  ctx.lineTo(-5, 0); ctx.lineTo(-1, 0);
-    ctx.closePath(); ctx.fill();
-  } else if (k.type === 'bomb') {
-    ctx.fillStyle = col;
-    ctx.beginPath(); ctx.arc(0, 1, 6, 0, TAU); ctx.fill();
-    ctx.strokeStyle = '#8a2a35'; ctx.lineWidth = 2;
-    ctx.beginPath(); ctx.moveTo(2, -5); ctx.quadraticCurveTo(7, -9, 4, -11); ctx.stroke();
-    ctx.fillStyle = '#fff2a8';
-    ctx.beginPath(); ctx.arc(4, -11, 1.8, 0, TAU); ctx.fill();
-  } else if (k.type === 'shield') {
-    ctx.fillStyle = col;
-    ctx.beginPath();
-    ctx.moveTo(0, -9); ctx.lineTo(7, -4); ctx.lineTo(7, 4);
-    ctx.lineTo(0, 9); ctx.lineTo(-7, 4); ctx.lineTo(-7, -4);
-    ctx.closePath(); ctx.fill();
-    ctx.strokeStyle = '#8a6d1a'; ctx.lineWidth = 1.5; ctx.stroke();
-  } else if (k.type === 'speed') {
-    ctx.strokeStyle = col; ctx.lineWidth = 3;
-    ctx.beginPath();
-    ctx.moveTo(-6, -5); ctx.lineTo(2, -5);
-    ctx.moveTo(-6, 0);  ctx.lineTo(5, 0);
-    ctx.moveTo(-6, 5);  ctx.lineTo(2, 5);
-    ctx.stroke();
-  } else if (k.type === 'pierce') {
-    ctx.fillStyle = col;
-    ctx.beginPath();
-    ctx.moveTo(0, -9); ctx.lineTo(4, -1); ctx.lineTo(2, -1);
-    ctx.lineTo(2, 9); ctx.lineTo(-2, 9); ctx.lineTo(-2, -1);
-    ctx.lineTo(-4, -1); ctx.closePath(); ctx.fill();
-  } else if (k.type === 'tripleshot') {
-    ctx.strokeStyle = col; ctx.lineWidth = 2.5;
-    ctx.beginPath();
-    ctx.moveTo(0, 8); ctx.lineTo(0, -6);
-    ctx.moveTo(0, 0); ctx.lineTo(-6, -7);
-    ctx.moveTo(0, 0); ctx.lineTo(6, -7);
-    ctx.stroke();
-    ctx.fillStyle = col;
-    ctx.beginPath(); ctx.arc(0, -7, 2, 0, TAU); ctx.fill();
-    ctx.beginPath(); ctx.arc(-6, -7, 2, 0, TAU); ctx.fill();
-    ctx.beginPath(); ctx.arc(6, -7, 2, 0, TAU); ctx.fill();
-  } else if (k.type === 'curse') {
-    ctx.fillStyle = col;
-    ctx.beginPath(); ctx.arc(0, -2, 7, Math.PI, 0); ctx.fill();
-    ctx.fillRect(-7, -2, 14, 5);
-    ctx.fillStyle = '#10151c';
-    ctx.beginPath(); ctx.arc(-3, -1, 2, 0, TAU); ctx.fill();
-    ctx.beginPath(); ctx.arc(3, -1, 2, 0, TAU); ctx.fill();
-    ctx.fillRect(-1, 3, 2, 3);
-  } else if (k.type === 'slow') {
-    ctx.strokeStyle = col; ctx.lineWidth = 2.5;
-    ctx.beginPath();
-    for (let i = 0; i < 40; i++) {
-      const a = i * 0.3, r = 1 + i * 0.18;
-      const px = Math.cos(a) * r, py = Math.sin(a) * r;
-      i ? ctx.lineTo(px, py) : ctx.moveTo(px, py);
-    }
-    ctx.stroke();
-  } else if (k.type === 'burn') {
-    ctx.fillStyle = col;
-    ctx.beginPath();
-    ctx.moveTo(0, 8);
-    ctx.bezierCurveTo(-7, 2, -5, -4, -2, -8);
-    ctx.bezierCurveTo(-1, -3, 1, -4, 2, -8);
-    ctx.bezierCurveTo(5, -4, 7, 2, 0, 8);
-    ctx.fill();
-    ctx.fillStyle = '#fff2a8';
-    ctx.beginPath(); ctx.arc(0, 3, 2, 0, TAU); ctx.fill();
-  } else if (k.type === 'confuse') {
-    ctx.strokeStyle = col; ctx.lineWidth = 2.5;
-    ctx.beginPath();
-    for (let i = 0; i < 30; i++) {
-      const a = i * 0.5, r = i * 0.28;
-      const px = Math.cos(a) * r, py = Math.sin(a) * r;
-      i ? ctx.lineTo(px, py) : ctx.moveTo(px, py);
-    }
-    ctx.stroke();
-  } else if (k.type === 'freeze') {
-    ctx.strokeStyle = col; ctx.lineWidth = 2;
-    for (let i = 0; i < 6; i++) {
-      const a = i / 6 * TAU;
-      ctx.beginPath(); ctx.moveTo(0, 0);
-      ctx.lineTo(Math.cos(a) * 8, Math.sin(a) * 8); ctx.stroke();
-      const mx = Math.cos(a) * 5, my = Math.sin(a) * 5;
-      for (const s of [-0.5, 0.5]) {
-        ctx.beginPath(); ctx.moveTo(mx, my);
-        ctx.lineTo(mx + Math.cos(a + s) * 3, my + Math.sin(a + s) * 3); ctx.stroke();
-      }
-    }
-  } else if (k.type === 'jam') {
-    ctx.strokeStyle = col; ctx.lineWidth = 2.5;
-    ctx.beginPath(); ctx.arc(0, 0, 6, 0, TAU); ctx.stroke();
-    ctx.beginPath(); ctx.moveTo(-6, -6); ctx.lineTo(6, 6); ctx.stroke();
-    ctx.beginPath(); ctx.arc(0, 0, 2, 0, TAU); ctx.fillStyle = col; ctx.fill();
-  }
   ctx.restore();
 }
 
@@ -1807,14 +1449,6 @@ function drawPlayer(p, isMe, st) {
   ctx.save();
   ctx.translate(p.x, p.y);
 
-  if (p.levelUpFlash > 0) {
-    ctx.save();
-    ctx.globalAlpha = p.levelUpFlash;
-    ctx.shadowColor = '#ffd93d'; ctx.shadowBlur = 40;
-    ctx.strokeStyle = '#ffd93d'; ctx.lineWidth = 3;
-    ctx.beginPath(); ctx.arc(0, 0, 40 + (1 - p.levelUpFlash) * 40, 0, TAU); ctx.stroke();
-    ctx.restore();
-  }
   if (p.curseFlash > 0) {
     ctx.save();
     ctx.globalAlpha = p.curseFlash * 0.6;
@@ -1857,7 +1491,7 @@ function drawPlayer(p, isMe, st) {
     ctx.beginPath(); ctx.arc(0, 0, 32, 0, TAU); ctx.stroke();
     ctx.restore();
   }
-  if (p.powerups && p.powerups.shield > 0) {
+  if (p.powerups.shield > 0) {
     ctx.save();
     ctx.globalAlpha = 0.4 + 0.2 * Math.sin(performance.now() * 0.01);
     ctx.strokeStyle = '#ffd93d'; ctx.lineWidth = 3;
@@ -1866,8 +1500,7 @@ function drawPlayer(p, isMe, st) {
     ctx.restore();
   }
 
-  const invulnBlink = p.pvpInvuln > 0 && Math.floor(performance.now() * 0.02) % 2 === 0;
-  if (invulnBlink) ctx.globalAlpha = 0.5;
+  if (p.pvpInvuln > 0 && Math.floor(performance.now() * 0.02) % 2 === 0) ctx.globalAlpha = 0.5;
 
   ctx.save(); ctx.rotate(p.angle || 0);
   ctx.fillStyle = '#1c2530';
@@ -1889,7 +1522,8 @@ function drawPlayer(p, isMe, st) {
 
   ctx.font = 'bold 11px system-ui'; ctx.textAlign = 'center';
   ctx.fillStyle = isMe ? '#9df3c4' : '#8ecaff';
-  ctx.fillText(p.name + (st.mode === 'pve' ? ' Lv' + (p.level||1) : ''), 0, -32);
+  const nameTxt = (st.mode === 'pve' ? p.name + ' Lv' + (p.level||1) : p.name);
+  ctx.fillText(nameTxt, 0, -32);
 
   const w = 40;
   ctx.fillStyle = 'rgba(0,0,0,0.7)';
@@ -1935,19 +1569,19 @@ function drawBeams(st) {
 function drawBullets(st) {
   ctx.lineCap = 'round';
   for (const b of st.bullets) {
-    const isPvP = st.mode === 'pvp';
-    const colorOuter = b.pierce ? 'rgba(180,107,255,0.45)' : (isPvP ? 'rgba(255,120,120,0.5)' : 'rgba(255,214,102,0.35)');
-    const colorGlow  = b.pierce ? '#b46bff' : (isPvP ? '#ff5b6e' : '#ffe066');
-    const colorCore  = b.pierce ? '#e0c6ff' : (isPvP ? '#ffb0b8' : '#fff8cc');
-    ctx.strokeStyle = colorOuter;
-    ctx.lineWidth = 6 * 1.6;
+    const isPlayer = b.owner === myId;
+    const outer = b.pierce ? 'rgba(180,107,255,0.45)' : (isPlayer ? 'rgba(255,214,102,0.35)' : 'rgba(255,120,120,0.5)');
+    const glow  = b.pierce ? '#b46bff' : (isPlayer ? '#ffe066' : '#ff5b6e');
+    const core  = b.pierce ? '#e0c6ff' : (isPlayer ? '#fff8cc' : '#ffb0b8');
+    ctx.strokeStyle = outer;
+    ctx.lineWidth = 9.6;
     ctx.beginPath();
     ctx.moveTo(b.x, b.y);
     ctx.lineTo(b.x - b.vx * 0.022, b.y - b.vy * 0.022);
     ctx.stroke();
     ctx.save();
-    ctx.shadowColor = colorGlow; ctx.shadowBlur = 16;
-    ctx.fillStyle = colorCore;
+    ctx.shadowColor = glow; ctx.shadowBlur = 16;
+    ctx.fillStyle = core;
     ctx.beginPath(); ctx.arc(b.x, b.y, 6, 0, TAU); ctx.fill();
     ctx.restore();
   }
@@ -1974,7 +1608,102 @@ function drawParticles(st) {
   ctx.globalAlpha = 1;
 }
 
-function drawGame(st, myId) {
+/* ============ BOT OFF-SCREEN INDICATOR (chỉ mũi tên) ============ */
+function drawBotIndicator(st) {
+  if (st.mode !== 'bot') return;
+  const bot = st.players['BOT'];
+  const me = st.players[myId];
+  if (!bot || bot.hp <= 0 || !me || me.hp <= 0) return;
+
+  // Toạ độ bot trên màn hình
+  const botSX = bot.x - cam.x + W / 2;
+  const botSY = bot.y - cam.y + H / 2;
+  const margin = 70;
+
+  // Nếu bot trong màn hình → không vẽ
+  if (botSX > margin && botSX < W - margin &&
+      botSY > margin && botSY < H - margin) return;
+
+  // Toạ độ player trên màn hình
+  const pSX = me.x - cam.x + W / 2;
+  const pSY = me.y - cam.y + H / 2;
+
+  // Hướng từ player → bot
+  const dx = bot.x - me.x, dy = bot.y - me.y;
+  const worldDist = Math.hypot(dx, dy) || 1;
+  const ux = dx / worldDist, uy = dy / worldDist;
+
+  // Tìm giao điểm với mép trong màn hình
+  const minX = margin, maxX = W - margin;
+  const minY = margin, maxY = H - margin;
+  let tEdge = Infinity;
+  if (ux > 0.0001) tEdge = Math.min(tEdge, (maxX - pSX) / ux);
+  if (ux < -0.0001) tEdge = Math.min(tEdge, (minX - pSX) / ux);
+  if (uy > 0.0001) tEdge = Math.min(tEdge, (maxY - pSY) / uy);
+  if (uy < -0.0001) tEdge = Math.min(tEdge, (minY - pSY) / uy);
+  if (!isFinite(tEdge) || tEdge <= 0) return;
+
+  const ex = pSX + ux * tEdge;
+  const ey = pSY + uy * tEdge;
+  const angle = Math.atan2(uy, ux);
+  const now = performance.now();
+  const pulse = 0.7 + 0.3 * Math.sin(now * 0.008);
+
+  ctx.save();
+
+  // Vòng tròn phát sáng
+  ctx.save();
+  ctx.shadowColor = '#ff5b6e';
+  ctx.shadowBlur = 18 + 8 * pulse;
+  ctx.strokeStyle = 'rgba(255,90,110,' + (0.7 * pulse) + ')';
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.arc(ex, ey, 24 + 4 * pulse, 0, TAU);
+  ctx.stroke();
+  ctx.restore();
+
+  // Vòng trong mờ
+  ctx.save();
+  ctx.fillStyle = 'rgba(255,90,110,' + (0.15 * pulse) + ')';
+  ctx.beginPath();
+  ctx.arc(ex, ey, 20, 0, TAU);
+  ctx.fill();
+  ctx.restore();
+
+  // Mũi tên chỉ hướng
+  ctx.save();
+  ctx.translate(ex, ey);
+  ctx.rotate(angle);
+  ctx.fillStyle = '#ff5b6e';
+  ctx.shadowColor = '#ff5b6e';
+  ctx.shadowBlur = 15;
+  const aSize = 16;
+  ctx.beginPath();
+  ctx.moveTo(aSize, 0);
+  ctx.lineTo(-aSize * 0.6, -aSize * 0.7);
+  ctx.lineTo(-aSize * 0.15, 0);
+  ctx.lineTo(-aSize * 0.6, aSize * 0.7);
+  ctx.closePath();
+  ctx.fill();
+  ctx.restore();
+
+  // Khoảng cách
+  const labelX = ex - ux * 38;
+  const labelY = ey - uy * 38;
+  ctx.font = 'bold 12px system-ui,sans-serif';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  const distTxt = Math.round(worldDist / 10) + 'm';
+  ctx.lineWidth = 3;
+  ctx.strokeStyle = 'rgba(0,0,0,0.85)';
+  ctx.strokeText(distTxt, labelX, labelY);
+  ctx.fillStyle = '#fff';
+  ctx.fillText(distTxt, labelX, labelY);
+
+  ctx.restore();
+}
+
+function drawGame(st) {
   ctx.clearRect(0, 0, W, H);
   const me = st.players[myId];
   if (!me) return;
@@ -2006,6 +1735,9 @@ function drawGame(st, myId) {
   drawParticles(st);
 
   ctx.restore();
+
+  // Indicator bot khi off-screen (screen space)
+  drawBotIndicator(st);
 
   if (hitFlash > 0) {
     hitFlash -= 0.05;
