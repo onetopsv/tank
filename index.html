@@ -1,0 +1,585 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Tank Arena P2P</title>
+<!-- Thư viện PeerJS để chơi P2P không cần server -->
+<script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
+<style>
+  *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{width:100%;height:100%;overflow:hidden;background:#080c11;
+    font-family:system-ui,"Segoe UI",Arial,sans-serif;user-select:none;color:#dff5e8}
+  canvas{display:block;position:fixed;inset:0;cursor:crosshair}
+  .hidden{display:none !important}
+  .screen{position:fixed;inset:0;z-index:50;display:flex;flex-direction:column;
+    align-items:center;justify-content:center;gap:18px;padding:24px;
+    background:radial-gradient(circle at 50% 40%,#0e1e26,#05080c 70%);
+    overflow-y:auto;text-align:center}
+  .screen h1{font-size:clamp(32px,7vw,56px);letter-spacing:6px;color:#9df3c4;
+    text-shadow:0 0 40px #2ee07a66}
+  .panel{background:#0a141a;border:2px solid #1e3a30;border-radius:14px;
+    padding:22px;display:flex;flex-direction:column;gap:12px;
+    width:min(340px,90vw)}
+  .panel input{padding:12px 14px;border-radius:10px;background:#0e1a20;
+    border:2px solid #26485a;color:#dff5e8;font-size:15px;outline:none;
+    font-family:inherit;text-align:center;letter-spacing:2px}
+  .panel input:focus{border-color:#2ee07a}
+  .panel button{padding:12px;border-radius:10px;background:#12463a;
+    color:#9df3c4;border:2px solid #2ee07a;font-size:14px;font-weight:800;
+    letter-spacing:2px;cursor:pointer;transition:.15s}
+  .panel button:hover{background:#2ee07a;color:#04140c}
+  .panel button.ghost{background:#0e1a20;color:#cfe9d8;border-color:#26485a}
+  .panel button.ghost:hover{background:#12463a;border-color:#2ee07a;color:#9df3c4}
+  #msg{font-size:13px;min-height:20px;letter-spacing:1px;color:#ff8a9a}
+  #codeDisplay{font-size:32px;letter-spacing:10px;color:#9df3c4;
+    font-weight:800;margin:8px 0}
+  .hint{font-size:12px;color:#6ea8a0;letter-spacing:1px;line-height:1.7}
+  #hud{position:fixed;inset:0;pointer-events:none;padding:18px;
+    display:flex;justify-content:space-between;align-items:flex-start;
+    text-shadow:0 2px 8px #000;font-weight:700}
+  .hpbar{width:220px;height:16px;border-radius:8px;background:#101c24;
+    border:2px solid #26485a;overflow:hidden}
+  #hpFill{height:100%;width:100%;border-radius:6px;
+    background:linear-gradient(90deg,#2ee07a,#9df3c4);transition:width .1s}
+  #hpText{font-size:12px;margin-top:4px;opacity:.85}
+  #scoreBox{text-align:right;font-size:12px;letter-spacing:2px;line-height:1.8;
+    opacity:.9}
+  #scoreBox b{font-size:22px;color:#9df3c4;display:block}
+  #scoreBox .boss{color:#ff8a9a;font-size:11px}
+</style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div id="loginScreen" class="screen">
+  <h1>TANK ARENA P2P</h1>
+  <div class="panel">
+    <input id="inpName" placeholder="Tên người chơi" maxlength="20">
+    <button id="btnLogin">VÀO GAME</button>
+  </div>
+  <div class="hint">Chơi trực tiếp P2P không cần server.</div>
+</div>
+
+<!-- LOBBY -->
+<div id="lobbyScreen" class="screen hidden">
+  <h1>LOBBY</h1>
+  <div class="panel">
+    <button id="btnCreate">TẠO PHÒNG MỚI (HOST)</button>
+    <input id="inpCode" placeholder="MÃ PHÒNG CỦA BẠN BÈ" maxlength="4" style="text-transform:uppercase">
+    <button id="btnJoin">THAM GIA PHÒNG</button>
+    <div id="msg"></div>
+  </div>
+  <div class="hint">Người tạo phòng làm Host (máy chủ). Tối đa 4 người.</div>
+</div>
+
+<!-- WAITING -->
+<div id="waitingScreen" class="screen hidden">
+  <h1>PHÒNG CHỜ</h1>
+  <div class="panel">
+    <div style="opacity:.7;font-size:13px;letter-spacing:2px">MÃ PHÒNG</div>
+    <div id="codeDisplay">----</div>
+    <div style="font-size:13px;letter-spacing:1px;opacity:.85">
+      Trạng thái: <span id="playerCount">Đang kết nối...</span>
+    </div>
+    <button id="btnReady" class="hidden">BẮT ĐẦU CHIẾN</button>
+    <button id="btnLeave" class="ghost">RỜI PHÒNG</button>
+  </div>
+</div>
+
+<!-- GAME -->
+<canvas id="game" class="hidden"></canvas>
+<div id="hud" class="hidden">
+  <div>
+    <div class="hpbar"><div id="hpFill"></div></div>
+    <div id="hpText">100 / 100</div>
+  </div>
+  <div id="scoreBox">
+    ĐIỂM<b id="scoreVal">0</b>
+    SÓNG<b id="waveVal">1</b>
+    <span class="boss" id="bossInfo"></span>
+  </div>
+</div>
+
+<script>
+(function(){
+'use strict';
+
+/* ==========================================================
+   1. KHỞI TẠO CƠ BẢN
+   ========================================================== */
+const screens = {
+  login: document.getElementById('loginScreen'),
+  lobby: document.getElementById('lobbyScreen'),
+  waiting: document.getElementById('waitingScreen')
+};
+const canvasEl = document.getElementById('game');
+const hudEl = document.getElementById('hud');
+
+function show(name) {
+  Object.values(screens).forEach(s => s.classList.add('hidden'));
+  canvasEl.classList.add('hidden');
+  hudEl.classList.add('hidden');
+  if (name === 'game') { 
+    canvasEl.classList.remove('hidden'); 
+    hudEl.classList.remove('hidden'); 
+  }
+  else if (screens[name]) screens[name].classList.remove('hidden');
+}
+
+let playerName = localStorage.getItem('ta_name') || '';
+document.getElementById('inpName').value = playerName;
+if (playerName) show('lobby'); else show('login');
+
+document.getElementById('btnLogin').addEventListener('click', () => {
+  const n = document.getElementById('inpName').value.trim();
+  if (n.length < 2) { alert('Tên ít nhất 2 ký tự'); return; }
+  localStorage.setItem('ta_name', n);
+  playerName = n;
+  show('lobby');
+});
+
+/* ==========================================================
+   2. MẠNG P2P (PEERJS)
+   ========================================================== */
+let peer = null;
+let conn = null; // Kết nối tới Host (nếu là Client) hoặc tới Client (nếu là Host)
+let isHost = false;
+let myId = Math.random().toString(36).substr(2, 5);
+let myRoomCode = '';
+let joined = false;
+
+document.getElementById('btnCreate').addEventListener('click', () => {
+  isHost = true;
+  myRoomCode = Math.random().toString(36).substr(2, 4).toUpperCase();
+  document.getElementById('codeDisplay').textContent = myRoomCode;
+  document.getElementById('msg').textContent = 'Đang tạo phòng...';
+  
+  peer = new Peer('TANK-' + myRoomCode, { debug: 1 });
+  
+  peer.on('open', () => {
+    joined = true;
+    document.getElementById('playerCount').textContent = 'Sẵn sàng (Host)';
+    document.getElementById('btnReady').classList.remove('hidden');
+    show('waiting');
+  });
+
+  peer.on('error', (err) => {
+    alert('Lỗi tạo phòng: ' + err.type);
+  });
+
+  // Khi có người khác kết nối vào
+  peer.on('connection', (c) => {
+    conn = c;
+    setupConnection();
+  });
+});
+
+document.getElementById('btnJoin').addEventListener('click', () => {
+  const code = document.getElementById('inpCode').value.trim().toUpperCase();
+  if (code.length !== 4) { document.getElementById('msg').textContent = 'Mã phải 4 ký tự'; return; }
+  
+  isHost = false;
+  myRoomCode = code;
+  document.getElementById('codeDisplay').textContent = myRoomCode;
+  document.getElementById('msg').textContent = 'Đang kết nối tới Host...';
+  
+  peer = new Peer({ debug: 1 });
+  
+  peer.on('open', () => {
+    conn = peer.connect('TANK-' + code, { reliable: true });
+    setupConnection();
+  });
+
+  peer.on('error', (err) => {
+    document.getElementById('msg').textContent = 'Không tìm thấy phòng hoặc lỗi mạng!';
+  });
+});
+
+function setupConnection() {
+  conn.on('open', () => {
+    joined = true;
+    // Gửi thông báo join
+    conn.send({ type: 'join', name: playerName, id: myId });
+    
+    if (!isHost) {
+      document.getElementById('playerCount').textContent = 'Đã kết nối (Client)';
+      document.getElementById('btnReady').classList.remove('hidden');
+    }
+    show('waiting');
+  });
+
+  conn.on('data', (data) => {
+    if (isHost) {
+      // Host nhận input từ Client
+      if (data.type === 'input') {
+        if (state && state.players[data.id]) {
+          state.players[data.id].input = data.input;
+        }
+      }
+    } else {
+      // Client nhận state từ Host
+      if (data.type === 'state') {
+        state = data.state;
+        // Cập nhật HP, Điểm
+        const me = state.players[myId];
+        if (me) {
+          document.getElementById('hpFill').style.width = Math.max(0, me.hp) + '%';
+          document.getElementById('hpText').textContent = Math.max(0, Math.round(me.hp)) + ' / 100';
+          document.getElementById('scoreVal').textContent = me.score;
+          document.getElementById('waveVal').textContent = state.wave;
+        }
+      }
+    }
+  });
+
+  conn.on('close', () => {
+    alert('Mất kết nối với phòng!');
+    location.reload();
+  });
+}
+
+document.getElementById('btnLeave').addEventListener('click', () => {
+  if (peer) peer.destroy();
+  location.reload();
+});
+
+document.getElementById('btnReady').addEventListener('click', () => {
+  // Host sẽ bắt đầu vòng lặp game, Client chỉ việc bật màn hình
+  show('game');
+  if (isHost) {
+    if (!state) initGame();
+    requestAnimationFrame(hostLoop);
+  } else {
+    conn.send({ type: 'ready' }); // Báo host là mình đã sẵn sàng
+    requestAnimationFrame(clientLoop);
+  }
+});
+
+/* ==========================================================
+   3. GAME LOGIC (Chạy trên máy HOST)
+   ========================================================== */
+let state = null;
+let lastTime = performance.now();
+let sendTimer = 0;
+
+function initGame() {
+  state = {
+    time: 0, wave: 1, spawnTimer: 1, bossIndex: 0,
+    players: {
+      [myId]: { id: myId, name: playerName, x: 0, y: 0, hp: 100, score: 0, angle: -Math.PI/2, aim: 0, shoot: false, input: {x:0, y:0, aim:0, shoot:false} }
+    },
+    enemies: [], bullets: [], pickups: []
+  };
+}
+
+// Spawn quái
+function spawnEnemy() {
+  const a = Math.random() * Math.PI * 2;
+  const dist = 600;
+  state.enemies.push({
+    x: Math.cos(a) * dist, y: Math.sin(a) * dist,
+    hp: 22 + state.wave * 5, maxHp: 22 + state.wave * 5,
+    speed: 100, r: 15, color: '#7bd66b'
+  });
+}
+
+function hostLoop(now) {
+  if (!isHost) return;
+  const dt = Math.min((now - lastTime) / 1000, 0.1);
+  lastTime = now;
+
+  if (!state) initGame();
+
+  // --- Update Host ---
+  state.time += dt;
+  if (state.time > state.wave * 15) state.wave++;
+
+  // Spawn quái
+  state.spawnTimer -= dt;
+  if (state.spawnTimer <= 0) {
+    state.spawnTimer = Math.max(0.3, 2 - state.wave * 0.1);
+    spawnEnemy();
+  }
+
+  // Update Players
+  for (const id in state.players) {
+    const p = state.players[id];
+    // Di chuyển
+    const len = Math.hypot(p.input.x, p.input.y);
+    if (len > 0) {
+      p.x += (p.input.x / len) * 250 * dt;
+      p.y += (p.input.y / len) * 250 * dt;
+      p.angle = Math.atan2(p.input.y, p.input.x);
+    }
+    p.aim = p.input.aim;
+    p.shoot = p.input.shoot;
+
+    // Bắn
+    if (p.shoot && (!p.lastShoot || now - p.lastShoot > 150)) {
+      p.lastShoot = now;
+      state.bullets.push({
+        x: p.x + Math.cos(p.aim) * 30, y: p.y + Math.sin(p.aim) * 30,
+        vx: Math.cos(p.aim) * 800, vy: Math.sin(p.aim) * 800, life: 1.0, owner: id
+      });
+    }
+  }
+
+  // Update Bullets
+  for (let i = state.bullets.length - 1; i >= 0; i--) {
+    const b = state.bullets[i];
+    b.x += b.vx * dt; b.y += b.vy * dt; b.life -= dt;
+    if (b.life <= 0) { state.bullets.splice(i, 1); continue; }
+
+    // Check đạn trúng quái
+    for (let j = state.enemies.length - 1; j >= 0; j--) {
+      const e = state.enemies[j];
+      if (Math.hypot(e.x - b.x, e.y - b.y) < e.r + 5) {
+        e.hp -= 20;
+        state.bullets.splice(i, 1);
+        if (e.hp <= 0) {
+          state.enemies.splice(j, 1);
+          if (state.players[b.owner]) {
+            state.players[b.owner].score += 10;
+            // Thỉnh thoảng rơi máu
+            if (Math.random() < 0.1) state.pickups.push({ x: e.x, y: e.y, type: 'health' });
+          }
+        }
+        break;
+      }
+    }
+  }
+
+  // Update Quái
+  for (const e of state.enemies) {
+    // Tìm người chơi gần nhất
+    let target = null, minD = Infinity;
+    for (const id in state.players) {
+      const p = state.players[id];
+      const d = Math.hypot(p.x - e.x, p.y - e.y);
+      if (d < minD) { minD = d; target = p; }
+    }
+    if (target) {
+      const dx = target.x - e.x, dy = target.y - e.y;
+      const d = Math.hypot(dx, dy) || 1;
+      e.x += (dx / d) * e.speed * dt;
+      e.y += (dy / d) * e.speed * dt;
+      
+      // Cắn máu
+      if (d < e.r + 15 && target.hp > 0) {
+        target.hp -= 15 * dt;
+      }
+    }
+  }
+
+  // Update Pickups
+  for (let i = state.pickups.length - 1; i >= 0; i--) {
+    const k = state.pickups[i];
+    for (const id in state.players) {
+      const p = state.players[id];
+      if (Math.hypot(p.x - k.x, p.y - k.y) < 30) {
+        p.hp = Math.min(100, p.hp + 30);
+        state.pickups.splice(i, 1);
+        break;
+      }
+    }
+  }
+
+  // Gửi State cho Client (20 lần/giây)
+  sendTimer += dt;
+  if (sendTimer > 0.05) {
+    sendTimer = 0;
+    if (conn && conn.open) {
+      // Xóa input thừa để giảm dung lượng
+      const sendState = JSON.parse(JSON.stringify(state));
+      for (const id in sendState.players) delete sendState.players[id].input;
+      conn.send({ type: 'state', state: sendState });
+    }
+  }
+
+  drawGame(state, myId);
+  requestAnimationFrame(hostLoop);
+}
+
+/* ==========================================================
+   4. GAME LOGIC (Chạy trên máy CLIENT)
+   ========================================================== */
+let inputTimer = 0;
+
+function clientLoop(now) {
+  if (isHost) return;
+  const dt = Math.min((now - lastTime) / 1000, 0.1);
+  lastTime = now;
+
+  // Gửi input lên Host
+  inputTimer += dt;
+  if (inputTimer > 0.033) {
+    inputTimer = 0;
+    if (conn && conn.open) {
+      conn.send({
+        type: 'input', id: myId,
+        input: getInputs()
+      });
+    }
+  }
+
+  // Vẽ game từ state nhận được
+  if (state) drawGame(state, myId);
+  requestAnimationFrame(clientLoop);
+}
+
+/* ==========================================================
+   5. INPUT & RENDERING
+   ========================================================== */
+const keys = Object.create(null);
+const mouse = { x: innerWidth / 2, y: innerHeight / 2, down: false };
+
+addEventListener('keydown', e => { keys[e.key.toLowerCase()] = true; });
+addEventListener('keyup', e => { keys[e.key.toLowerCase()] = false; });
+canvasEl.addEventListener('mousemove', e => { mouse.x = e.clientX; mouse.y = e.clientY; });
+canvasEl.addEventListener('mousedown', e => { mouse.down = true; });
+addEventListener('mouseup', e => { mouse.down = false; });
+canvasEl.addEventListener('contextmenu', e => e.preventDefault());
+
+function getInputs() {
+  let mx = 0, my = 0;
+  if (keys['a'] || keys['arrowleft']) mx--;
+  if (keys['d'] || keys['arrowright']) mx++;
+  if (keys['w'] || keys['arrowup']) my--;
+  if (keys['s'] || keys['arrowdown']) my++;
+  
+  const aim = Math.atan2(mouse.y - innerHeight / 2, mouse.x - innerWidth / 2);
+  return { x: mx, y: my, aim: aim, shoot: mouse.down || keys[' '] };
+}
+
+// Khi là Host, cập nhật input của chính mình vào state
+setInterval(() => {
+  if (isHost && state && state.players[myId]) {
+    state.players[myId].input = getInputs();
+  }
+}, 33);
+
+const ctx = canvasEl.getContext('2d');
+let W = innerWidth, H = innerHeight;
+const DPR = Math.min(devicePixelRatio || 1, 2);
+let cam = { x: 0, y: 0 };
+
+function resize() {
+  W = innerWidth; H = innerHeight;
+  canvasEl.width = Math.floor(W * DPR);
+  canvasEl.height = Math.floor(H * DPR);
+  canvasEl.style.width = W + 'px';
+  canvasEl.style.height = H + 'px';
+  ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+}
+addEventListener('resize', resize);
+resize();
+
+function drawGame(st, myId) {
+  ctx.clearRect(0, 0, W, H);
+  
+  // Tìm người chơi
+  const me = st.players[myId];
+  if (!me) return;
+
+  // Camera mượt
+  cam.x += (me.x - cam.x) * 0.15;
+  cam.y += (me.y - cam.y) * 0.15;
+
+  ctx.save();
+  ctx.translate(W / 2 - cam.x, H / 2 - cam.y);
+
+  // Grid
+  ctx.fillStyle = '#0b1017';
+  ctx.fillRect(cam.x - W / 2 - 60, cam.y - H / 2 - 60, W + 120, H + 120);
+  const g = 64;
+  ctx.strokeStyle = 'rgba(60,130,100,0.10)';
+  ctx.beginPath();
+  const gx0 = Math.floor((cam.x - W / 2) / g) * g;
+  const gy0 = Math.floor((cam.y - H / 2) / g) * g;
+  for (let x = gx0; x <= cam.x + W / 2; x += g) {
+    ctx.moveTo(x, cam.y - H / 2); ctx.lineTo(x, cam.y + H / 2);
+  }
+  for (let y = gy0; y <= cam.y + H / 2; y += g) {
+    ctx.moveTo(cam.x - W / 2, y); ctx.lineTo(cam.x + W / 2, y);
+  }
+  ctx.stroke();
+
+  // Vẽ vật phẩm
+  for (const k of st.pickups) {
+    ctx.save(); ctx.translate(k.x, k.y);
+    ctx.beginPath(); ctx.arc(0, 0, 15, 0, Math.PI*2);
+    ctx.fillStyle = 'rgba(46,224,122,0.2)'; ctx.fill();
+    ctx.strokeStyle = '#2ee07a'; ctx.lineWidth = 2; ctx.stroke();
+    ctx.fillStyle = '#2ee07a';
+    ctx.fillRect(-4, -1, 8, 2); ctx.fillRect(-1, -4, 2, 8);
+    ctx.restore();
+  }
+
+  // Vẽ quái
+  for (const e of st.enemies) {
+    ctx.save(); ctx.translate(e.x, e.y);
+    ctx.beginPath();
+    for (let i = 0; i < 10; i++) {
+      const a = i / 10 * Math.PI * 2;
+      const r = e.r * (0.8 + 0.2 * Math.sin(performance.now() * 0.01 + i));
+      ctx.lineTo(Math.cos(a) * r, Math.sin(a) * r);
+    }
+    ctx.closePath();
+    ctx.fillStyle = e.color; ctx.fill();
+    ctx.strokeStyle = '#000'; ctx.lineWidth = 2; ctx.stroke();
+    ctx.restore();
+  }
+
+  // Vẽ đạn
+  for (const b of st.bullets) {
+    ctx.save();
+    ctx.shadowColor = '#ffe066'; ctx.shadowBlur = 10;
+    ctx.fillStyle = '#fff8cc';
+    ctx.beginPath(); ctx.arc(b.x, b.y, 5, 0, Math.PI*2); ctx.fill();
+    ctx.restore();
+  }
+
+  // Vẽ người chơi
+  for (const id in st.players) {
+    const p = st.players[id];
+    if (p.hp <= 0) continue;
+    
+    const isMe = (id === myId);
+    const bodyCol = isMe ? '#5fbf7d' : '#6ba8ff';
+    const stroke = isMe ? '#1e5233' : '#1e3a8a';
+
+    ctx.save(); ctx.translate(p.x, p.y);
+    
+    // Thân
+    ctx.save(); ctx.rotate(p.angle || 0);
+    ctx.fillStyle = '#1c2530'; ctx.fillRect(-18, -18, 36, 8); ctx.fillRect(-18, 10, 36, 8);
+    ctx.fillStyle = bodyCol; ctx.fillRect(-15, -12, 30, 24);
+    ctx.strokeStyle = stroke; ctx.lineWidth = 2; ctx.strokeRect(-15, -12, 30, 24);
+    ctx.restore();
+
+    // Nòng pháo
+    ctx.save(); ctx.rotate(p.aim || 0);
+    ctx.fillStyle = '#26473a'; ctx.fillRect(5, -4, 25, 8);
+    ctx.fillStyle = bodyCol; ctx.beginPath(); ctx.arc(0,0,10,0,Math.PI*2); ctx.fill();
+    ctx.restore();
+
+    // Tên
+    ctx.font = 'bold 11px system-ui'; ctx.textAlign = 'center';
+    ctx.fillStyle = isMe ? '#9df3c4' : '#8ecaff';
+    ctx.fillText(p.name, 0, -30);
+    
+    // Thanh máu
+    ctx.fillStyle = '#000'; ctx.fillRect(-20, -22, 40, 4);
+    ctx.fillStyle = '#2ee07a'; ctx.fillRect(-20, -22, 40 * (p.hp/100), 4);
+
+    ctx.restore();
+  }
+
+  ctx.restore();
+}
+
+})();
+</script>
+</body>
+</html>
