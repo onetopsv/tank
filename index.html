@@ -389,6 +389,15 @@ const hudEl = document.getElementById('hud');
 const puHudEl = document.getElementById('powerupHud');
 const touchControlsEl = document.getElementById('touchControls');
 
+/* ============ JOYSTICK STATE (khai báo TRƯỚC khi dùng) ============ */
+const touch = {
+  moveX: 0, moveY: 0,
+  aimX: 0, aimY: 0,
+  shooting: false,
+  moveActive: false,
+  aimActive: false
+};
+
 function resetTouchState() {
   touch.moveX = 0; touch.moveY = 0; touch.moveActive = false;
   touch.aimX = 0; touch.aimY = 0; touch.aimActive = false; touch.shooting = false;
@@ -459,14 +468,6 @@ document.getElementById('btnChangeName').onclick = () => {
 };
 
 /* ============ JOYSTICK (Pointer Events + fallback) ============ */
-const touch = {
-  moveX: 0, moveY: 0,
-  aimX: 0, aimY: 0,
-  shooting: false,
-  moveActive: false,
-  aimActive: false
-};
-
 function setupJoystick(el, knob, onMove, onEnd) {
   const maxR = 50;
   let activePointerId = null;
@@ -762,12 +763,12 @@ function spawnEnemyInArena(typeIdx, wave) {
   // Bán kính spawn: ngay ngoài rìa màn hình + margin
   const margin = 120;
   const halfDiag = Math.hypot(W, H) / 2;
-  const minDist = halfDiag + margin;             // ngoài màn hình
-  const maxDist = minDist + 260;                 // không quá xa
+  const minDist = halfDiag + margin;
+  const maxDist = minDist + 260;
 
   let angle = Math.random() * TAU;
 
-  // Ưu tiên hướng "trước mặt" player một chút để cân bằng
+  // Ưu tiên hướng "trước mặt" player một chút
   if (Math.random() < 0.35) {
     angle = me.aim + rand(-0.6, 0.6);
   }
