@@ -585,7 +585,7 @@ function initGame(mode, difficulty) {
     players: { [myId]: makePlayer(myId, currentUser) },
     enemies: [], bullets: [], ebullets: [], pickups: [],
     particles: [], beams: [], events: [],
-    arena: mode === 'bot' ? { w: 1400, h: 1400 } : { w: 2400, h: 2400 },
+    arena: mode === 'bot' ? { w: 1400, h: 1400 } : { w: 6700, h: 6700 },
     pickupTimer: 2.5,
     announce: null, winner: null,
     // Wave state (PvE)
@@ -652,7 +652,7 @@ function buildWaveQueue(wave) {
 
 function spawnEnemyInArena(typeIdx, wave) {
   if (!state) return;
-  if (state.enemies.length > 120) return;
+  if (state.enemies.length > 220) return;
 
   const arena = state.arena;
   const halfW = arena.w / 2 - 120;
@@ -666,7 +666,7 @@ function spawnEnemyInArena(typeIdx, wave) {
     else if (side === 2) { spawnX = rand(-halfW, halfW); spawnY = halfH; }
     else { spawnX = -halfW; spawnY = rand(-halfH, halfH); }
     tries++;
-  } while (tries < 10 && dist(spawnX, spawnY, state.players[myId].x, state.players[myId].y) < 350);
+  } while (tries < 15 && dist(spawnX, spawnY, state.players[myId].x, state.players[myId].y) < 550);
 
   const t = TYPES[typeIdx];
   const hpScale = 1 + (wave - 1) * 0.12;
@@ -1021,7 +1021,7 @@ function killEnemy(e, ownerId) {
     if (e.isBoss) state.bossAlive = false;
   }
 
-  if (e.behavior === 'splitter' && state.enemies.length < 100) {
+  if (e.behavior === 'splitter' && state.enemies.length < 200) {
     for (let k = 0; k < 2; k++) {
       state.enemies.push({
         x: e.x+rand(-20,20), y: e.y+rand(-20,20),
