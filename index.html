@@ -382,44 +382,71 @@ const touch = {
   aimActive: false
 };
 
+/* ============================================================
+   SETUP JOYSTICK – ĐÃ SỬA
+   Mỗi joystick theo dõi identifier riêng của ngón đã chạm vào nó.
+   Không còn dùng e.touches[0] → không còn lỗi "kéo joystick bắn
+   bám theo hướng joystick di chuyển".
+   ============================================================ */
 function setupJoystick(el, knob, onMove, onEnd) {
   const maxR = 50;
-  let activeId = null;
+  let activeId = null;   // identifier của ngón đang điều khiển joystick NÀY
 
-  const getTouch = (e) => {
-    if (e.touches) {
-      for (const t of e.touches) if (t.identifier === activeId) return t;
-      return null;
+  const findTouch = (list, id) => {
+    if (!list) return null;
+    for (let i = 0; i < list.length; i++) {
+      if (list[i].identifier === id) return list[i];
     }
-    return { clientX: e.clientX, clientY: e.clientY };
+    return null;
   };
 
-  const start = (e) => {
-    if (activeId !== null) return;
-    e.preventDefault();
-    e.stopPropagation();
-    const t = e.touches ? e.touches[0] : e;
-    activeId = t.identifier !== undefined ? t.identifier : 'mouse';
-    move(e);
-  };
-  const move = (e) => {
-    if (activeId === null) return;
-    const t = getTouch(e);
-    if (!t) return;
-    e.preventDefault();
-    e.stopPropagation();
+  const update = (clientX, clientY) => {
     const rect = el.getBoundingClientRect();
     const cx = rect.left + rect.width / 2;
     const cy = rect.top + rect.height / 2;
-    let dx = t.clientX - cx;
-    let dy = t.clientY - cy;
+    let dx = clientX - cx;
+    let dy = clientY - cy;
     const d = Math.hypot(dx, dy);
     if (d > maxR) { dx = dx / d * maxR; dy = dy / d * maxR; }
-    knob.style.transform = `translate(calc(-50% + ${dx}px), calc(-50% + ${dy}px))`;
+    knob.style.transform =
+      'translate(calc(-50% + ' + dx + 'px), calc(-50% + ' + dy + 'px))';
     onMove(dx / maxR, dy / maxR);
   };
+
+  const start = (e) => {
+    if (activeId !== null) return;   // joystick này đã có ngón khác điều khiển
+    e.preventDefault();
+    e.stopPropagation();
+    if (e.changedTouches) {
+      const t = e.changedTouches[0];   // ← ngón VỪA chạm vào chính element này
+      if (!t) return;
+      activeId = t.identifier;
+      update(t.clientX, t.clientY);
+    } else {
+      activeId = 'mouse';
+      update(e.clientX, e.clientY);
+    }
+  };
+
+  const move = (e) => {
+    if (activeId === null) return;
+    let t;
+    if (e.touches) {
+      // tìm đúng ngón của joystick này trong danh sách ngón đang chạm
+      t = findTouch(e.touches, activeId) || findTouch(e.changedTouches, activeId);
+    } else {
+      t = { clientX: e.clientX, clientY: e.clientY };
+    }
+    if (!t) return;
+    e.preventDefault();
+    e.stopPropagation();
+    update(t.clientX, t.clientY);
+  };
+
   const end = (e) => {
     if (activeId === null) return;
+    // chỉ nhả khi đúng ngón của mình vừa nhấc lên
+    if (e.changedTouches && !findTouch(e.changedTouches, activeId)) return;
     e.stopPropagation();
     activeId = null;
     knob.style.transform = 'translate(-50%,-50%)';
@@ -427,16 +454,12 @@ function setupJoystick(el, knob, onMove, onEnd) {
   };
 
   el.addEventListener('touchstart', start, {passive: false});
-  el.addEventListener('touchmove', move, {passive: false});
-  el.addEventListener('touchend', end);
+  el.addEventListener('touchmove',  move,  {passive: false});
+  el.addEventListener('touchend',   end);
   el.addEventListener('touchcancel', end);
-  el.addEventListener('mousedown', start);
-  window.addEventListener('mousemove', (e) => {
-    if (activeId === 'mouse') move(e);
-  });
-  window.addEventListener('mouseup', (e) => {
-    if (activeId === 'mouse') end(e);
-  });
+  el.addEventListener('mousedown',  start);
+  window.addEventListener('mousemove', (e) => { if (activeId === 'mouse') move(e); });
+  window.addEventListener('mouseup',   (e) => { if (activeId === 'mouse') end(e); });
 }
 
 setupJoystick(
