@@ -116,8 +116,9 @@
     background:rgba(46,224,122,0.10);border:2px solid rgba(46,224,122,0.55);
     bottom:30px;pointer-events:auto;touch-action:none;
     box-shadow:inset 0 0 30px rgba(46,224,122,0.15),0 0 20px rgba(46,224,122,0.2);
-    cursor:pointer;
+    cursor:grab;
   }
+  .joystick:active{cursor:grabbing}
   #joyLeft{left:30px}
   #joyRight{
     right:30px;
@@ -166,7 +167,6 @@
     <button id="btnInsane" class="btn-diff insane">💀 SIÊU KHÓ</button>
   </div>
   <button id="btnChangeName" class="btn-change-name">✏️ ĐỔI TÊN</button>
-  <div class="hint">Joystick TRÁI di chuyển · Joystick PHẢI kéo để ngắm + bắn · Hoặc WASD + chuột</div>
 </div>
 
 <canvas id="game" class="hidden"></canvas>
@@ -189,7 +189,7 @@
   <div id="scoreBox">
     <span id="modeTag"></span>
     ĐIỂM<b id="scoreVal">0</b>
-    SÓNG<b id="waveVal">1</b>
+    MÀN<b id="waveVal">1</b>
     <button id="btnMenu">☰ MENU</button>
   </div>
 </div>
@@ -373,7 +373,7 @@ document.getElementById('btnChangeName').onclick = () => {
   showNameScreen();
 };
 
-/* ============ TOUCH JOYSTICK ============ */
+/* ============ JOYSTICK: PC (chuột) + Mobile (touch) ============ */
 const touch = {
   moveX: 0, moveY: 0,
   aimX: 0, aimY: 0,
@@ -382,84 +382,77 @@ const touch = {
   aimActive: false
 };
 
-/* ============================================================
-   SETUP JOYSTICK – ĐÃ SỬA
-   Mỗi joystick theo dõi identifier riêng của ngón đã chạm vào nó.
-   Không còn dùng e.touches[0] → không còn lỗi "kéo joystick bắn
-   bám theo hướng joystick di chuyển".
-   ============================================================ */
 function setupJoystick(el, knob, onMove, onEnd) {
   const maxR = 50;
-  let activeId = null;   // identifier của ngón đang điều khiển joystick NÀY
+  let activePointer = null;
+  let usingMouse = false;
 
-  const findTouch = (list, id) => {
-    if (!list) return null;
-    for (let i = 0; i < list.length; i++) {
-      if (list[i].identifier === id) return list[i];
+  const getClient = (e) => {
+    if (e.touches) {
+      for (const t of e.touches) if (t.identifier === activePointer) return t;
+      return null;
     }
-    return null;
-  };
-
-  const update = (clientX, clientY) => {
-    const rect = el.getBoundingClientRect();
-    const cx = rect.left + rect.width / 2;
-    const cy = rect.top + rect.height / 2;
-    let dx = clientX - cx;
-    let dy = clientY - cy;
-    const d = Math.hypot(dx, dy);
-    if (d > maxR) { dx = dx / d * maxR; dy = dy / d * maxR; }
-    knob.style.transform =
-      'translate(calc(-50% + ' + dx + 'px), calc(-50% + ' + dy + 'px))';
-    onMove(dx / maxR, dy / maxR);
+    return { clientX: e.clientX, clientY: e.clientY };
   };
 
   const start = (e) => {
-    if (activeId !== null) return;   // joystick này đã có ngón khác điều khiển
+    if (activePointer !== null) return;
     e.preventDefault();
     e.stopPropagation();
-    if (e.changedTouches) {
-      const t = e.changedTouches[0];   // ← ngón VỪA chạm vào chính element này
-      if (!t) return;
-      activeId = t.identifier;
-      update(t.clientX, t.clientY);
+    if (e.touches) {
+      const t = e.touches[0];
+      activePointer = t.identifier;
+      usingMouse = false;
     } else {
-      activeId = 'mouse';
-      update(e.clientX, e.clientY);
+      activePointer = 'mouse';
+      usingMouse = true;
+      document.body.style.cursor = 'grabbing';
     }
+    move(e);
   };
 
   const move = (e) => {
-    if (activeId === null) return;
-    let t;
-    if (e.touches) {
-      // tìm đúng ngón của joystick này trong danh sách ngón đang chạm
-      t = findTouch(e.touches, activeId) || findTouch(e.changedTouches, activeId);
-    } else {
-      t = { clientX: e.clientX, clientY: e.clientY };
-    }
+    if (activePointer === null) return;
+    const t = getClient(e);
     if (!t) return;
     e.preventDefault();
     e.stopPropagation();
-    update(t.clientX, t.clientY);
+    const rect = el.getBoundingClientRect();
+    const cx = rect.left + rect.width / 2;
+    const cy = rect.top + rect.height / 2;
+    let dx = t.clientX - cx;
+    let dy = t.clientY - cy;
+    const d = Math.hypot(dx, dy);
+    if (d > maxR) { dx = dx / d * maxR; dy = dy / d * maxR; }
+    knob.style.transform = `translate(calc(-50% + ${dx}px), calc(-50% + ${dy}px))`;
+    onMove(dx / maxR, dy / maxR);
   };
 
   const end = (e) => {
-    if (activeId === null) return;
-    // chỉ nhả khi đúng ngón của mình vừa nhấc lên
-    if (e.changedTouches && !findTouch(e.changedTouches, activeId)) return;
-    e.stopPropagation();
-    activeId = null;
+    if (activePointer === null) return;
+    if (e) e.stopPropagation();
+    activePointer = null;
+    if (usingMouse) document.body.style.cursor = '';
+    usingMouse = false;
     knob.style.transform = 'translate(-50%,-50%)';
     onEnd();
   };
 
   el.addEventListener('touchstart', start, {passive: false});
-  el.addEventListener('touchmove',  move,  {passive: false});
-  el.addEventListener('touchend',   end);
+  el.addEventListener('touchmove', move, {passive: false});
+  el.addEventListener('touchend', end);
   el.addEventListener('touchcancel', end);
-  el.addEventListener('mousedown',  start);
-  window.addEventListener('mousemove', (e) => { if (activeId === 'mouse') move(e); });
-  window.addEventListener('mouseup',   (e) => { if (activeId === 'mouse') end(e); });
+
+  el.addEventListener('mousedown', start);
+  window.addEventListener('mousemove', (e) => {
+    if (usingMouse && activePointer === 'mouse') move(e);
+  });
+  window.addEventListener('mouseup', (e) => {
+    if (usingMouse && activePointer === 'mouse') end(e);
+  });
+
+  el.addEventListener('dragstart', e => e.preventDefault());
+  el.addEventListener('contextmenu', e => e.preventDefault());
 }
 
 setupJoystick(
@@ -529,6 +522,7 @@ function initGame(mode, difficulty) {
   state = {
     mode, difficulty,
     time: 0, wave: 1, spawnTimer: 1, bossIndex: 0, over: false,
+    bossSpawnedWave: 0,
     players: { [myId]: makePlayer(myId, currentUser) },
     enemies: [], bullets: [], ebullets: [], pickups: [],
     particles: [], beams: [], events: [],
@@ -539,6 +533,11 @@ function initGame(mode, difficulty) {
 
   if (mode === 'bot') {
     state.players['BOT'] = makeBot(difficulty);
+    
+    // BUFF NHẸ CHO PLAYER KHI ĐẤU BOT ĐỂ BẮN MƯỢT HƠN
+    state.players[myId].fireRate = 130; 
+    state.players[myId].bulletSpeed = 1300;
+    
     state.players[myId].x = -350;
     state.players['BOT'].x = 350;
     state.announce = { text: 'VS ' + BOT_CFG[difficulty].name, t: 2.5 };
@@ -548,7 +547,7 @@ function initGame(mode, difficulty) {
     document.getElementById('lvlWrapP1').style.display = 'none';
     document.getElementById('p2Hud').classList.remove('hidden');
   } else {
-    state.announce = { text: 'SÓNG 1', t: 2 };
+    state.announce = { text: 'MÀN 1', t: 2 };
     document.getElementById('modeTag').textContent = '🎯 PvE';
     document.getElementById('modeTag').style.color = '#9df3c4';
     document.getElementById('xpBarWrapP1').style.display = '';
@@ -560,6 +559,8 @@ function initGame(mode, difficulty) {
 function startGame(mode, difficulty) {
   initAudio();
   hideOverlay();
+  shakeTime = 0; shakeIntensity = 0; hitFlash = 0;
+  state = null;
   initGame(mode, difficulty);
   show('game');
   lastTime = performance.now();
@@ -579,6 +580,8 @@ document.getElementById('btnRestart').onclick = () => {
   hideOverlay();
   const mode = state ? state.mode : 'pve';
   const diff = state ? state.difficulty : null;
+  state = null;
+  shakeTime = 0; shakeIntensity = 0; hitFlash = 0;
   initGame(mode, diff);
   show('game');
   lastTime = performance.now();
@@ -588,6 +591,7 @@ function hideOverlay() { document.getElementById('overlay').classList.add('hidde
 
 /* ============ HUD ============ */
 function updateHUD(st) {
+  if (!st) return;
   const me = st.players[myId];
   if (me) {
     const maxHp = me.maxHp || 100;
@@ -629,6 +633,7 @@ const PU_LABEL = {
 };
 const PU_BAD = ['curse','slow','burn','confuse','freeze','jam'];
 function updatePowerupHUD(st) {
+  if (!st) { puHudEl.innerHTML = ''; return; }
   const me = st.players[myId];
   if (!me) { puHudEl.innerHTML = ''; return; }
   let html = '';
@@ -677,6 +682,7 @@ function pickPUType() {
   return 'health';
 }
 function spawnPowerup(x, y) {
+  if (!state) return;
   const type = pickPUType();
   const def = POWERUPS.find(p=>p.type===type) || POWERUPS[0];
   state.pickups.push({ x, y, type, color: def.color, bad: def.bad, life: 18, bob: Math.random()*Math.PI*2 });
@@ -697,6 +703,7 @@ function applyPickup(p, k) {
     case 'freeze': p.powerups.freeze = Math.min(15, p.powerups.freeze + 6); break;
     case 'jam': p.powerups.jam = Math.min(15, p.powerups.jam + 7); break;
   }
+  if (!state) return;
   state.events.push('pickup');
   spawnParticles(k.x, k.y, k.color, 15, 250);
   if (PU_BAD.includes(k.type)) { p.curseFlash = 1; state.events.push('curse'); }
@@ -704,6 +711,7 @@ function applyPickup(p, k) {
 
 /* ============ PARTICLES ============ */
 function spawnParticles(x, y, color, count, speed) {
+  if (!state) return;
   for (let i = 0; i < count; i++) {
     const a = Math.random() * TAU;
     const s = speed * (0.3 + Math.random() * 0.7);
@@ -711,6 +719,7 @@ function spawnParticles(x, y, color, count, speed) {
   }
 }
 function spawnLaser(x, y, angle, ownerId) {
+  if (!state) return;
   state.beams.push({ x, y, angle, life: 0.15, maxLife: 0.15, owner: ownerId });
   const len = 2000;
   for (const e of state.enemies) {
@@ -747,6 +756,7 @@ function spawnLaser(x, y, angle, ownerId) {
   }
 }
 function explodeBomb(x, y, ownerId) {
+  if (!state) return;
   const R = 200;
   state.beams.push({ x, y, angle: 0, life: 0.4, maxLife: 0.4, owner: ownerId, bomb: true, radius: R });
   for (let i = state.enemies.length - 1; i >= 0; i--) {
@@ -786,6 +796,7 @@ const TYPES = [
 ];
 
 function spawnEnemy() {
+  if (!state) return;
   if (state.enemies.length > 100) return;
   const margin = 100;
   const maxW = innerWidth / 2 + margin, maxH = innerHeight / 2 + margin;
@@ -822,6 +833,7 @@ function spawnEnemy() {
   });
 }
 function spawnBoss() {
+  if (!state) return;
   const type = state.bossIndex % 6; state.bossIndex++;
   const stats = [
     { hp: 720, speed: 66, r: 48, color: '#b46bff', stroke: '#6a2f9e', xp: 15 },
@@ -844,6 +856,7 @@ function spawnBoss() {
   state.events.push('pickup');
 }
 function killEnemy(e, ownerId) {
+  if (!state) return;
   const idx = state.enemies.indexOf(e);
   if (idx === -1) return;
   state.enemies.splice(idx, 1);
@@ -1002,15 +1015,22 @@ function gameLoop(now) {
   }
 
   if (isPvE) {
-    if (state.time > state.wave * 15) { state.wave++; state.events.push('pickup'); state.announce = { text: 'SÓNG ' + state.wave, t: 2 }; }
+    if (state.time > state.wave * 15) {
+      state.wave++;
+      state.events.push('pickup');
+      state.announce = { text: 'MÀN ' + state.wave, t: 2 };
+    }
     state.spawnTimer -= dt;
     if (state.spawnTimer <= 0) {
       state.spawnTimer = Math.max(0.3, 1.5 - state.wave * 0.1);
       let num = state.wave >= 10 ? 4 : state.wave >= 6 ? 3 : state.wave >= 3 ? 2 : 1;
       for (let i=0; i<num; i++) spawnEnemy();
     }
-    if (state.wave % 3 === 0 && !state.enemies.some(e=>e.isBoss) && state.time > state.wave*15 - 1) {
-      spawnBoss(); state.announce = { text: 'BOSS XUẤT HIỆN!', t: 2.5 };
+    if (state.wave % 3 === 0 && state.bossSpawnedWave !== state.wave &&
+        !state.enemies.some(e=>e.isBoss) && state.time > state.wave*15 - 1) {
+      spawnBoss();
+      state.bossSpawnedWave = state.wave;
+      state.announce = { text: 'BOSS XUẤT HIỆN!', t: 2.5 };
     }
   }
 
@@ -1055,8 +1075,9 @@ function gameLoop(now) {
     let fireRate = p.fireRate;
     if (p.powerups.jam > 0) fireRate *= 2.0;
 
-    if (p.input.shoot && (!p.lastShoot || now - p.lastShoot > fireRate)) {
-      p.lastShoot = now;
+    // SỬA LỖI BẮN CHẬM: Dùng state.time để đồng bộ logic cooldown chính xác
+    if (p.input.shoot && (!p.lastShoot || state.time - p.lastShoot > fireRate / 1000)) {
+      p.lastShoot = state.time;
       let dmg = p.damage;
       if (p.powerups.pierce > 0) dmg += 10;
       if (p.powerups.curse > 0) dmg *= 0.8;
@@ -1066,11 +1087,11 @@ function gameLoop(now) {
         const a = p.aim + off;
         state.bullets.push({ x: p.x + Math.cos(a) * 30, y: p.y + Math.sin(a) * 30, vx: Math.cos(a) * p.bulletSpeed, vy: Math.sin(a) * p.bulletSpeed, life: 1.2, owner: id, dmg, pierce, hitSet: [] });
       }
-      if (p.powerups.laser > 0 && (!p.lastLaser || now - p.lastLaser > 400)) {
-        p.lastLaser = now; spawnLaser(p.x, p.y, p.aim, id); state.events.push('laser');
+      if (p.powerups.laser > 0 && (!p.lastLaser || state.time - p.lastLaser > 0.4)) {
+        p.lastLaser = state.time; spawnLaser(p.x, p.y, p.aim, id); state.events.push('laser');
       }
-      if (p.powerups.bomb > 0 && (!p.lastBomb || now - p.lastBomb > 800)) {
-        p.lastBomb = now;
+      if (p.powerups.bomb > 0 && (!p.lastBomb || state.time - p.lastBomb > 0.8)) {
+        p.lastBomb = state.time;
         const tx = p.x + Math.cos(p.aim) * 260, ty = p.y + Math.sin(p.aim) * 260;
         explodeBomb(tx, ty, id);
       }
@@ -1233,8 +1254,12 @@ function gameLoop(now) {
   }
 
   state.events.forEach(e => {
-    if (e && e.type === 'hurt') { playSound('hurt'); if (e.target === myId) triggerHitEffect(); }
-    else if (typeof e === 'string') playSound(e);
+    if (e && typeof e === 'object' && e.type === 'hurt') {
+      playSound('hurt');
+      if (e.target === myId) triggerHitEffect();
+    } else if (typeof e === 'string') {
+      playSound(e);
+    }
   });
   state.events = [];
 
@@ -1250,8 +1275,7 @@ function showOverlay(title, color, p1, p2) {
   document.getElementById('ovP1').innerHTML = p1;
   document.getElementById('ovP2').innerHTML = p2;
   document.getElementById('overlay').classList.remove('hidden');
-  updateHUD(state);
-  drawGame(state);
+  if (state) { updateHUD(state); drawGame(state); }
 }
 
 /* ============ INPUT ============ */
@@ -1260,18 +1284,23 @@ const mouse = { x: innerWidth / 2, y: innerHeight / 2, down: false };
 addEventListener('keydown', e => { keys[e.key.toLowerCase()] = true; });
 addEventListener('keyup', e => { keys[e.key.toLowerCase()] = false; });
 canvasEl.addEventListener('mousemove', e => { mouse.x = e.clientX; mouse.y = e.clientY; });
-canvasEl.addEventListener('mousedown', e => { mouse.down = true; });
+canvasEl.addEventListener('mousedown', e => {
+  if (e.target.closest && e.target.closest('.joystick')) return;
+  mouse.down = true;
+});
 addEventListener('mouseup', e => { mouse.down = false; });
 canvasEl.addEventListener('contextmenu', e => e.preventDefault());
 
 function getInputs() {
   let mx = 0, my = 0;
+
   if (keys['a'] || keys['arrowleft']) mx--;
   if (keys['d'] || keys['arrowright']) mx++;
   if (keys['w'] || keys['arrowup']) my--;
   if (keys['s'] || keys['arrowdown']) my++;
-  mx += touch.moveX;
-  my += touch.moveY;
+
+  if (touch.moveActive) { mx = touch.moveX; my = touch.moveY; }
+
   const len = Math.hypot(mx, my);
   if (len > 1) { mx /= len; my /= len; }
 
@@ -1280,7 +1309,7 @@ function getInputs() {
     aim = Math.atan2(touch.aimY, touch.aimX);
     shoot = touch.shooting;
   } else {
-    aim = Math.atan2(mouse.y - innerHeight / 2, mouse.x - innerWidth / 2);
+    aim = Math.atan2(mouse.y - H / 2, mouse.x - W / 2);
     shoot = mouse.down || keys[' '];
   }
   return { x: mx, y: my, aim, shoot };
@@ -1296,6 +1325,7 @@ function resize() {
   canvasEl.width = Math.floor(W * DPR); canvasEl.height = Math.floor(H * DPR);
   canvasEl.style.width = W + 'px'; canvasEl.style.height = H + 'px';
   ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+  mouse.x = W / 2; mouse.y = H / 2;
 }
 addEventListener('resize', resize); resize();
 
@@ -1414,9 +1444,9 @@ function drawPickup(k) {
   ctx.restore();
 }
 
-function drawEnemy(e, st) {
+function drawEnemy(e, st, targetPlayer) {
   const t = st.time;
-  const p = Object.values(st.players).find(pp => pp.hp > 0) || st.players[myId];
+  const p = targetPlayer;
   ctx.save();
   ctx.translate(e.x, e.y);
   const spawnScale = e.spawnAnim > 0 ? Math.max(0.05, 1 - e.spawnAnim / 0.8) : 1;
@@ -1668,6 +1698,7 @@ function drawBotIndicator(st) {
   const bot = st.players['BOT'];
   const me = st.players[myId];
   if (!bot || bot.hp <= 0 || !me || me.hp <= 0) return;
+  if (!isFinite(cam.x) || !isFinite(cam.y)) return;
 
   const botSX = bot.x - cam.x + W / 2;
   const botSY = bot.y - cam.y + H / 2;
@@ -1743,6 +1774,7 @@ function drawBotIndicator(st) {
 }
 
 function drawGame(st) {
+  if (!st) return;
   ctx.clearRect(0, 0, W, H);
   const me = st.players[myId];
   if (!me) return;
@@ -1767,7 +1799,8 @@ function drawGame(st) {
   if (st.arena) drawArena(st.arena);
   for (const k of st.pickups) drawPickup(k);
   drawBeams(st);
-  for (const e of st.enemies) drawEnemy(e, st);
+  const targetPlayer = Object.values(st.players).find(pp => pp.hp > 0) || st.players[myId];
+  for (const e of st.enemies) drawEnemy(e, st, targetPlayer);
   drawBullets(st);
   drawEBullets(st);
   for (const id in st.players) drawPlayer(st.players[id], id === myId, st);
