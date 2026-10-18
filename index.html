@@ -190,6 +190,12 @@
     display:flex;align-items:center;justify-content:center;
     color:#fff;
   }
+  @media (max-height: 700px) {
+    #skillBar { bottom: 180px; gap: 6px; }
+    .skill-btn { width: 48px; height: 48px; font-size: 16px; }
+    .skill-btn .hotkey { width: 15px; height: 15px; font-size: 8px; top: -5px; right: -5px; }
+    .skill-btn .cd-overlay { font-size: 13px; }
+  }
 
   #enemiesLeftBox{
     position: fixed; top: 16px; right: 16px; z-index: 10; pointer-events: none;
@@ -254,7 +260,8 @@
     <button class="btn-diff" style="background:#2a0010;border-color:#ff4d6d;color:#ff8a9a" data-boss="3">🩸 BOSS HÚT MÁU</button>
     <button class="btn-diff" style="background:#2a0020;border-color:#ff66b2;color:#ffb0d4" data-boss="4">🧬 BOSS PHÂN THÂN</button>
     <button class="btn-diff" style="background:#2a2400;border-color:#ffdd00;color:#fff3a0" data-boss="5">⚡ BOSS LAZE</button>
-    <button class="btn-diff" style="background:#4a0a20;border-color:#ff0055;color:#ffb0d4" data-boss="all">💥 TẤT CẢ 6 BOSS</button>
+    <button class="btn-diff" style="background:#0a2a00;border-color:#88ff00;color:#d4ffaa" data-boss="6">☢ BOSS HẠT NHÂN</button>
+    <button class="btn-diff" style="background:#4a0a20;border-color:#ff0055;color:#ffb0d4" data-boss="all">💥 TẤT CẢ 7 BOSS</button>
     <button class="btn-diff" style="background:#1a1a1a;border-color:#888;color:#ccc" id="btnBackMenu">← QUAY LẠI</button>
   </div>
 </div>
@@ -300,7 +307,7 @@
 
 <div id="skillBar" class="hidden"></div>
 
-<div id="aimHint" class="hidden">🖱️ Di chuột để ngắm • Giữ chuột trái để bắn • Phím <b>WASD</b> di chuyển • <b>1-6</b> kỹ năng</div>
+<div id="aimHint" class="hidden">🖱️ Di chuột để ngắm • Giữ chuột trái để bắn • Phím <b>WASD</b> di chuyển • <b>1-7</b> kỹ năng</div>
 
 <div id="devPanel" class="hidden" style="position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);z-index:60;background:rgba(10,20,26,0.97);border:2px solid #b46bff;border-radius:14px;padding:18px 20px;width:min(360px,92vw);box-shadow:0 0 40px rgba(180,107,255,0.5);display:flex;flex-direction:column;gap:12px;max-height:90vh;overflow-y:auto">
   <div style="font-size:15px;font-weight:800;letter-spacing:2px;color:#e0c6ff;text-align:center;margin-bottom:4px">⚙️ DEV PANEL</div>
@@ -350,8 +357,9 @@
       <button class="dv-spawn-boss" data-boss="3" style="padding:8px 4px;background:#2a0010;border:1px solid #ff4d6d;color:#ff8a9a;border-radius:6px;cursor:pointer;font-size:11px;font-weight:800">🩸 MÁU</button>
       <button class="dv-spawn-boss" data-boss="4" style="padding:8px 4px;background:#2a0020;border:1px solid #ff66b2;color:#ffb0d4;border-radius:6px;cursor:pointer;font-size:11px;font-weight:800">🧬 THÂN</button>
       <button class="dv-spawn-boss" data-boss="5" style="padding:8px 4px;background:#2a2400;border:1px solid #ffdd00;color:#fff3a0;border-radius:6px;cursor:pointer;font-size:11px;font-weight:800">⚡ LAZE</button>
+      <button class="dv-spawn-boss" data-boss="6" style="padding:8px 4px;background:#0a2a00;border:1px solid #88ff00;color:#d4ffaa;border-radius:6px;cursor:pointer;font-size:11px;font-weight:800;grid-column:span 3">☢ HẠT NHÂN</button>
     </div>
-    <button id="dvSpawnAllBoss" style="width:100%;margin-top:6px;padding:8px;background:#4a0a20;border:1px solid #ff0055;color:#ffb0d4;border-radius:6px;cursor:pointer;font-size:11px;font-weight:800">💥 SPAWN TẤT CẢ 6 BOSS</button>
+    <button id="dvSpawnAllBoss" style="width:100%;margin-top:6px;padding:8px;background:#4a0a20;border:1px solid #ff0055;color:#ffb0d4;border-radius:6px;cursor:pointer;font-size:11px;font-weight:800">💥 SPAWN TẤT CẢ 7 BOSS</button>
   </div>
 
   <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:4px">
@@ -413,7 +421,6 @@ function hexA(hex, a) {
 const canvasEl = document.getElementById('game');
 const ctx = canvasEl.getContext('2d');
 let W = innerWidth, H = innerHeight;
-// DPR thấp hơn cho màn hình lớn → giảm fillrate
 const DPR = Math.min(
   devicePixelRatio || 1,
   (innerWidth > 2000 || innerHeight > 1400) ? 1 : 1.5
@@ -805,6 +812,7 @@ const BOSS_SKILLS = [
   { key: 'drain',     name: 'HÚT MÁU',   color: '#ff4d6d', icon: '🩸', cd: 14, cost: 25, desc: 'Hút máu quái xung quanh' },
   { key: 'split',     name: 'PHÂN THÂN', color: '#ff66b2', icon: '🧬', cd: 18, cost: 30, desc: 'Triệu hồi 2 quái nhỏ' },
   { key: 'laserbeam', name: 'TIA LAZE',  color: '#ffdd00', icon: '⚡', cd: 14, cost: 30, desc: 'Bắn tia laze xuyên toàn map' },
+  { key: 'nuke',      name: 'BOM HẠT NHÂN', color: '#88ff00', icon: '☢', cd: 20, cost: 40, desc: 'Đặt bom hạt nhân sau 3s' },
 ];
 const SKILL_DROP_CHANCE = 0.5;
 
@@ -879,7 +887,9 @@ function initGame(mode, difficulty) {
     respawnTimer: 0,
     godMode: false,
     testTrashTimer: 0,
-    bossRespawns: []
+    bossRespawns: [],
+    nukeStrikes: [],
+    lastBossType: -1
   };
 
   if (mode === 'bot') {
@@ -928,7 +938,13 @@ function buildWaveQueue(wave) {
     queue.push(idx);
   }
 
-  const hasBoss = (wave % 3 === 0);
+  // Boss xuất hiện ngẫu nhiên từ màn 3 trở đi
+  let hasBoss = false;
+  if (wave >= 3) {
+    const bossChance = Math.min(0.45, 0.15 + (wave - 2) * 0.03);
+    hasBoss = Math.random() < bossChance;
+    if (wave % 5 === 0) hasBoss = true;
+  }
   return { queue, hasBoss };
 }
 
@@ -1006,6 +1022,7 @@ const BOSS_TYPES = [
   { name: 'HÚT MÁU',   color: '#ff4d6d', stroke: '#8a1f35', r: 48, hp: 1750, speed: 68, dmg: 18, xp: 30, skillKey: 'drain' },
   { name: 'PHÂN THÂN', color: '#ff66b2', stroke: '#8a1f4d', r: 52, hp: 2000, speed: 62, dmg: 24, xp: 30, skillKey: 'split' },
   { name: 'LAZE',      color: '#ffdd00', stroke: '#a08a00', r: 50, hp: 1900, speed: 58, dmg: 26, xp: 30, skillKey: 'laserbeam' },
+  { name: 'HẠT NHÂN',  color: '#88ff00', stroke: '#446600', r: 52, hp: 2000, speed: 55, dmg: 30, xp: 35, skillKey: 'nuke' },
 ];
 
 function getBossLevel() {
@@ -1019,8 +1036,17 @@ function getBossLevel() {
 
 function spawnBossInArena(bossType) {
   if (!state) return;
-  const type = (typeof bossType === 'number') ? bossType : (state.bossIndex % BOSS_TYPES.length);
-  if (typeof bossType !== 'number') state.bossIndex++;
+  let type;
+  if (typeof bossType === 'number') {
+    type = bossType;
+  } else {
+    // Random boss type — tránh lặp boss trước
+    type = Math.floor(Math.random() * BOSS_TYPES.length);
+    if (type === state.lastBossType && BOSS_TYPES.length > 1) {
+      type = (type + 1 + Math.floor(Math.random() * (BOSS_TYPES.length - 1))) % BOSS_TYPES.length;
+    }
+    state.lastBossType = type;
+  }
   const s = BOSS_TYPES[type];
   const me = state.players[myId];
   if (!me) return;
@@ -1066,6 +1092,7 @@ function spawnBossInArena(bossType) {
     _laserCd: rand(4, 6),
     _contactCd: 0, _burstCd: rand(2.5, 3.5),
     _snipeCd: rand(1.5, 2.5), _spawnCd: rand(5, 6), _teleportCd: rand(4, 5),
+    _nukeCd: rand(4, 6),
     _uid: 'BOSS_' + Math.floor(Math.random() * 1e9)
   });
   state.bossAlive = true;
@@ -1274,6 +1301,17 @@ function triggerSkill(skillKey) {
     spawnParticles(me.x, me.y, '#ffdd00', 40, 450);
     shakeTime = 0.4; shakeIntensity = 18;
     state.announce = { text: '⚡ TIA LAZE!', t: 1.2 };
+  } else if (skillKey === 'nuke') {
+    const nx = me.x + Math.cos(aim) * 350;
+    const ny = me.y + Math.sin(aim) * 350;
+    state.nukeStrikes.push({
+      x: nx, y: ny, radius: 250,
+      timer: 3.0, maxTimer: 3.0,
+      owner: myId, isPlayer: true
+    });
+    playSound('charge');
+    spawnParticles(nx, ny, '#88ff00', 15, 250);
+    state.announce = { text: '☢ BOM HẠT NHÂN ĐÃ ĐẶT!', t: 1.2 };
   }
 
   updateSkillCooldownUI();
@@ -1304,6 +1342,8 @@ function startBossTest(bossType) {
   state.pickups = [];
   state.particles = [];
   state.beams = [];
+  state.nukeStrikes = [];
+  state.lastBossType = -1;
   state.arena = { w: 2600, h: 2600 };
   state.testTrashTimer = 0.5;
   state.bossRespawns = [];
@@ -1479,6 +1519,7 @@ document.getElementById('dvResetBoss').onclick = () => {
   if (!state || !state.isBossTest) return;
   state.enemies = [];
   state.ebullets = [];
+  state.nukeStrikes = [];
   state.bossRespawns = [];
   state.respawningBoss = false;
   state.respawnTimer = 0;
@@ -2349,6 +2390,49 @@ function updateBoss(e, target, dt, st) {
         e._laserCd = rand(3.5, 5);
       }
     }
+  } else if (e.bossType === 6) {
+    // === BOSS HẠT NHÂN ===
+    if (d > 420) { e.x += ux * e.speed * dt; e.y += uy * e.speed * dt; }
+    else if (d < 300) { e.x -= ux * e.speed * 0.6 * dt; e.y -= uy * e.speed * 0.6 * dt; }
+    else {
+      const strafe = Math.sin(st.time * 0.7);
+      e.x += -uy * strafe * e.speed * 0.4 * dt;
+      e.y += ux * strafe * e.speed * 0.4 * dt;
+    }
+    e.x = clamp(e.x, -hw, hw); e.y = clamp(e.y, -hh, hh);
+
+    // Bắn đạn thường
+    e._snipeCd = (e._snipeCd || 2) - dt;
+    if (e._snipeCd <= 0 && d < 900) {
+      e._snipeCd = rand(1.0, 1.6);
+      if (st.ebullets.length < MAX_EBULLETS - 5) {
+        const baseA = Math.atan2(dy, dx);
+        for (let k = -1; k <= 1; k++) {
+          const a = baseA + k * 0.22;
+          st.ebullets.push({
+            x: e.x, y: e.y,
+            vx: Math.cos(a) * 400, vy: Math.sin(a) * 400,
+            r: 8, dmg: Math.floor(e.dmg * 0.5),
+            life: 2.5, color: '#88ff00'
+          });
+        }
+      }
+      playSound('shoot');
+    }
+
+    // Đặt bom hạt nhân tại vị trí player
+    if (typeof e._nukeCd !== 'number') e._nukeCd = rand(4, 6);
+    e._nukeCd -= dt;
+    if (e._nukeCd <= 0) {
+      e._nukeCd = rand(6, 9);
+      st.nukeStrikes.push({
+        x: target.x, y: target.y, radius: 220,
+        timer: 3.0, maxTimer: 3.0,
+        owner: 'BOSS', isPlayer: false
+      });
+      playSound('charge');
+      st.announce = { text: '☢ BOM HẠT NHÂN! CHẠY MAU!', t: 1.5 };
+    }
   }
 }
 function computeBotInput(bot, player, pvx, pvy) {
@@ -2906,7 +2990,6 @@ function gameLoop(now) {
   }
 
   if (isPvE) {
-    // Reverse iteration — không tạo slice() mỗi frame
     for (let ei = state.enemies.length - 1; ei >= 0; ei--) {
       const e = state.enemies[ei];
       if (!e) continue;
@@ -3077,6 +3160,68 @@ function gameLoop(now) {
     }
   }
 
+  // ==== NUKE STRIKES UPDATE ====
+  if (state.nukeStrikes && state.nukeStrikes.length > 0) {
+    for (let i = state.nukeStrikes.length - 1; i >= 0; i--) {
+      const ns = state.nukeStrikes[i];
+      ns.timer -= dt;
+      if (ns.timer > 0) continue;
+
+      const R = ns.radius;
+      const knockR = R * 2.2;
+
+      if (ns.isPlayer) {
+        // Player nuke → damage enemies
+        for (let j = state.enemies.length - 1; j >= 0; j--) {
+          const e = state.enemies[j];
+          if (e.isAlly) continue;
+          if (dist(e.x, e.y, ns.x, ns.y) < R + e.r) {
+            e.hp -= 500;
+            e.hitFlash = 0.3;
+            spawnParticles(e.x, e.y, '#88ff00', 12, 400);
+            if (e.hp <= 0) killEnemy(e, ns.owner);
+          }
+        }
+      } else {
+        // Boss nuke → kill / knockback players
+        for (const pid in state.players) {
+          const p = state.players[pid];
+          if (p.hp <= 0) continue;
+          const dd = dist(p.x, p.y, ns.x, ns.y);
+          if (dd < R) {
+            if (state.godMode && pid === myId) {
+              spawnParticles(p.x, p.y, '#88ff00', 8, 200);
+            } else {
+              p.hp = 0;
+              state.events.push({ type: 'hurt', target: pid });
+              spawnParticles(p.x, p.y, '#88ff00', 30, 600);
+            }
+          } else if (dd < knockR) {
+            const nx = (p.x - ns.x) / (dd || 1);
+            const ny = (p.y - ns.y) / (dd || 1);
+            const force = 3500 * (1 - dd / knockR);
+            p.knockbackX = (p.knockbackX || 0) + nx * force;
+            p.knockbackY = (p.knockbackY || 0) + ny * force;
+            spawnParticles(p.x, p.y, '#88ff00', 10, 300);
+            state.events.push({ type: 'hurt', target: pid });
+          }
+        }
+      }
+
+      // Visual shockwave
+      state.beams.push({
+        x: ns.x, y: ns.y, angle: 0,
+        life: 0.8, maxLife: 0.8,
+        owner: ns.owner, shockwave: true, radius: R * 1.6
+      });
+      spawnParticles(ns.x, ns.y, '#88ff00', 40, 700);
+      playSound('boom');
+      shakeTime = 0.6; shakeIntensity = 30;
+
+      state.nukeStrikes.splice(i, 1);
+    }
+  }
+
   for (let i = state.pickups.length - 1; i >= 0; i--) {
     const k = state.pickups[i];
     if (isFinite(k.life)) k.life -= dt;
@@ -3210,8 +3355,9 @@ function getDigitFromEvent(e) {
   if (code === 'Digit4' || code === 'Numpad4') return 4;
   if (code === 'Digit5' || code === 'Numpad5') return 5;
   if (code === 'Digit6' || code === 'Numpad6') return 6;
+  if (code === 'Digit7' || code === 'Numpad7') return 7;
   const n = parseInt(e.key || '', 10);
-  return (n >= 1 && n <= 6) ? n : 0;
+  return (n >= 1 && n <= 7) ? n : 0;
 }
 
 addEventListener('keydown', e => {
@@ -3536,6 +3682,18 @@ function drawBossAura(e, st) {
     ctx.beginPath();
     ctx.arc(0, 0, e.r + 12, 0, TAU);
     ctx.stroke();
+    ctx.restore();
+  }
+  if (e.bossType === 6) {
+    ctx.save();
+    ctx.globalAlpha = 0.35 + 0.25 * Math.sin(performance.now() * 0.008);
+    ctx.strokeStyle = '#88ff00';
+    ctx.shadowColor = '#88ff00';
+    ctx.shadowBlur = 18;
+    ctx.lineWidth = 3;
+    ctx.setLineDash([10, 8]);
+    ctx.beginPath(); ctx.arc(0, 0, e.r + 14, 0, TAU); ctx.stroke();
+    ctx.setLineDash([]);
     ctx.restore();
   }
 }
@@ -3940,6 +4098,17 @@ function drawBeams(st) {
       grad.addColorStop(1, 'rgba(255, 50, 50, 0)');
       ctx.fillStyle = grad;
       ctx.beginPath(); ctx.arc(bm.x, bm.y, rr2, 0, TAU); ctx.fill();
+    } else if (bm.shockwave) {
+      const tt = 1 - bm.life / bm.maxLife;
+      ctx.globalAlpha = (1 - tt) * 0.95;
+      ctx.strokeStyle = '#88ff00';
+      ctx.shadowColor = '#88ff00';
+      ctx.shadowBlur = 28;
+      ctx.lineWidth = 12 * (1 - tt);
+      ctx.beginPath(); ctx.arc(bm.x, bm.y, bm.radius * tt, 0, TAU); ctx.stroke();
+      ctx.globalAlpha = (1 - tt) * 0.35;
+      ctx.fillStyle = '#88ff00';
+      ctx.beginPath(); ctx.arc(bm.x, bm.y, bm.radius * tt, 0, TAU); ctx.fill();
     } else if (bm.wideLaser) {
       ctx.globalAlpha = a;
       ctx.translate(bm.x, bm.y);
@@ -4065,6 +4234,57 @@ function drawParticles(st) {
   }
   ctx.globalAlpha = 1;
 }
+function drawNukeWarnings(st) {
+  if (!st.nukeStrikes || st.nukeStrikes.length === 0) return;
+  for (const ns of st.nukeStrikes) {
+    const t = 1 - ns.timer / ns.maxTimer;
+    const pulse = 1 + Math.sin(performance.now() * 0.015) * 0.08;
+
+    ctx.save();
+
+    const grad = ctx.createRadialGradient(ns.x, ns.y, 0, ns.x, ns.y, ns.radius);
+    grad.addColorStop(0, 'rgba(136,255,0,0.45)');
+    grad.addColorStop(0.7, 'rgba(136,255,0,0.15)');
+    grad.addColorStop(1, 'rgba(136,255,0,0.05)');
+    ctx.fillStyle = grad;
+    ctx.globalAlpha = 0.6 + 0.25 * Math.sin(performance.now() * 0.02);
+    ctx.beginPath(); ctx.arc(ns.x, ns.y, ns.radius, 0, TAU); ctx.fill();
+
+    ctx.globalAlpha = 0.95;
+    ctx.strokeStyle = '#88ff00';
+    ctx.shadowColor = '#88ff00';
+    ctx.shadowBlur = 22;
+    ctx.lineWidth = 4;
+    ctx.setLineDash([14, 8]);
+    ctx.lineDashOffset = -performance.now() * 0.05;
+    ctx.beginPath(); ctx.arc(ns.x, ns.y, ns.radius * pulse, 0, TAU); ctx.stroke();
+    ctx.setLineDash([]);
+
+    ctx.shadowBlur = 0;
+    ctx.globalAlpha = 0.5;
+    ctx.fillStyle = 'rgba(136,255,0,' + (t * 0.4) + ')';
+    ctx.beginPath(); ctx.arc(ns.x, ns.y, ns.radius * t, 0, TAU); ctx.fill();
+
+    ctx.globalAlpha = 1;
+    ctx.fillStyle = '#88ff00';
+    ctx.shadowColor = '#88ff00';
+    ctx.shadowBlur = 25;
+    ctx.font = 'bold 48px system-ui';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText('☢', ns.x, ns.y);
+
+    ctx.font = 'bold 26px system-ui';
+    ctx.shadowBlur = 15;
+    ctx.fillStyle = '#fff';
+    ctx.strokeStyle = '#000';
+    ctx.lineWidth = 4;
+    ctx.strokeText(Math.ceil(ns.timer) + 's', ns.x, ns.y + 50);
+    ctx.fillText(Math.ceil(ns.timer) + 's', ns.x, ns.y + 50);
+
+    ctx.restore();
+  }
+}
 function drawBotIndicator(st) {
   if (st.mode === 'bot') {
     const bot = st.players['BOT'];
@@ -4130,9 +4350,9 @@ function drawGame(st) {
 
   drawMap();
   if (st.arena) drawArena(st.arena);
+  if (st.nukeStrikes) drawNukeWarnings(st);
   for (const k of st.pickups) drawPickup(k);
   drawBeams(st);
-  // Cache targetPlayer, không Object.values mỗi frame
   let targetPlayer = null;
   for (const pid in st.players) {
     const pp = st.players[pid];
