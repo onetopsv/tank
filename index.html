@@ -67,9 +67,8 @@
 
   #bossTestMenu button { padding: 14px 10px; font-size: 13px; font-weight: 800; letter-spacing: 1px; }
 
-  #hud{position:fixed;inset:0;pointer-events:none;padding:18px;
-    display:flex;justify-content:flex-end;align-items:flex-start;
-    text-shadow:0 2px 8px #000;font-weight:700}
+  #hud{position:fixed;inset:0;pointer-events:none;z-index:45;
+    font-weight:700;text-shadow:0 2px 8px #000}
 
   #hudLeft{position:fixed;
     left:20px;
@@ -114,8 +113,10 @@
     border:1px solid #26485a;overflow:hidden;margin-top:4px}
   .xpFill{height:100%;width:0%;background:linear-gradient(90deg,#ffd93d,#ff8c1a);transition:width .2s}
   .lvlText{font-size:11px;margin-top:2px;color:#ffd93d;letter-spacing:1px}
-  #scoreBox{text-align:right;font-size:12px;letter-spacing:2px;line-height:1.8;opacity:.9;
-    margin-top:78px}
+
+  #scoreBox{position:absolute;top:96px;right:18px;
+    text-align:right;font-size:12px;letter-spacing:2px;line-height:1.8;opacity:.9;
+    pointer-events:none}
   #scoreBox b{font-size:22px;color:#9df3c4;display:block}
   #modeTag{color:#ff8a9a;font-size:14px;letter-spacing:2px;display:block;
     margin-bottom:8px;font-weight:800}
@@ -127,6 +128,7 @@
     padding:8px 12px;border-radius:8px;background:#0e1a20;color:#9df3c4;
     border:2px solid #2ee07a;font-size:11px;font-weight:800;letter-spacing:2px}
   #btnSettings:hover{background:#12463a}
+
   #powerupHud{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);
     display:flex;gap:8px;flex-wrap:wrap;justify-content:center;
     pointer-events:none;z-index:30;max-width:60vw}
@@ -259,7 +261,6 @@
     background:rgba(8,16,22,0.92);
     box-shadow:0 0 20px rgba(46,224,122,0.35), inset 0 0 20px rgba(46,224,122,0.08);
   }
-  body.mini-right #enemiesLeftBox{ right: auto; left: 16px; }
 
   #settingsPanel .st-row{display:flex;flex-direction:column;gap:2px;font-size:12px;color:#cfe9d8;letter-spacing:.5px}
   #settingsPanel .st-row.row{flex-direction:row;justify-content:space-between;align-items:center;gap:8px}
@@ -291,6 +292,66 @@
     color:#9df3c4;border-radius:6px;font-size:11px;font-weight:800;cursor:pointer;transition:.15s}
   .st-btns button.active{background:#2ee07a;color:#04140c;border-color:#2ee07a}
   .st-btns button:hover{border-color:#2ee07a}
+  .st-wide-btn{padding:12px;border-radius:8px;font-size:12px;font-weight:800;letter-spacing:1px;
+    cursor:pointer;border:2px solid;width:100%;transition:.15s}
+  .st-wide-btn:hover{transform:scale(1.02)}
+
+  #uiEditor {
+    position: fixed; inset: 0; z-index: 5;
+    background: rgba(0, 0, 0, 0.62);
+    pointer-events: auto;
+  }
+  #uiEditor .ue-toolbar {
+    position: absolute; bottom: 12px; left: 50%; transform: translateX(-50%);
+    background: rgba(10, 20, 26, 0.97);
+    border: 2px solid #2ee07a;
+    border-radius: 12px;
+    padding: 10px 14px;
+    display: flex; flex-direction: column; gap: 8px; align-items: center;
+    text-align: center; pointer-events: auto;
+    max-width: 380px; width: min(380px, 94vw);
+    box-shadow: 0 0 30px rgba(46,224,122,0.5);
+    z-index: 1000;
+  }
+  #uiEditor .ue-hint { font-size: 11px; color: #9df3c4; letter-spacing: 1px; line-height: 1.5; }
+  #uiEditor .ue-buttons { display: flex; gap: 8px; width: 100%; }
+  #uiEditor .ue-btn {
+    flex: 1; padding: 10px 8px; border-radius: 8px;
+    font-size: 11px; font-weight: 800; letter-spacing: 1px; cursor: pointer;
+    border: 2px solid; transition: .15s;
+  }
+  #uiEditor .ue-save { background: #0e2a1e; border-color: #2ee07a; color: #9df3c4; }
+  #uiEditor .ue-save:hover { background: #2ee07a; color: #04140c; }
+  #uiEditor .ue-reset { background: #2a1800; border-color: #ff8c1a; color: #ffd93d; }
+  #uiEditor .ue-reset:hover { background: #ff8c1a; color: #1a0e00; }
+  #uiEditor .ue-cancel { background: #3a1020; border-color: #ff5b6e; color: #ff8a9a; }
+  #uiEditor .ue-cancel:hover { background: #ff5b6e; color: #1a0410; }
+
+  .ui-editable {
+    outline: 2px dashed #2ee07a !important;
+    outline-offset: 3px !important;
+    cursor: move !important;
+    pointer-events: auto !important;
+    user-select: none;
+    touch-action: none;
+  }
+  .ui-editable::before {
+    content: attr(data-editor-label);
+    position: absolute;
+    top: -22px;
+    left: 0;
+    font-size: 9px;
+    font-weight: 900;
+    letter-spacing: 1px;
+    color: #9df3c4;
+    background: #0a141a;
+    border: 1px solid #2ee07a;
+    padding: 2px 6px;
+    border-radius: 4px;
+    white-space: nowrap;
+    pointer-events: none;
+    z-index: 9999;
+  }
 </style>
 </head>
 <body>
@@ -322,7 +383,7 @@
     <button id="btnInsane" class="btn-diff insane">💀 SIÊU KHÓ</button>
   </div>
   <button id="btnChangeName" class="btn-change-name">✏️ ĐỔI TÊN</button>
-  <button id="btnSettingsMenu" class="btn-change-name" style="background:#0e2a1e;border-color:#2ee07a;color:#9df3c4">⚙ CÀI ĐẶT GIAO DIỆN</button>
+  <button id="btnSettingsMenu" class="btn-change-name" style="background:#0e2a1e;border-color:#2ee07a;color:#9df3c4">⚙ CÀI ĐẶT</button>
   <button id="btnTestBoss" class="btn-change-name" style="margin-top:14px;background:#2a1030;border-color:#b46bff;color:#e0c6ff">🧪 TEST BOSS</button>
   <div id="bossTestMenu" class="hidden" style="display:flex;flex-direction:column;gap:10px;width:min(340px,92vw);margin-top:8px">
     <button class="btn-diff" style="background:#2a1030;border-color:#b46bff;color:#e0c6ff" data-boss="0">🐂 BOSS BÒ (CHARGE)</button>
@@ -451,7 +512,9 @@
 <button id="dvOpen" class="hidden" style="position:fixed;top:70px;right:16px;z-index:59;padding:8px 14px;background:#2a1030;border:2px solid #b46bff;color:#e0c6ff;border-radius:8px;cursor:pointer;font-size:12px;font-weight:800">⚙️ DEV</button>
 
 <div id="settingsPanel" class="hidden" style="position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);z-index:75;background:rgba(10,20,26,0.98);border:2px solid #2ee07a;border-radius:14px;padding:18px 20px;width:min(380px,94vw);box-shadow:0 0 40px rgba(46,224,122,0.5);display:flex;flex-direction:column;gap:10px;max-height:92vh;overflow-y:auto">
-  <div style="font-size:15px;font-weight:800;letter-spacing:2px;color:#9df3c4;text-align:center;margin-bottom:4px">⚙️ CÀI ĐẶT GIAO DIỆN</div>
+  <div style="font-size:15px;font-weight:800;letter-spacing:2px;color:#9df3c4;text-align:center;margin-bottom:4px">⚙️ CÀI ĐẶT</div>
+
+  <button id="stEditLayout" class="st-wide-btn" style="background:#2a1030;border-color:#b46bff;color:#e0c6ff">🎨 CHỈNH VỊ TRÍ GIAO DIỆN</button>
 
   <div class="st-row">
     <div class="st-label"><span>Kích thước minimap</span><span class="st-val" id="vMiniSize">170px</span></div>
@@ -459,36 +522,8 @@
   </div>
 
   <div class="st-row">
-    <div class="st-label"><span>Minimap — khoảng cách ngang</span><span class="st-val" id="vMiniX">20px</span></div>
-    <input type="range" id="rMiniX" min="0" max="500" step="1" value="20">
-  </div>
-
-  <div class="st-row">
-    <div class="st-label"><span>Minimap — khoảng cách dọc</span><span class="st-val" id="vMiniY">20px</span></div>
-    <input type="range" id="rMiniY" min="0" max="500" step="1" value="20">
-  </div>
-
-  <div class="st-row row">
-    <span>Minimap nằm bên</span>
-    <div class="st-btns">
-      <button data-set="miniCorner" data-val="left">TRÁI</button>
-      <button data-set="miniCorner" data-val="right">PHẢI</button>
-    </div>
-  </div>
-
-  <div class="st-row">
     <div class="st-label"><span>Kích thước joystick</span><span class="st-val" id="vJoySize">140px</span></div>
     <input type="range" id="rJoySize" min="80" max="240" step="1" value="140">
-  </div>
-
-  <div class="st-row">
-    <div class="st-label"><span>Joystick — cách đáy</span><span class="st-val" id="vJoyBottom">30px</span></div>
-    <input type="range" id="rJoyBottom" min="5" max="300" step="1" value="30">
-  </div>
-
-  <div class="st-row">
-    <div class="st-label"><span>Joystick — cách cạnh</span><span class="st-val" id="vJoyEdge">30px</span></div>
-    <input type="range" id="rJoyEdge" min="5" max="300" step="1" value="30">
   </div>
 
   <div class="st-row">
@@ -528,8 +563,19 @@
     </div>
   </div>
 
-  <button id="stReset" style="padding:8px;background:#2a1800;border:2px solid #ff8c1a;color:#ffd93d;border-radius:8px;cursor:pointer;font-size:12px;font-weight:800;margin-top:4px">↺ MẶC ĐỊNH</button>
-  <button id="stClose" style="padding:10px;background:#1a1a1a;border:2px solid #888;color:#ccc;border-radius:8px;cursor:pointer;font-size:12px;font-weight:800">ĐÓNG</button>
+  <button id="stReset" class="st-wide-btn" style="background:#2a1800;border-color:#ff8c1a;color:#ffd93d;margin-top:4px">↺ MẶC ĐỊNH</button>
+  <button id="stClose" class="st-wide-btn" style="background:#1a1a1a;border-color:#888;color:#ccc">ĐÓNG</button>
+</div>
+
+<div id="uiEditor" class="hidden">
+  <div class="ue-toolbar">
+    <div class="ue-hint">Kéo các thành phần giao diện tới vị trí mong muốn, rồi bấm LƯU</div>
+    <div class="ue-buttons">
+      <button id="ueSave" class="ue-btn ue-save">💾 LƯU</button>
+      <button id="ueReset" class="ue-btn ue-reset">↺ MẶC ĐỊNH</button>
+      <button id="ueCancel" class="ue-btn ue-cancel">✕ HỦY</button>
+    </div>
+  </div>
 </div>
 
 <div id="pauseOverlay" class="hidden" style="position:fixed;inset:0;z-index:70;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;background:radial-gradient(circle,#0d1a20ee,#000000fa);backdrop-filter:blur(6px);text-align:center;padding:24px">
@@ -563,24 +609,39 @@ const myId = 'PLAYER';
 const UI_KEY = 'tankArenaUI';
 const DEFAULT_UI = {
   miniSize: 170,
-  miniRight: false,
-  miniOffsetX: 20,
-  miniOffsetY: 20,
-  hudScale: 1,
   joySize: 140,
-  joyBottom: 30,
-  joyEdge: 30,
+  hudScale: 1,
   aimHint: true,
   enemiesLeft: true,
   screenShake: true,
-  sound: true
+  sound: true,
+  offsets: {}
 };
 let uiSettings = Object.assign({}, DEFAULT_UI);
 try {
   const saved = JSON.parse(localStorage.getItem(UI_KEY) || '{}');
   Object.assign(uiSettings, saved || {});
-} catch (_) {}
+  if (!uiSettings.offsets || typeof uiSettings.offsets !== 'object') uiSettings.offsets = {};
+} catch (_) { uiSettings.offsets = {}; }
 function saveUI(){ try { localStorage.setItem(UI_KEY, JSON.stringify(uiSettings)); } catch(_){} }
+
+const UI_ELEMENTS = [
+  { key: 'minimap',     selector: '#minimap',         label: 'MINIMAP' },
+  { key: 'hudLeft',     selector: '#hudLeft',         label: 'MÁU/MANA' },
+  { key: 'scoreBox',    selector: '#scoreBox',        label: 'ĐIỂM/MENU' },
+  { key: 'enemiesLeft', selector: '#enemiesLeftBox',  label: 'QUÁI CÒN' },
+  { key: 'joyLeft',     selector: '#joyLeft',         label: 'JOY DI CHUYỂN' },
+  { key: 'joyRight',    selector: '#joyRight',        label: 'JOY NGẮM' },
+  { key: 'skillBar',    selector: '#skillBar',        label: 'KỸ NĂNG' },
+  { key: 'powerupHud',  selector: '#powerupHud',      label: 'BUFF/DEBUFF' },
+  { key: 'aimHint',     selector: '#aimHint',         label: 'GỢI Ý NGẮM' }
+];
+
+let editingUI = false;
+let editorOpenedFromGame = false;
+let originalOffsets = null;
+let editorHiddenState = {};
+let dragState = null;
 
 function rand(a, b) { return a + Math.random() * (b - a); }
 function clamp(v, a, b) { return Math.max(a, Math.min(b, v)); }
@@ -626,6 +687,30 @@ function resizeMinimap(size) {
   minimapEl.style.width = MINI_SIZE + 'px';
   minimapEl.style.height = MINI_SIZE + 'px';
   minimapCtx.setTransform(MINI_DPR, 0, 0, MINI_DPR, 0, 0);
+}
+
+function getEl(key) {
+  const entry = UI_ELEMENTS.find(e => e.key === key);
+  return entry ? document.querySelector(entry.selector) : null;
+}
+function getOffset(key) {
+  const o = uiSettings.offsets[key];
+  if (o && typeof o.dx === 'number' && typeof o.dy === 'number') return o;
+  return { dx: 0, dy: 0 };
+}
+function applyElementTransform(key) {
+  const el = getEl(key);
+  if (!el) return;
+  const off = getOffset(key);
+  const t = `translate(${off.dx}px, ${off.dy}px)`;
+  if (key === 'hudLeft') {
+    el.style.transform = `${t} scale(${uiSettings.hudScale})`;
+  } else {
+    el.style.transform = t;
+  }
+}
+function applyAllElementTransforms() {
+  UI_ELEMENTS.forEach(({key}) => applyElementTransform(key));
 }
 
 function drawMinimap(st) {
@@ -879,6 +964,7 @@ const skillBarEl = document.getElementById('skillBar');
 const pauseOverlayEl = document.getElementById('pauseOverlay');
 const btnResumeEl = document.getElementById('btnResume');
 const settingsPanelEl = document.getElementById('settingsPanel');
+const uiEditorEl = document.getElementById('uiEditor');
 const touch = {
   moveX: 0, moveY: 0,
   aimX: 0, aimY: 0,
@@ -898,11 +984,7 @@ function resetTouchState() {
 
 const SLIDER_DEFS = [
   { id: 'rMiniSize', key: 'miniSize', label: 'vMiniSize', fmt: v => v + 'px' },
-  { id: 'rMiniX', key: 'miniOffsetX', label: 'vMiniX', fmt: v => v + 'px' },
-  { id: 'rMiniY', key: 'miniOffsetY', label: 'vMiniY', fmt: v => v + 'px' },
   { id: 'rJoySize', key: 'joySize', label: 'vJoySize', fmt: v => v + 'px' },
-  { id: 'rJoyBottom', key: 'joyBottom', label: 'vJoyBottom', fmt: v => v + 'px' },
-  { id: 'rJoyEdge', key: 'joyEdge', label: 'vJoyEdge', fmt: v => v + 'px' },
   { id: 'rHudScale', key: 'hudScale', label: 'vHudScale', fmt: v => v.toFixed(2) }
 ];
 
@@ -920,22 +1002,6 @@ function applyUI() {
   const root = document.documentElement.style;
   root.setProperty('--joy-size', uiSettings.joySize + 'px');
   root.setProperty('--knob-size', Math.round(uiSettings.joySize * 0.46) + 'px');
-  root.setProperty('--joy-bottom', uiSettings.joyBottom + 'px');
-  root.setProperty('--joy-edge', uiSettings.joyEdge + 'px');
-
-  document.body.classList.toggle('mini-right', !!uiSettings.miniRight);
-
-  minimapEl.style.top = uiSettings.miniOffsetY + 'px';
-  if (uiSettings.miniRight) {
-    minimapEl.style.left = 'auto';
-    minimapEl.style.right = uiSettings.miniOffsetX + 'px';
-  } else {
-    minimapEl.style.right = 'auto';
-    minimapEl.style.left = uiSettings.miniOffsetX + 'px';
-  }
-
-  const hudLeft = document.getElementById('hudLeft');
-  if (hudLeft) hudLeft.style.transform = 'scale(' + uiSettings.hudScale + ')';
 
   if (uiSettings.miniSize !== MINI_SIZE) resizeMinimap(uiSettings.miniSize);
 
@@ -944,8 +1010,10 @@ function applyUI() {
     if (uiSettings.aimHint && !isTouchDevice) ah.classList.remove('hidden');
     else ah.classList.add('hidden');
   }
-  refreshSettingsButtons();
+
+  applyAllElementTransforms();
   syncSliders();
+  refreshSettingsButtons();
 }
 
 function refreshSettingsButtons() {
@@ -953,8 +1021,7 @@ function refreshSettingsButtons() {
     const key = b.dataset.set;
     const val = b.dataset.val;
     let active = false;
-    if (key === 'miniCorner') active = (val === 'right') === !!uiSettings.miniRight;
-    else if (key === 'aimHint') active = (val === 'on') === !!uiSettings.aimHint;
+    if (key === 'aimHint') active = (val === 'on') === !!uiSettings.aimHint;
     else if (key === 'enemiesLeft') active = (val === 'on') === !!uiSettings.enemiesLeft;
     else if (key === 'screenShake') active = (val === 'on') === !!uiSettings.screenShake;
     else if (key === 'sound') active = (val === 'on') === !!uiSettings.sound;
@@ -991,6 +1058,162 @@ SLIDER_DEFS.forEach(def => {
   });
 });
 
+function attachDragHandler(el, key) {
+  el.addEventListener('pointerdown', (e) => {
+    if (!editingUI) return;
+    e.preventDefault();
+    e.stopPropagation();
+    dragState = {
+      key,
+      startX: e.clientX,
+      startY: e.clientY,
+      startOffset: { ...getOffset(key) },
+      pointerId: e.pointerId
+    };
+    try { el.setPointerCapture(e.pointerId); } catch (_) {}
+  });
+  el.addEventListener('pointermove', (e) => {
+    if (!dragState || dragState.key !== key || e.pointerId !== dragState.pointerId) return;
+    e.preventDefault();
+    e.stopPropagation();
+    const dx = e.clientX - dragState.startX;
+    const dy = e.clientY - dragState.startY;
+    uiSettings.offsets[key] = {
+      dx: dragState.startOffset.dx + dx,
+      dy: dragState.startOffset.dy + dy
+    };
+    applyElementTransform(key);
+  });
+  const endDrag = (e) => {
+    if (dragState && dragState.key === key) dragState = null;
+  };
+  el.addEventListener('pointerup', endDrag);
+  el.addEventListener('pointercancel', endDrag);
+  el.addEventListener('lostpointercapture', endDrag);
+  el.addEventListener('contextmenu', e => { if (editingUI) e.preventDefault(); });
+  el.addEventListener('dragstart', e => { if (editingUI) e.preventDefault(); });
+}
+
+function openUIEditor() {
+  if (editingUI) return;
+  closeSettings();
+  editingUI = true;
+  editorOpenedFromGame = !!(state && !state.over);
+  originalOffsets = JSON.parse(JSON.stringify(uiSettings.offsets || {}));
+  editorHiddenState = {};
+
+  if (editorOpenedFromGame) {
+    pauseGame();
+    pauseOverlayEl.classList.add('hidden');
+  } else {
+    Object.values(screens).forEach(s => s.classList.add('hidden'));
+  }
+
+  hudEl.classList.remove('hidden');
+  touchControlsEl.classList.remove('hidden');
+  touchControlsEl.style.display = 'block';
+  puHudEl.classList.remove('hidden');
+
+  if (skillBarEl.children.length === 0) {
+    skillBarEl.innerHTML = '<button class="skill-btn" style="border-color:#ffdd00;color:#ffdd00;box-shadow:0 0 20px #ffdd00;">⚡<span class="hotkey">1</span></button>';
+    skillBarEl.dataset.mockAdded = '1';
+  }
+  if (puHudEl.children.length === 0) {
+    puHudEl.innerHTML = '<div class="pu-badge">⚡ LASER 5.0s</div>';
+    puHudEl.dataset.mockAdded = '1';
+  }
+
+  UI_ELEMENTS.forEach(({ key, selector, label }) => {
+    const el = document.querySelector(selector);
+    if (!el) return;
+    editorHiddenState[key] = el.classList.contains('hidden');
+    el.classList.remove('hidden');
+    if (key === 'joyLeft' || key === 'joyRight') {
+      el.style.display = 'block';
+    }
+    el.dataset.editorLabel = label;
+    el.classList.add('ui-editable');
+    el.querySelectorAll('*').forEach(c => {
+      c.dataset.origPE = c.style.pointerEvents || '';
+      c.style.pointerEvents = 'none';
+    });
+    if (!el.dataset.dragBound) {
+      attachDragHandler(el, key);
+      el.dataset.dragBound = '1';
+    }
+  });
+
+  uiEditorEl.classList.remove('hidden');
+}
+
+function closeUIEditor(commit) {
+  if (!editingUI) return;
+  editingUI = false;
+
+  if (!commit) {
+    uiSettings.offsets = JSON.parse(JSON.stringify(originalOffsets));
+  }
+  saveUI();
+
+  UI_ELEMENTS.forEach(({ key, selector }) => {
+    const el = document.querySelector(selector);
+    if (!el) return;
+    el.classList.remove('ui-editable');
+    el.removeAttribute('data-editor-label');
+    el.querySelectorAll('*').forEach(c => {
+      c.style.pointerEvents = c.dataset.origPE || '';
+      delete c.dataset.origPE;
+    });
+    if (key === 'joyLeft' || key === 'joyRight') {
+      el.style.display = '';
+    }
+  });
+
+  if (skillBarEl.dataset.mockAdded) {
+    skillBarEl.innerHTML = '';
+    delete skillBarEl.dataset.mockAdded;
+  }
+  if (puHudEl.dataset.mockAdded) {
+    puHudEl.innerHTML = '';
+    delete puHudEl.dataset.mockAdded;
+  }
+
+  uiEditorEl.classList.add('hidden');
+  applyAllElementTransforms();
+
+  if (editorOpenedFromGame) {
+    if (isTouchDevice) {
+      touchControlsEl.classList.remove('hidden');
+      document.getElementById('joyLeft').style.display = '';
+      document.getElementById('joyRight').style.display = '';
+    } else {
+      document.getElementById('joyLeft').style.display = 'none';
+      document.getElementById('joyRight').style.display = 'none';
+    }
+    if (uiSettings.aimHint && !isTouchDevice) {
+      document.getElementById('aimHint').classList.remove('hidden');
+    } else {
+      document.getElementById('aimHint').classList.add('hidden');
+    }
+    paused = false;
+    pauseOverlayEl.classList.add('hidden');
+    lastTime = performance.now();
+  } else {
+    if (currentUser) showMenu(); else showNameScreen();
+  }
+  editorOpenedFromGame = false;
+  originalOffsets = null;
+  editorHiddenState = {};
+}
+
+document.getElementById('stEditLayout').onclick = openUIEditor;
+document.getElementById('ueSave').onclick = () => closeUIEditor(true);
+document.getElementById('ueCancel').onclick = () => closeUIEditor(false);
+document.getElementById('ueReset').onclick = () => {
+  uiSettings.offsets = {};
+  applyAllElementTransforms();
+};
+
 function show(name) {
   Object.values(screens).forEach(s => s.classList.add('hidden'));
   canvasEl.classList.add('hidden');
@@ -1004,6 +1227,7 @@ function show(name) {
   document.getElementById('dvOpen').classList.add('hidden');
   document.getElementById('aimHint').classList.add('hidden');
   settingsPanelEl.classList.add('hidden');
+  uiEditorEl.classList.add('hidden');
   pauseOverlayEl.classList.add('hidden');
   paused = false;
   if (name !== 'game') resetTouchState();
@@ -1014,7 +1238,10 @@ function show(name) {
     minimapEl.classList.remove('hidden');
     if (isTouchDevice) {
       touchControlsEl.classList.remove('hidden');
+      document.getElementById('joyLeft').style.display = '';
+      document.getElementById('joyRight').style.display = '';
     } else {
+      touchControlsEl.classList.remove('hidden');
       document.getElementById('joyLeft').style.display = 'none';
       document.getElementById('joyRight').style.display = 'none';
     }
@@ -1079,7 +1306,8 @@ document.getElementById('btnSettingsMenu').onclick = openSettings;
 document.getElementById('btnSettings').onclick = openSettings;
 document.getElementById('stClose').onclick = closeSettings;
 document.getElementById('stReset').onclick = () => {
-  uiSettings = Object.assign({}, DEFAULT_UI);
+  const offsetsBackup = uiSettings.offsets;
+  uiSettings = Object.assign({}, DEFAULT_UI, { offsets: offsetsBackup });
   saveUI();
   applyUI();
 };
@@ -1087,8 +1315,7 @@ settingsPanelEl.querySelectorAll('[data-set]').forEach(btn => {
   btn.onclick = () => {
     const key = btn.dataset.set;
     const val = btn.dataset.val;
-    if (key === 'miniCorner') uiSettings.miniRight = (val === 'right');
-    else if (key === 'aimHint') uiSettings.aimHint = (val === 'on');
+    if (key === 'aimHint') uiSettings.aimHint = (val === 'on');
     else if (key === 'enemiesLeft') uiSettings.enemiesLeft = (val === 'on');
     else if (key === 'screenShake') uiSettings.screenShake = (val === 'on');
     else if (key === 'sound') uiSettings.sound = (val === 'on');
@@ -1132,6 +1359,7 @@ function setupJoystick(el, knob, onMove, onEnd) {
 
   if (window.PointerEvent) {
     el.addEventListener('pointerdown', (e) => {
+      if (editingUI) return;
       if (activePointerId !== null) return;
       if (e.button !== undefined && e.button !== 0 && e.pointerType === 'mouse') return;
       e.preventDefault();
@@ -1143,17 +1371,18 @@ function setupJoystick(el, knob, onMove, onEnd) {
       applyFromClient(e.clientX, e.clientY);
     });
     el.addEventListener('pointermove', (e) => {
+      if (editingUI) return;
       if (activePointerId === null || e.pointerId !== activePointerId) return;
       e.preventDefault();
       e.stopPropagation();
       applyFromClient(e.clientX, e.clientY);
     });
     el.addEventListener('pointerup', (e) => {
-      if (e.pointerId !== activePointerId) return;
+      if (activePointerId === null || e.pointerId !== activePointerId) return;
       endJoystick(e);
     });
     el.addEventListener('pointercancel', (e) => {
-      if (e.pointerId !== activePointerId) return;
+      if (activePointerId === null || e.pointerId !== activePointerId) return;
       endJoystick(e);
     });
     el.addEventListener('lostpointercapture', (e) => {
@@ -1164,6 +1393,7 @@ function setupJoystick(el, knob, onMove, onEnd) {
     });
   } else {
     el.addEventListener('touchstart', (e) => {
+      if (editingUI) return;
       if (activePointerId !== null) return;
       e.preventDefault();
       e.stopPropagation();
@@ -1173,6 +1403,7 @@ function setupJoystick(el, knob, onMove, onEnd) {
       applyFromClient(t.clientX, t.clientY);
     }, { passive: false });
     el.addEventListener('touchmove', (e) => {
+      if (editingUI) return;
       if (activePointerId === null) return;
       e.preventDefault();
       e.stopPropagation();
@@ -1194,6 +1425,7 @@ function setupJoystick(el, knob, onMove, onEnd) {
     el.addEventListener('touchend', onTouchEnd);
     el.addEventListener('touchcancel', onTouchEnd);
     el.addEventListener('mousedown', (e) => {
+      if (editingUI) return;
       if (activePointerId !== null) return;
       if (e.button !== 0) return;
       e.preventDefault();
@@ -1204,6 +1436,7 @@ function setupJoystick(el, knob, onMove, onEnd) {
       applyFromClient(e.clientX, e.clientY);
     });
     window.addEventListener('mousemove', (e) => {
+      if (editingUI) return;
       if (activePointerId !== 'mouse') return;
       applyFromClient(e.clientX, e.clientY);
     });
@@ -1585,6 +1818,7 @@ function startGame(mode, difficulty) {
   resetTouchState();
   initGame(mode, difficulty);
   show('game');
+  applyAllElementTransforms();
   lastTime = performance.now();
   requestAnimationFrame(gameLoop);
 }
@@ -1617,6 +1851,7 @@ function updateSkillBarUI() {
     btn.appendChild(cdEl);
 
     const fire = (e) => {
+      if (editingUI) return;
       if (e) { e.preventDefault(); e.stopPropagation(); }
       triggerSkill(skillKey);
     };
@@ -1639,6 +1874,7 @@ function updateSkillCooldownUI() {
     if (!sk) return;
     const cd = me.skillCooldowns[key] || 0;
     const cdEl = btn.querySelector('.cd-overlay');
+    if (!cdEl) return;
     if (cd > 0) {
       btn.classList.add('cd');
       cdEl.classList.remove('hidden');
@@ -1817,6 +2053,7 @@ function startBossTest(bossType) {
   }
 
   show('game');
+  applyAllElementTransforms();
   lastTime = performance.now();
   requestAnimationFrame(gameLoop);
 
@@ -1830,6 +2067,7 @@ function startBossTest(bossType) {
   updateSkillBarUI();
 }
 document.getElementById('btnMenu').onclick = () => {
+  if (editingUI) return;
   if (confirm('Thoát về menu? Tiến trình sẽ mất.')) { state = null; showMenu(); }
 };
 document.getElementById('btnToMenu').onclick = () => { state = null; hideOverlay(); showMenu(); };
@@ -1846,6 +2084,7 @@ document.getElementById('btnRestart').onclick = () => {
   } else {
     initGame(mode, diff);
     show('game');
+    applyAllElementTransforms();
     lastTime = performance.now();
     requestAnimationFrame(gameLoop);
   }
@@ -1873,9 +2112,9 @@ function resumeGame() {
 btnResumeEl.onclick = resumeGame;
 
 document.addEventListener('visibilitychange', () => {
-  if (document.hidden) pauseGame();
+  if (document.hidden && !editingUI) pauseGame();
 });
-window.addEventListener('blur', () => pauseGame());
+window.addEventListener('blur', () => { if (!editingUI) pauseGame(); });
 
 function updateDevPanelUI() {
   if (!state || !state.isBossTest) return;
@@ -3838,7 +4077,7 @@ addEventListener('keydown', e => {
   if (e.repeat) return;
 
   const num = getDigitFromEvent(e);
-  if (num && state && !state.over) {
+  if (num && state && !state.over && !editingUI) {
     const me = state.players[myId];
     if (me && me.skills[num - 1]) {
       e.preventDefault();
@@ -3852,6 +4091,7 @@ addEventListener('keyup', e => {
 });
 canvasEl.addEventListener('mousemove', e => { mouse.x = e.clientX; mouse.y = e.clientY; });
 canvasEl.addEventListener('mousedown', e => {
+  if (editingUI) return;
   if (e.button !== 0) return;
   if (e.target.closest && e.target.closest('.joystick')) return;
   if (e.target.closest && e.target.closest('.skill-btn')) return;
