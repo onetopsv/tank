@@ -299,7 +299,7 @@
 
 <div id="skillBar" class="hidden"></div>
 
-<div id="aimHint" class="hidden">🖱️ Di chuột để ngắm • Giữ chuột trái để bắn • Phím <b>WASD</b> di chuyển • <b>1-5</b> kỹ năng</div>
+<div id="aimHint" class="hidden">🖱️ Di chuột để ngắm • Giữ chuột trái để bắn • Phím <b>WASD</b> di chuyển • <b>1-6</b> kỹ năng</div>
 
 <div id="devPanel" class="hidden" style="position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);z-index:60;background:rgba(10,20,26,0.97);border:2px solid #b46bff;border-radius:14px;padding:18px 20px;width:min(340px,92vw);box-shadow:0 0 40px rgba(180,107,255,0.5);display:flex;flex-direction:column;gap:12px;max-height:90vh;overflow-y:auto">
   <div style="font-size:15px;font-weight:800;letter-spacing:2px;color:#e0c6ff;text-align:center;margin-bottom:4px">⚙️ DEV PANEL</div>
@@ -763,8 +763,6 @@ const XP_ORB_MAGNET_SPEED = 400;
 const MAGNET_POWERUP_RANGE = 600;
 const MAX_XP_ORBS = 500;
 
-// ==== SKILLS ====
-// cd đã tăng (trước đây quá ngắn)
 const BOSS_SKILLS = [
   { key: 'charge',    name: 'LAO TỚI',   color: '#b46bff', icon: '🐂', cd: 10, cost: 15, desc: 'Tích lực rồi lao thẳng' },
   { key: 'flame',     name: 'PHUN LỬA',  color: '#ff8c1a', icon: '🔥', cd: 8,  cost: 20, desc: 'Bắn 5 tia lửa gây cháy' },
@@ -896,6 +894,16 @@ function buildWaveQueue(wave) {
   return { queue, hasBoss };
 }
 
+// ====== MỚI: Scaling quái theo wave (mạnh dần) ======
+function getEnemyScaling(wave) {
+  return {
+    hp:    1 + (wave - 1) * 0.20,   // +20% HP / wave
+    dmg:   1 + (wave - 1) * 0.06,   // +6% DMG / wave
+    speed: 1 + (wave - 1) * 0.02,   // +2% SPEED / wave
+    reward:1 + (wave - 1) * 0.10    // +10% SCORE/XP / wave
+  };
+}
+
 function spawnEnemyInArena(typeIdx, wave) {
   if (!state) return;
   if (state.enemies.length > 320) return;
@@ -904,7 +912,7 @@ function spawnEnemyInArena(typeIdx, wave) {
   if (!me) return;
 
   const t = TYPES[typeIdx];
-  const hpScale = 1 + (wave - 1) * 0.12;
+  const sc = getEnemyScaling(wave);
 
   const margin = 120;
   const halfDiag = Math.hypot(W, H) / 2;
@@ -939,24 +947,40 @@ function spawnEnemyInArena(typeIdx, wave) {
 
   state.enemies.push({
     x: spawnX, y: spawnY,
-    behavior: t.behavior, hp: t.hp * hpScale, maxHp: t.hp * hpScale,
-    speed: t.speed * (1 + wave * 0.015), r: t.r, dmg: t.dmg,
-    score: t.score, xp: t.xp, color: t.color, stroke: t.stroke,
+    behavior: t.behavior,
+    hp: t.hp * sc.hp, maxHp: t.hp * sc.hp,
+    speed: t.speed * sc.speed,
+    r: t.r,
+    dmg: t.dmg * sc.dmg,
+    score: Math.round(t.score * sc.reward),
+    xp: Math.max(1, Math.round(t.xp * sc.reward)),
+    color: t.color, stroke: t.stroke,
+    level: wave,
     angle: 0, hitFlash: 0, seed: Math.random() * 10,
     isBig: typeIdx === 2, isBoss: false, atkCd: rand(1, 3),
     spawnAnim: 0.4, wobble: Math.random() * 100
   });
 }
 
-// ==== BOSS TYPES ==== (thêm boss 5 LAZE)
+// ==== BOSS TYPES ==== (đã buff + có level)
 const BOSS_TYPES = [
-  { name: 'BÒ',        color: '#b46bff', stroke: '#6a2f9e', r: 48, hp: 1800, speed: 60, dmg: 40, xp: 30, skillKey: 'charge' },
-  { name: 'LỬA',       color: '#ff8c1a', stroke: '#a04d00', r: 46, hp: 1500, speed: 65, dmg: 25, xp: 30, skillKey: 'flame' },
-  { name: 'BĂNG',      color: '#4dd9ff', stroke: '#1b6a8a', r: 46, hp: 1600, speed: 70, dmg: 22, xp: 30, skillKey: 'freeze' },
-  { name: 'HÚT MÁU',   color: '#ff4d6d', stroke: '#8a1f35', r: 48, hp: 1700, speed: 55, dmg: 18, xp: 30, skillKey: 'drain' },
-  { name: 'PHÂN THÂN', color: '#ff66b2', stroke: '#8a1f4d', r: 52, hp: 2000, speed: 50, dmg: 30, xp: 30, skillKey: 'split' },
-  { name: 'LAZE',      color: '#ffdd00', stroke: '#a08a00', r: 50, hp: 1900, speed: 45, dmg: 35, xp: 30, skillKey: 'laserbeam' },
+  { name: 'BÒ',        color: '#b46bff', stroke: '#6a2f9e', r: 48, hp: 2800, speed: 70, dmg: 55, xp: 30, skillKey: 'charge' },
+  { name: 'LỬA',       color: '#ff8c1a', stroke: '#a04d00', r: 46, hp: 2400, speed: 78, dmg: 38, xp: 30, skillKey: 'flame' },
+  { name: 'BĂNG',      color: '#4dd9ff', stroke: '#1b6a8a', r: 46, hp: 2500, speed: 82, dmg: 35, xp: 30, skillKey: 'freeze' },
+  { name: 'HÚT MÁU',   color: '#ff4d6d', stroke: '#8a1f35', r: 48, hp: 2600, speed: 68, dmg: 30, xp: 30, skillKey: 'drain' },
+  { name: 'PHÂN THÂN', color: '#ff66b2', stroke: '#8a1f4d', r: 52, hp: 3000, speed: 62, dmg: 42, xp: 30, skillKey: 'split' },
+  { name: 'LAZE',      color: '#ffdd00', stroke: '#a08a00', r: 50, hp: 2800, speed: 58, dmg: 48, xp: 30, skillKey: 'laserbeam' },
 ];
+
+// ====== MỚI: Level cho boss (test mode dùng player level, PvE dùng wave) ======
+function getBossLevel() {
+  if (!state) return 1;
+  if (state.isBossTest) {
+    const me = state.players[myId];
+    return Math.max(1, me ? me.level : 1);
+  }
+  return state.wave;
+}
 
 function spawnBossInArena() {
   if (!state) return;
@@ -964,6 +988,12 @@ function spawnBossInArena() {
   const s = BOSS_TYPES[type];
   const me = state.players[myId];
   if (!me) return;
+
+  const level = getBossLevel();
+  const hpBonus = level * 550;
+  const dmgBonus = level * 5;
+  const speedBonus = 1 + (level - 1) * 0.025;
+  const scoreBonus = 500 + level * 80;
 
   const halfDiag = Math.hypot(W, H) / 2;
   const d = halfDiag + 180;
@@ -977,14 +1007,16 @@ function spawnBossInArena() {
   bx = clamp(bx, -hw, hw);
   by = clamp(by, -hh, hh);
 
-  const hpBonus = state.wave * 250;
   state.enemies.push({
     x: bx, y: by,
     hp: s.hp + hpBonus, maxHp: s.hp + hpBonus,
-    speed: s.speed, r: s.r, dmg: s.dmg + state.wave * 3,
-    score: 500 + state.wave * 50, xp: s.xp,
+    speed: s.speed * speedBonus,
+    r: s.r,
+    dmg: s.dmg + dmgBonus,
+    score: scoreBonus, xp: s.xp,
     color: s.color, stroke: s.stroke, angle: 0, hitFlash: 0, seed: Math.random() * 10,
-    isBoss: true, bossType: type, atkCd: 1.5, spawnAnim: 0.8, wobble: Math.random() * 100,
+    isBoss: true, bossType: type, level: level,
+    atkCd: 1.5, spawnAnim: 0.8, wobble: Math.random() * 100,
     chargeState: 'idle',
     chargeTimer: rand(1.5, 2.5),
     chargeDirX: 0, chargeDirY: 0,
@@ -992,7 +1024,6 @@ function spawnBossInArena() {
     freezeCd: rand(1.5, 2.5),
     drainTimer: rand(2.5, 3.5), draining: false,
     splitLevel: 2,
-    // laser fields (cho boss 5)
     laserState: 'idle', laserTimer: 0, laserAim: 0,
     _laserCd: rand(4, 6),
     _contactCd: 0, _burstCd: rand(2.5, 3.5),
@@ -1001,7 +1032,7 @@ function spawnBossInArena() {
   state.bossAlive = true;
   state.bossSpawnedWave = state.wave;
   state.events.push('pickup');
-  state.announce = { text: 'BOSS ' + s.name + ' XUẤT HIỆN!', t: 2.5 };
+  state.announce = { text: 'BOSS ' + s.name + ' Lv' + level + ' XUẤT HIỆN!', t: 2.5 };
 }
 
 function startNewWave() {
@@ -1186,33 +1217,19 @@ function triggerSkill(skillKey) {
     spawnParticles(me.x, me.y, '#ff66b2', 25, 350);
     state.announce = { text: '🧬 PHÂN THÂN!', t: 1.2 };
   } else if (skillKey === 'laserbeam') {
-    // ==== TIA LAZE CỦA PLAYER — bắn tức thì ====
-    const beamW = 90;
-    const beamLen = 10000;
+    // ==== TIA LAZE CỦA PLAYER — beam DoT 1.5s ====
+    const beamW = 120;
     state.beams.push({
       x: me.x, y: me.y, angle: aim,
-      life: 0.5, maxLife: 0.5, owner: myId,
-      wideLaser: true, halfWidth: beamW / 2
+      life: 1.5, maxLife: 1.5, owner: myId,
+      wideLaser: true, halfWidth: beamW / 2,
+      isPlayerLaser: true,
+      dmgPerSec: me.damage * 20
     });
-    // Damage all enemies along beam
-    for (let i = state.enemies.length - 1; i >= 0; i--) {
-      const e = state.enemies[i];
-      if (e.isAlly) continue;
-      const dx = e.x - me.x, dy = e.y - me.y;
-      const proj = dx * Math.cos(aim) + dy * Math.sin(aim);
-      if (proj < 0 || proj > beamLen) continue;
-      const perp = Math.abs(-dx * Math.sin(aim) + dy * Math.cos(aim));
-      if (perp < beamW / 2 + e.r) {
-        e.hp -= me.damage * 5;
-        e.hitFlash = 0.2;
-        spawnParticles(e.x, e.y, '#ffdd00', 6, 200);
-        if (e.hp <= 0) killEnemy(e, myId);
-      }
-    }
     playSound('laser');
-    spawnParticles(me.x, me.y, '#ffdd00', 30, 380);
-    shakeTime = 0.25; shakeIntensity = 12;
-    state.announce = { text: '⚡ TIA LAZE!', t: 1.0 };
+    spawnParticles(me.x, me.y, '#ffdd00', 40, 450);
+    shakeTime = 0.4; shakeIntensity = 18;
+    state.announce = { text: '⚡ TIA LAZE!', t: 1.2 };
   }
 
   updateSkillCooldownUI();
@@ -1257,9 +1274,9 @@ function startBossTest(bossType) {
   state.bossIndex = bossType;
 
   const bossName = BOSS_TYPES[bossType].name;
-  state.announce = { text: 'TEST: BOSS ' + bossName, t: 2.5 };
+  state.announce = { text: 'TEST: BOSS ' + bossName + ' Lv' + me.level, t: 2.5 };
 
-  document.getElementById('modeTag').textContent = '🧪 TEST: ' + bossName;
+  document.getElementById('modeTag').textContent = '🧪 TEST: ' + bossName + ' Lv' + me.level;
   document.getElementById('modeTag').style.color = BOSS_TYPES[bossType].color;
 
   show('game');
@@ -1347,6 +1364,11 @@ document.querySelectorAll('.dvbtn').forEach(btn => {
       me.fireRate = Math.max(60, 180 - (lv - 1) * 8);
       me.maxMana = 100 + (lv - 1) * 6;
       me.mana = Math.min(me.mana, me.maxMana);
+      // Cập nhật lại mode tag để hiển thị level
+      if (state.testBossType !== null) {
+        const bn = BOSS_TYPES[state.testBossType].name;
+        document.getElementById('modeTag').textContent = '🧪 TEST: ' + bn + ' Lv' + me.level;
+      }
     } else if (stat === 'damage') {
       me.damage = Math.max(1, me.damage + delta);
     } else if (stat === 'maxHp') {
@@ -1393,7 +1415,7 @@ document.getElementById('dvResetBoss').onclick = () => {
   spawnBossInArena();
   state.bossIndex = state.testBossType;
   const bossName = BOSS_TYPES[state.testBossType].name;
-  state.announce = { text: 'RESPAWN: BOSS ' + bossName, t: 1.5 };
+  state.announce = { text: 'RESPAWN: BOSS ' + bossName + ' Lv' + getBossLevel(), t: 1.5 };
 };
 document.getElementById('dvGiveSkill').onclick = () => {
   if (!state || !state.isBossTest) return;
@@ -1698,7 +1720,7 @@ function spawnSplitChildren(boss, ownerId) {
       score: 80, xp: 4, color: boss.color, stroke: boss.stroke,
       angle: 0, hitFlash: 0, seed: Math.random() * 10,
       isBoss: false, isMiniBoss: true,
-      bossType: boss.bossType,
+      bossType: boss.bossType, level: boss.level || 1,
       splitLevel: level - 1,
       atkCd: 1.5, spawnAnim: 0.3, wobble: Math.random() * 100
     });
@@ -1796,7 +1818,7 @@ function updateBoss(e, target, dt, st) {
   if (!e._contactCd) e._contactCd = 0;
   e._contactCd -= dt;
   if (d < e.r + 22 && e._contactCd <= 0 && !(e.bossType === 0 && e.chargeState === 'charging')) {
-    const contactDmg = e.dmg * 0.6;
+    const contactDmg = e.dmg * 1.0;
     if (target.powerups && target.powerups.shield > 0) {
       if (!target.shieldHp) target.shieldHp = 40;
       target.shieldHp -= contactDmg;
@@ -1815,16 +1837,16 @@ function updateBoss(e, target, dt, st) {
   if (!e._burstCd) e._burstCd = rand(2.5, 3.5);
   if (e.bossType !== 0 && e.bossType !== 3) {
     e._burstCd -= dt;
-    if (e._burstCd <= 0 && d < 900) {
-      e._burstCd = rand(2.8, 3.8);
-      const n = 5;
+    if (e._burstCd <= 0 && d < 1000) {
+      e._burstCd = rand(1.7, 2.5);
+      const n = 7;
       const baseA = Math.atan2(dy, dx);
       for (let k = -Math.floor(n/2); k <= Math.floor(n/2); k++) {
-        const a = baseA + k * 0.16;
+        const a = baseA + k * 0.15;
         st.ebullets.push({
           x: e.x, y: e.y,
-          vx: Math.cos(a) * 280, vy: Math.sin(a) * 280,
-          r: 7, dmg: Math.floor(e.dmg * 0.3),
+          vx: Math.cos(a) * 320, vy: Math.sin(a) * 320,
+          r: 7, dmg: Math.floor(e.dmg * 0.4),
           life: 3, color: e.color
         });
       }
@@ -1839,11 +1861,11 @@ function updateBoss(e, target, dt, st) {
       e.y += uy * e.speed * dt;
       e._snipeCd -= dt;
       if (e._snipeCd <= 0) {
-        e._snipeCd = rand(2.0, 3.0);
+        e._snipeCd = rand(1.2, 1.8);
         st.ebullets.push({
           x: e.x, y: e.y,
-          vx: ux * 380, vy: uy * 380,
-          r: 8, dmg: Math.floor(e.dmg * 0.4),
+          vx: ux * 450, vy: uy * 450,
+          r: 9, dmg: Math.floor(e.dmg * 0.55),
           life: 2.5, color: e.color
         });
         playSound('shoot');
@@ -1885,10 +1907,10 @@ function updateBoss(e, target, dt, st) {
       if (dist(e.x, e.y, target.x, target.y) < e.r + 24) {
         if (target.powerups && target.powerups.shield > 0) {
           if (!target.shieldHp) target.shieldHp = 40;
-          target.shieldHp -= e.dmg * 2;
+          target.shieldHp -= e.dmg * 3;
           if (target.shieldHp <= 0) { target.powerups.shield = 0; target.shieldHp = 0; }
         } else {
-          target.hp -= e.dmg;
+          target.hp -= e.dmg * 1.8;
         }
         st.events.push({ type: 'hurt', target: target.id });
         spawnParticles(target.x, target.y, '#ff5b6e', 15, 300);
@@ -1906,7 +1928,7 @@ function updateBoss(e, target, dt, st) {
       e.x = clamp(e.x, -hw, hw); e.y = clamp(e.y, -hh, hh);
       if (e.chargeTimer <= 0) {
         e.chargeState = 'idle';
-        e.chargeTimer = rand(2, 3.5);
+        e.chargeTimer = rand(1.3, 2.2);
       }
     }
   } else if (e.bossType === 1) {
@@ -1920,25 +1942,25 @@ function updateBoss(e, target, dt, st) {
     e.x = clamp(e.x, -hw, hw); e.y = clamp(e.y, -hh, hh);
     e.fireTimer -= dt;
     if (e.fireTimer <= 0) {
-      e.fireTimer = rand(1.8, 2.8);
+      e.fireTimer = rand(1.1, 1.8);
       const baseAngle = Math.atan2(dy, dx);
-      for (let k = -2; k <= 2; k++) {
-        const a = baseAngle + k * 0.18;
+      for (let k = -3; k <= 3; k++) {
+        const a = baseAngle + k * 0.16;
         st.ebullets.push({
           x: e.x, y: e.y,
-          vx: Math.cos(a) * 400, vy: Math.sin(a) * 400,
-          r: 12, dmg: Math.floor(e.dmg * 0.4),
+          vx: Math.cos(a) * 480, vy: Math.sin(a) * 480,
+          r: 12, dmg: Math.floor(e.dmg * 0.55),
           life: 1.6, color: '#ff8c1a',
           isFire: true, trail: []
         });
       }
-      if (d < 150) {
-        for (let k = 0; k < 8; k++) {
-          const a = (k / 8) * TAU + st.time;
+      if (d < 220) {
+        for (let k = 0; k < 10; k++) {
+          const a = (k / 10) * TAU + st.time;
           st.ebullets.push({
             x: e.x, y: e.y,
-            vx: Math.cos(a) * 280, vy: Math.sin(a) * 280,
-            r: 10, dmg: Math.floor(e.dmg * 0.35),
+            vx: Math.cos(a) * 320, vy: Math.sin(a) * 320,
+            r: 10, dmg: Math.floor(e.dmg * 0.5),
             life: 1.2, color: '#ff3a1a', isFire: true, trail: []
           });
         }
@@ -1950,24 +1972,24 @@ function updateBoss(e, target, dt, st) {
     else if (d < 260) { e.x -= ux * e.speed * 0.6 * dt; e.y -= uy * e.speed * 0.6 * dt; }
     e.x = clamp(e.x, -hw, hw); e.y = clamp(e.y, -hh, hh);
     e.freezeCd -= dt;
-    if (e.freezeCd <= 0 && d < 700) {
-      e.freezeCd = rand(2.0, 3.0);
+    if (e.freezeCd <= 0 && d < 800) {
+      e.freezeCd = rand(1.3, 2.0);
       st.ebullets.push({
         x: e.x, y: e.y,
-        vx: ux * 320, vy: uy * 320,
-        r: 11, dmg: Math.floor(e.dmg * 0.6),
+        vx: ux * 380, vy: uy * 380,
+        r: 12, dmg: Math.floor(e.dmg * 0.85),
         life: 2.8, color: '#4dd9ff',
-        isFreeze: true, freezeDuration: 2.0
+        isFreeze: true, freezeDuration: 2.8
       });
-      if (d < 200) {
-        for (let k = 0; k < 6; k++) {
-          const a = (k / 6) * TAU;
+      if (d < 250) {
+        for (let k = 0; k < 8; k++) {
+          const a = (k / 8) * TAU;
           st.ebullets.push({
             x: e.x, y: e.y,
-            vx: Math.cos(a) * 240, vy: Math.sin(a) * 240,
-            r: 9, dmg: Math.floor(e.dmg * 0.35),
+            vx: Math.cos(a) * 280, vy: Math.sin(a) * 280,
+            r: 9, dmg: Math.floor(e.dmg * 0.5),
             life: 2.2, color: '#4dd9ff',
-            isFreeze: true, freezeDuration: 1.2
+            isFreeze: true, freezeDuration: 1.8
           });
         }
       }
@@ -1977,15 +1999,15 @@ function updateBoss(e, target, dt, st) {
     if (d > 260) { e.x += ux * e.speed * dt; e.y += uy * e.speed * dt; }
     e.x = clamp(e.x, -hw, hw); e.y = clamp(e.y, -hh, hh);
     e._snipeCd -= dt;
-    if (e._snipeCd <= 0 && d < 800) {
-      e._snipeCd = rand(1.8, 2.8);
+    if (e._snipeCd <= 0 && d < 900) {
+      e._snipeCd = rand(1.1, 1.8);
       const baseA = Math.atan2(dy, dx);
       for (let k = -1; k <= 1; k++) {
         const a = baseA + k * 0.2;
         st.ebullets.push({
           x: e.x, y: e.y,
-          vx: Math.cos(a) * 300, vy: Math.sin(a) * 300,
-          r: 8, dmg: Math.floor(e.dmg * 0.35),
+          vx: Math.cos(a) * 360, vy: Math.sin(a) * 360,
+          r: 8, dmg: Math.floor(e.dmg * 0.5),
           life: 2.5, color: '#ff4d6d'
         });
       }
@@ -1993,18 +2015,18 @@ function updateBoss(e, target, dt, st) {
     }
     e.drainTimer -= dt;
     if (e.drainTimer <= 0) {
-      e.drainTimer = rand(3.0, 4.0);
+      e.drainTimer = rand(1.8, 2.6);
       e.draining = true;
-      e.drainActive = 1.2;
+      e.drainActive = 1.5;
       playSound('drain');
     }
     if (e.draining) {
       e.drainActive -= dt;
       const drainRange = 400;
       if (d < drainRange) {
-        const drainAmt = 10 * dt;
+        const drainAmt = 16 * dt;
         target.hp -= drainAmt;
-        e.hp = Math.min(e.maxHp, e.hp + drainAmt * 1.3);
+        e.hp = Math.min(e.maxHp, e.hp + drainAmt * 1.5);
         if (Math.random() < 0.5) {
           const ang = Math.atan2(e.y - target.y, e.x - target.x);
           st.particles.push({
@@ -2023,7 +2045,7 @@ function updateBoss(e, target, dt, st) {
     }
     e._teleportCd -= dt;
     if (d < 100 && e._teleportCd <= 0) {
-      e._teleportCd = rand(4, 6);
+      e._teleportCd = rand(2.5, 4);
       const a = Math.atan2(-dy, -dx) + rand(-0.8, 0.8);
       e.x = target.x + Math.cos(a) * 400;
       e.y = target.y + Math.sin(a) * 400;
@@ -2039,21 +2061,21 @@ function updateBoss(e, target, dt, st) {
     e.x = clamp(e.x, -hw, hw); e.y = clamp(e.y, -hh, hh);
     e.atkCd -= dt;
     if (e.atkCd <= 0) {
-      e.atkCd = rand(1.4, 2.2);
-      for (let k = 0; k < 4; k++) {
-        const a = (k / 4) * TAU + st.time;
+      e.atkCd = rand(0.8, 1.4);
+      for (let k = 0; k < 6; k++) {
+        const a = (k / 6) * TAU + st.time;
         st.ebullets.push({
           x: e.x, y: e.y,
-          vx: Math.cos(a) * 260, vy: Math.sin(a) * 260,
-          r: 8, dmg: Math.floor(e.dmg * 0.4),
+          vx: Math.cos(a) * 300, vy: Math.sin(a) * 300,
+          r: 8, dmg: Math.floor(e.dmg * 0.5),
           life: 3, color: e.color
         });
       }
     }
     e._spawnCd -= dt;
     if (e._spawnCd <= 0 && st.enemies.length < 250) {
-      e._spawnCd = rand(6, 8);
-      for (let k = 0; k < 2; k++) {
+      e._spawnCd = rand(4, 6);
+      for (let k = 0; k < 3; k++) {
         const a = Math.random() * TAU;
         st.enemies.push({
           x: e.x + Math.cos(a) * 80, y: e.y + Math.sin(a) * 80,
@@ -2067,11 +2089,9 @@ function updateBoss(e, target, dt, st) {
       playSound('spawn');
     }
   } else if (e.bossType === 5) {
-    // ==== BOSS LAZE (type 5) ====
     if (!e.laserState) { e.laserState = 'idle'; e.laserTimer = 0; e.laserAim = 0; }
     if (typeof e._laserCd !== 'number') e._laserCd = rand(4, 6);
 
-    // Movement: giữ khoảng cách vừa phải
     if (d > 380) { e.x += ux * e.speed * dt; e.y += uy * e.speed * dt; }
     else if (d < 260) { e.x -= ux * e.speed * 0.5 * dt; e.y -= uy * e.speed * 0.5 * dt; }
     else {
@@ -2081,18 +2101,17 @@ function updateBoss(e, target, dt, st) {
     }
     e.x = clamp(e.x, -hw, hw); e.y = clamp(e.y, -hh, hh);
 
-    // Đạn thường: 3 tia ngắn (chỉ bắn khi KHÔNG đang charge/fire)
     if (e.laserState === 'idle' || e.laserState === 'recover') {
       e._snipeCd -= dt;
-      if (e._snipeCd <= 0 && d < 800) {
-        e._snipeCd = rand(2, 3);
+      if (e._snipeCd <= 0 && d < 900) {
+        e._snipeCd = rand(1.2, 1.8);
         const baseA = Math.atan2(dy, dx);
-        for (let k = -1; k <= 1; k++) {
-          const a = baseA + k * 0.22;
+        for (let k = -2; k <= 2; k++) {
+          const a = baseA + k * 0.20;
           st.ebullets.push({
             x: e.x, y: e.y,
-            vx: Math.cos(a) * 340, vy: Math.sin(a) * 340,
-            r: 7, dmg: Math.floor(e.dmg * 0.3),
+            vx: Math.cos(a) * 380, vy: Math.sin(a) * 380,
+            r: 7, dmg: Math.floor(e.dmg * 0.4),
             life: 2.5, color: '#ffdd00'
           });
         }
@@ -2100,19 +2119,17 @@ function updateBoss(e, target, dt, st) {
       }
     }
 
-    // Laser state machine
     if (e.laserState === 'idle') {
       e._laserCd -= dt;
       if (e._laserCd <= 0) {
         e.laserState = 'charging';
-        e.laserTimer = 1.3;
-        e.laserAim = Math.atan2(dy, dx); // khóa hướng
+        e.laserTimer = 1.0;
+        e.laserAim = Math.atan2(dy, dx);
         playSound('charge');
-        st.announce = { text: '⚡ BOSS LAZE ĐANG TÍCH TỤ!', t: 1.2 };
+        st.announce = { text: '⚡ BOSS LAZE ĐANG TÍCH TỤ!', t: 1.0 };
       }
     } else if (e.laserState === 'charging') {
       e.laserTimer -= dt;
-      // Rung nhẹ, không di chuyển
       e.x += Math.cos(st.time * 30) * 0.8;
       e.y += Math.sin(st.time * 30) * 0.8;
       e.x = clamp(e.x, -hw, hw); e.y = clamp(e.y, -hh, hh);
@@ -2121,18 +2138,16 @@ function updateBoss(e, target, dt, st) {
         e.laserTimer = 0.5;
         playSound('laser');
         shakeTime = 0.4; shakeIntensity = 20;
-        // Visual beam
         st.beams.push({
           x: e.x, y: e.y, angle: e.laserAim,
           life: 0.5, maxLife: 0.5, owner: 'BOSS',
           wideLaser: true, halfWidth: e.r
         });
-        st.particles.length = 0; // dọn dẹp particle cũ cho đỡ lag
+        st.particles.length = 0;
         spawnParticles(e.x, e.y, '#ffdd00', 40, 500);
       }
     } else if (e.laserState === 'firing') {
       e.laserTimer -= dt;
-      // Damage mỗi frame cho player nào nằm trong tia
       const bLen = 10000;
       for (const pid in st.players) {
         const p = st.players[pid];
@@ -2142,7 +2157,7 @@ function updateBoss(e, target, dt, st) {
         if (proj < 0 || proj > bLen) continue;
         const perp = Math.abs(-pdx * Math.sin(e.laserAim) + pdy * Math.cos(e.laserAim));
         if (perp < e.r + 18) {
-          const dmg = e.dmg * 2.5 * dt;
+          const dmg = e.dmg * 3.5 * dt;
           if (p.powerups && p.powerups.shield > 0) {
             if (!p.shieldHp) p.shieldHp = 40;
             p.shieldHp -= dmg;
@@ -2168,7 +2183,7 @@ function updateBoss(e, target, dt, st) {
       e.laserTimer -= dt;
       if (e.laserTimer <= 0) {
         e.laserState = 'idle';
-        e._laserCd = rand(6, 8);
+        e._laserCd = rand(3.5, 5);
       }
     }
   }
@@ -2349,7 +2364,7 @@ function gameLoop(now) {
             spawnBossInArena();
             state.bossIndex = state.testBossType;
             const bossName = BOSS_TYPES[state.testBossType].name;
-            state.announce = { text: 'BOSS ' + bossName + ' HỒI SINH!', t: 2.0 };
+            state.announce = { text: 'BOSS ' + bossName + ' Lv' + getBossLevel() + ' HỒI SINH!', t: 2.0 };
           }
         }
       }
@@ -2469,7 +2484,6 @@ function gameLoop(now) {
       }
     } else p.burnTick = 0;
 
-    // ==== DRAIN DoT (player tự hút máu quái) ====
     if (p.drainTimer > 0) {
       p.drainTimer -= dt;
       const R = p.drainRadius || 350;
@@ -2868,6 +2882,26 @@ function gameLoop(now) {
   for (let i = state.beams.length - 1; i >= 0; i--) {
     const bm = state.beams[i];
     bm.life -= dt;
+    // DoT cho tia laze player
+    if (bm.isPlayerLaser && bm.life > 0) {
+      const bLen = 12000;
+      for (let j = state.enemies.length - 1; j >= 0; j--) {
+        const e = state.enemies[j];
+        if (e.isAlly) continue;
+        const dx = e.x - bm.x, dy = e.y - bm.y;
+        const proj = dx * Math.cos(bm.angle) + dy * Math.sin(bm.angle);
+        if (proj < 0 || proj > bLen) continue;
+        const perp = Math.abs(-dx * Math.sin(bm.angle) + dy * Math.cos(bm.angle));
+        if (perp < bm.halfWidth + e.r) {
+          e.hp -= bm.dmgPerSec * dt;
+          e.hitFlash = Math.max(e.hitFlash, 0.1);
+          if (Math.random() < 0.25) {
+            spawnParticles(e.x, e.y, '#ffdd00', 2, 150);
+          }
+          if (e.hp <= 0) killEnemy(e, myId);
+        }
+      }
+    }
     if (bm.life <= 0) state.beams.splice(i, 1);
   }
 
@@ -3197,9 +3231,8 @@ function drawBossAura(e, st) {
     ctx.setLineDash([]);
     ctx.restore();
   }
-  // ==== BOSS 5 LAZE — telegraph ====
   if (e.bossType === 5 && e.laserState === 'charging') {
-    const fade = Math.min(1, 1 - e.laserTimer / 1.3);
+    const fade = Math.min(1, 1 - e.laserTimer / 1.0);
     ctx.save();
     ctx.globalAlpha = 0.3 + 0.5 * Math.sin(performance.now() * 0.03);
     ctx.strokeStyle = '#ffdd00';
@@ -3336,7 +3369,6 @@ function drawEnemy(e, st, targetPlayer) {
       }
     }
   }
-  // ==== Freeze / burn overlays ====
   if (!e.isAlly && e.frozen > 0) {
     ctx.save();
     ctx.globalAlpha = 0.55;
@@ -3485,7 +3517,6 @@ function drawPlayer(p, isMe, st) {
     ctx.beginPath(); ctx.arc(0, 0, 32, 0, TAU); ctx.stroke();
     ctx.restore();
   }
-  // ==== Vòng aura HÚT MÁU cho player ====
   if (p.drainTimer > 0) {
     const drainRange = p.drainRadius || 350;
     const fade = Math.min(1, p.drainTimer / 0.3);
@@ -3593,20 +3624,17 @@ function drawBeams(st) {
       ctx.fillStyle = grad;
       ctx.beginPath(); ctx.arc(bm.x, bm.y, rr2, 0, TAU); ctx.fill();
     } else if (bm.wideLaser) {
-      // ==== TIA LAZE RỘNG (boss LAZE / player skill) ====
       ctx.globalAlpha = a;
       ctx.translate(bm.x, bm.y);
       ctx.rotate(bm.angle);
       const beamLen = 12000;
       const hw = bm.halfWidth;
 
-      // Outer glow
       ctx.shadowColor = '#ffdd00';
       ctx.shadowBlur = 45;
       ctx.fillStyle = 'rgba(255, 200, 0, ' + (0.45 * a) + ')';
       ctx.fillRect(0, -hw * 1.35, beamLen, hw * 2.7);
 
-      // Mid body
       ctx.shadowBlur = 25;
       const grad = ctx.createLinearGradient(0, 0, beamLen, 0);
       grad.addColorStop(0, 'rgba(255,235,80,0.95)');
@@ -3616,12 +3644,10 @@ function drawBeams(st) {
       ctx.fillStyle = grad;
       ctx.fillRect(0, -hw, beamLen, hw * 2);
 
-      // Bright core
       ctx.shadowBlur = 0;
       ctx.fillStyle = 'rgba(255, 255, 230, ' + (0.9 * a) + ')';
       ctx.fillRect(0, -hw * 0.35, beamLen, hw * 0.7);
 
-      // Sparkling edge lines
       ctx.strokeStyle = 'rgba(255,255,180,' + (0.7 * a) + ')';
       ctx.lineWidth = 2;
       ctx.beginPath();
@@ -3629,7 +3655,6 @@ function drawBeams(st) {
       ctx.moveTo(0, hw); ctx.lineTo(beamLen, hw);
       ctx.stroke();
 
-      // Origin burst
       ctx.save();
       ctx.shadowColor = '#fff';
       ctx.shadowBlur = 30;
@@ -3658,7 +3683,6 @@ function drawBullets(st) {
   ctx.lineCap = 'round';
   for (const b of st.bullets) {
     const isPlayer = b.owner === myId;
-    // Fire trail
     if (b.isFire && b.trail) {
       for (const tr of b.trail) {
         ctx.save();
@@ -3755,7 +3779,7 @@ function drawBotIndicator(st) {
     const boss = st.enemies.find(e => e.isBoss);
     if (boss) {
       targetObj = boss; targetColor = boss.color;
-      labelName = 'BOSS ' + BOSS_TYPES[boss.bossType].name;
+      labelName = 'BOSS ' + BOSS_TYPES[boss.bossType].name + ' Lv' + (boss.level || 1);
       const c = boss.color.replace('#','');
       if (c.length >= 6) {
         const r = parseInt(c.slice(0,2),16), g = parseInt(c.slice(2,4),16), b = parseInt(c.slice(4,6),16);
@@ -3938,7 +3962,7 @@ function drawGame(st) {
       ctx.font = 'bold 12px system-ui,sans-serif';
       ctx.textAlign = 'center';
       const bossName = BOSS_TYPES[boss.bossType].name;
-      ctx.fillText('BOSS ' + bossName + '   ' + Math.ceil(boss.hp) + ' / ' + Math.ceil(boss.maxHp), W / 2, y + 14);
+      ctx.fillText('BOSS ' + bossName + ' Lv' + (boss.level || 1) + '   ' + Math.ceil(boss.hp) + ' / ' + Math.ceil(boss.maxHp), W / 2, y + 14);
     } else if (st.isBossTest && st.respawningBoss && !st.testWinShown) {
       const miniLeft = st.enemies.filter(e => e.isMiniBoss).length;
       ctx.save();
