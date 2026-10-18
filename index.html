@@ -295,6 +295,105 @@
     letter-spacing:.5px;font-family:system-ui;transition:.15s}
   .le-tsize.active{background:#2ee07a;border-color:#2ee07a;color:#04140c}
   .le-tsize:hover{border-color:#2ee07a}
+
+  /* ============================================================
+     📱 LANDSCAPE MOBILE — thu nhỏ nút, dàn skill NGANG, HUD gọn
+     ============================================================ */
+  @media (pointer: coarse) and (max-height: 520px),
+         (orientation: landscape) and (max-height: 520px) {
+
+    :root {
+      --skill-size: 40px !important;
+      --joy-size: 96px !important;
+      --knob-size: 44px !important;
+      --joy-bottom: 10px !important;
+      --joy-edge: 10px !important;
+    }
+
+    #skillBar {
+      flex-direction: row !important;
+      flex-wrap: wrap !important;
+      justify-content: center !important;
+      bottom: 114px !important;
+      right: auto !important;
+      left: 50% !important;
+      transform: translateX(-50%) !important;
+      gap: 4px !important;
+      max-width: calc(100vw - 240px) !important;
+    }
+    .skill-btn { box-shadow: 0 0 12px currentColor !important; }
+    .skill-btn .hotkey {
+      width: 15px !important; height: 15px !important;
+      font-size: 8px !important; top: -4px !important; right: -4px !important;
+      border-width: 1.5px !important;
+    }
+    .skill-btn .cd-overlay { font-size: 12px !important; }
+
+    #minimap {
+      transform: scale(0.6) !important;
+      transform-origin: top left !important;
+      top: 8px !important; left: 8px !important; right: auto !important;
+      border-radius: 6px !important;
+    }
+
+    #hudLeft {
+      top: 120px !important; bottom: auto !important; left: 8px !important;
+      transform: scale(0.55) !important;
+      transform-origin: left top !important;
+      gap: 3px !important;
+    }
+    .hpbar    { width: 220px !important; height: 14px !important; }
+    .manabar  { width: 220px !important; height: 9px  !important; }
+    .xpbar    { width: 220px !important; height: 5px  !important; }
+    .hpText   { font-size: 10px !important; margin-top: 1px !important; }
+    .manaText { font-size: 9px  !important; margin-top: 1px !important; letter-spacing: 0 !important; }
+    .lvlText  { font-size: 9px  !important; margin-top: 1px !important; }
+
+    #scoreBox {
+      margin-top: 0 !important;
+      font-size: 9px !important;
+      line-height: 1.5 !important;
+      letter-spacing: 1px !important;
+    }
+    #scoreBox b { font-size: 15px !important; }
+    #modeTag { font-size: 10px !important; margin-bottom: 4px !important; letter-spacing: 1px !important; }
+    #btnMenu, #btnSettings {
+      padding: 4px 8px !important; font-size: 9px !important;
+      margin-top: 4px !important; letter-spacing: 1px !important;
+    }
+
+    #enemiesLeftBox {
+      top: 8px !important; right: 8px !important;
+      padding: 3px 8px !important; font-size: 8px !important;
+      min-width: 60px !important; letter-spacing: 0.5px !important;
+      border-radius: 8px !important;
+    }
+    #enemiesLeftBox b { font-size: 16px !important; margin-top: 0 !important; }
+
+    #aimHint { display: none !important; }
+
+    #powerupHud { bottom: 8px !important; max-width: 55vw !important; gap: 4px !important; }
+    .pu-badge {
+      padding: 3px 7px !important; font-size: 9px !important;
+      letter-spacing: 0 !important; animation: none !important;
+    }
+  }
+
+  @media (pointer: coarse) and (max-width: 560px) and (max-height: 520px) {
+    :root {
+      --skill-size: 34px !important;
+      --joy-size: 84px !important;
+      --knob-size: 38px !important;
+    }
+    #skillBar {
+      bottom: 100px !important;
+      max-width: calc(100vw - 200px) !important;
+    }
+    #hudLeft {
+      top: 105px !important;
+      transform: scale(0.48) !important;
+    }
+  }
 </style>
 </head>
 <body>
@@ -846,6 +945,27 @@ function syncSliders() {
 
 function applyCustomPositions() {
   const cp = uiSettings.customPos || {};
+  const isLandscapeMobile = window.innerHeight <= 520 && isTouchDevice;
+
+  // Ở landscape mobile: KHÔNG áp custom pos — để CSS media query dàn layout
+  if (isLandscapeMobile) {
+    const hudLeft = document.getElementById('hudLeft');
+    if (hudLeft) { hudLeft.style.left = ''; hudLeft.style.top = ''; hudLeft.style.bottom = ''; }
+    minimapEl.style.left = ''; minimapEl.style.top = ''; minimapEl.style.right = '';
+    const joyLeft = document.getElementById('joyLeft');
+    const joyRight = document.getElementById('joyRight');
+    if (joyLeft) { joyLeft.style.left = ''; joyLeft.style.top = ''; joyLeft.style.bottom = ''; joyLeft.style.right = ''; }
+    if (joyRight) { joyRight.style.left = ''; joyRight.style.top = ''; joyRight.style.bottom = ''; joyRight.style.right = ''; }
+    const skillBar = document.getElementById('skillBar');
+    if (skillBar) {
+      skillBar.querySelectorAll('.skill-btn').forEach(btn => {
+        btn.style.position = ''; btn.style.left = ''; btn.style.top = '';
+        btn.style.right = ''; btn.style.bottom = '';
+      });
+    }
+    return;
+  }
+
   const hudLeft = document.getElementById('hudLeft');
   if (hudLeft) {
     if (cp.hud) {
@@ -1372,7 +1492,6 @@ const BOSS_SKILLS = [
 ];
 const SKILL_DROP_CHANCE = 0.5;
 
-// ===== BỔ SUNG: ĐỊNH NGHĨA LOẠI QUÁI & POWERUP =====
 const TYPES = [
   { behavior: 'chase',    hp: 30,  speed: 80,  r: 14, dmg: 10, score: 10, xp: 1, color: '#ff5b6e', stroke: '#8a1f35' },
   { behavior: 'zigzag',   hp: 24,  speed: 110, r: 12, dmg: 8,  score: 12, xp: 1, color: '#ff8c1a', stroke: '#a04d00' },
@@ -1395,10 +1514,12 @@ const PU_ICON = {
   curse: '☠', slow: '🐌', burn: '🔥', confuse: '🌀',
   freeze: '❄', jam: '✖'
 };
-// ===== HẾT BỔ SUNG =====
 
-function grantRandomSkills(player, count) {
-  const allKeys = BOSS_SKILLS.map(s => s.key);
+function grantRandomSkills(player, count, excludeKeys) {
+  let allKeys = BOSS_SKILLS.map(s => s.key);
+  if (excludeKeys && excludeKeys.length) {
+    allKeys = allKeys.filter(k => !excludeKeys.includes(k));
+  }
   for (let i = allKeys.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1));
     [allKeys[i], allKeys[j]] = [allKeys[j], allKeys[i]];
@@ -1445,7 +1566,6 @@ function makeBot(difficulty) {
   return b;
 }
 
-// ===== BỔ SUNG: CÁC HÀM TIỆN ÍCH GAME =====
 function spawnParticles(x, y, color, count, speed) {
   if (!state) return;
   for (let i = 0; i < count && state.particles.length < MAX_PARTICLES; i++) {
@@ -1577,7 +1697,6 @@ function explodeBomb(x, y, ownerId) {
   playSound('boom');
   shakeTime = 0.3; shakeIntensity = 12;
 }
-// ===== HẾT BỔ SUNG =====
 
 function initGame(mode, difficulty) {
   state = {
@@ -1604,7 +1723,7 @@ function initGame(mode, difficulty) {
     state.players[myId].x = -350;
     state.players['BOT'].x = 350;
     grantRandomSkills(state.players[myId], 3);
-    grantRandomSkills(state.players['BOT'], 3);
+    grantRandomSkills(state.players['BOT'], 3, ['split']);
     state.announce = { text: 'VS ' + BOT_CFG[difficulty].name + ' (SKILL NGẪU NHIÊN)', t: 2.5 };
     document.getElementById('modeTag').textContent = '⚔️ ' + DIFF_NAME[difficulty].toUpperCase();
     document.getElementById('modeTag').style.color = BOT_CFG[difficulty].color;
@@ -1743,7 +1862,6 @@ function spawnBossInArena(bossType) {
   return type;
 }
 
-// ===== BỔ SUNG: AI BOSS =====
 function updateBoss(e, target, dt, st) {
   if (!e || e.hp <= 0 || !target) return;
   const t = st.time;
@@ -1753,7 +1871,6 @@ function updateBoss(e, target, dt, st) {
   e.angle = Math.atan2(uy, ux);
   const hw = st.arena.w / 2 - e.r, hh = st.arena.h / 2 - e.r;
 
-  // Type 0: Charge
   if (e.bossType === 0) {
     if (e.chargeState === 'idle') {
       e.x += ux * e.speed * dt; e.y += uy * e.speed * dt;
@@ -1792,7 +1909,6 @@ function updateBoss(e, target, dt, st) {
       if (e.chargeTimer <= 0) { e.chargeState = 'idle'; e.chargeTimer = rand(1.5, 2.5); }
     }
   }
-  // Type 1: Flame
   else if (e.bossType === 1) {
     e.x += ux * e.speed * 0.6 * dt; e.y += uy * e.speed * 0.6 * dt;
     e.fireTimer -= dt;
@@ -1809,7 +1925,6 @@ function updateBoss(e, target, dt, st) {
       playSound('fire'); spawnParticles(e.x, e.y, '#ff8c1a', 10, 250);
     }
   }
-  // Type 2: Freeze
   else if (e.bossType === 2) {
     e.x += ux * e.speed * 0.7 * dt; e.y += uy * e.speed * 0.7 * dt;
     e.freezeCd -= dt;
@@ -1828,7 +1943,6 @@ function updateBoss(e, target, dt, st) {
       playSound('freeze'); spawnParticles(e.x, e.y, '#4dd9ff', 15, 250);
     }
   }
-  // Type 3: Drain
   else if (e.bossType === 3) {
     e.x += ux * e.speed * 0.5 * dt; e.y += uy * e.speed * 0.5 * dt;
     e.drainTimer -= dt;
@@ -1870,7 +1984,6 @@ function updateBoss(e, target, dt, st) {
       }
     }
   }
-  // Type 4: Split
   else if (e.bossType === 4) {
     e.x += ux * e.speed * 0.6 * dt; e.y += uy * e.speed * 0.6 * dt;
     e._spawnCd -= dt;
@@ -1891,7 +2004,6 @@ function updateBoss(e, target, dt, st) {
       playSound('split'); spawnParticles(e.x, e.y, '#ff66b2', 20, 300);
     }
   }
-  // Type 5: Laserbeam
   else if (e.bossType === 5) {
     if (e.laserState === 'idle') {
       e.x += ux * e.speed * 0.4 * dt; e.y += uy * e.speed * 0.4 * dt;
@@ -1942,7 +2054,6 @@ function updateBoss(e, target, dt, st) {
       if (e.laserTimer <= 0) { e.laserState = 'idle'; e._laserCd = rand(4, 6); }
     }
   }
-  // Type 6: Nuke
   else if (e.bossType === 6) {
     e.x += ux * e.speed * 0.4 * dt; e.y += uy * e.speed * 0.4 * dt;
     e._nukeCd -= dt;
@@ -1966,7 +2077,6 @@ function updateBoss(e, target, dt, st) {
       }
     }
   }
-  // Contact damage
   if (target.hp > 0 && d < e.r + 20) {
     const dmg = e.dmg * dt;
     if (target.powerups && target.powerups.shield > 0 && target.shieldHp > 0) {
@@ -1979,7 +2089,6 @@ function updateBoss(e, target, dt, st) {
   }
   e.x = clamp(e.x, -hw, hw); e.y = clamp(e.y, -hh, hh);
 }
-// ===== HẾT BỔ SUNG =====
 
 function startNewWave() {
   if (!state) return;
@@ -2035,7 +2144,6 @@ function startSpectate() {
   requestAnimationFrame(gameLoop);
 }
 
-// ===== BỔ SUNG: BOSS TEST =====
 function startBossTest(bossType) {
   initAudio(); hideOverlay();
   shakeTime = 0; shakeIntensity = 0; hitFlash = 0; nukeFlash = 0;
@@ -2063,7 +2171,6 @@ function startBossTest(bossType) {
   lastTime = performance.now();
   requestAnimationFrame(gameLoop);
 }
-// ===== HẾT BỔ SUNG =====
 
 document.getElementById('btnPvE').onclick = () => startGame('pve', null);
 document.getElementById('btnSpectate').onclick = () => startSpectate();
@@ -2226,33 +2333,79 @@ function triggerSkill(skillKey, casterId) {
 function autoCastSkills(caster, st) {
   if (!caster.skills || caster.skills.length === 0) return;
   if (caster.hp <= 0) return;
+  if (caster.chargeState && caster.chargeState !== 'idle') return;
+
+  const now = st.time;
+  if (caster._lastBotSkillTime !== undefined && now - caster._lastBotSkillTime < 0.7) return;
+
+  const MIN_MANA_RESERVE = caster.isBot ? 25 : 0;
+
+  let target = null, targetDist = Infinity;
+  if (st.mode === 'bot') {
+    for (const pid in st.players) {
+      if (pid === caster.id) continue;
+      const p = st.players[pid];
+      if (p.hp <= 0) continue;
+      const d = dist(caster.x, caster.y, p.x, p.y);
+      if (d < targetDist) { targetDist = d; target = p; }
+    }
+  } else {
+    for (const e of st.enemies) {
+      if (e.isAlly) continue;
+      const d = dist(caster.x, caster.y, e.x, e.y);
+      if (d < targetDist) { targetDist = d; target = e; }
+    }
+  }
+  if (!target) return;
+
+  caster.aim = Math.atan2(target.y - caster.y, target.x - caster.x);
+
+  const candidates = [];
+  const hw = st.arena.w / 2 - 60, hh = st.arena.h / 2 - 60;
   for (const skillKey of caster.skills) {
     const cd = caster.skillCooldowns[skillKey] || 0;
     if (cd > 0) continue;
     const sk = BOSS_SKILLS.find(s => s.key === skillKey);
     if (!sk) continue;
-    if (caster.mana < sk.cost) continue;
+    if (caster.mana - sk.cost < MIN_MANA_RESERVE) continue;
     if (st.mode === 'bot' && skillKey === 'split') continue;
 
-    let hasTarget = false;
-    if (st.mode === 'bot') {
-      for (const pid in st.players) {
-        if (pid === caster.id) continue;
-        const p = st.players[pid];
-        if (p.hp > 0 && dist(caster.x, caster.y, p.x, p.y) < 700) { hasTarget = true; break; }
+    let score = 0;
+    if (skillKey === 'charge') {
+      const cx = caster.x + Math.cos(caster.aim) * 500;
+      const cy = caster.y + Math.sin(caster.aim) * 500;
+      const hitWall = Math.abs(cx) > hw || Math.abs(cy) > hh;
+      if (!hitWall && targetDist > 220 && targetDist < 600)
+        score = 100 - Math.abs(targetDist - 400) * 0.2;
+    } else if (skillKey === 'flame') {
+      if (targetDist < 550) score = 90 - targetDist * 0.05;
+    } else if (skillKey === 'freeze') {
+      if (targetDist < 600) score = 85 - targetDist * 0.05;
+    } else if (skillKey === 'drain') {
+      let count = 0;
+      if (st.mode !== 'bot') {
+        for (const e of st.enemies) {
+          if (!e.isAlly && dist(caster.x, caster.y, e.x, e.y) < 350) count++;
+        }
       }
-    } else {
-      let closestD = Infinity;
-      for (const e of st.enemies) {
-        if (e.isAlly) continue;
-        const d = dist(caster.x, caster.y, e.x, e.y);
-        if (d < closestD) closestD = d;
-      }
-      hasTarget = closestD < 700;
+      if (count >= 2) score = 80 + count * 5;
+      else if (count >= 1 && caster.hp < caster.maxHp * 0.5) score = 70;
+    } else if (skillKey === 'split') {
+      score = 50;
+    } else if (skillKey === 'laserbeam') {
+      if (targetDist < 800) score = 75;
+    } else if (skillKey === 'nuke') {
+      if (targetDist > 280 && targetDist < 700) score = 95;
     }
-    if (!hasTarget) continue;
-    triggerSkill(skillKey, caster.id);
+
+    if (score > 0) candidates.push({ key: skillKey, score });
   }
+
+  if (candidates.length === 0) return;
+  candidates.sort((a, b) => b.score - a.score);
+
+  triggerSkill(candidates[0].key, caster.id);
+  caster._lastBotSkillTime = now;
 }
 
 function computePvEBotInput(bot, st) {
@@ -3090,7 +3243,6 @@ function gameLoop(now) {
   requestAnimationFrame(gameLoop);
 }
 
-// ===== BỔ SUNG: HUD UPDATE =====
 function updateHUD(st) {
   if (!st) return;
   const me = st.players[myId];
@@ -3203,7 +3355,6 @@ function resumeGame() {
   pauseOverlayEl.classList.add('hidden');
   lastTime = performance.now();
 }
-// ===== HẾT BỔ SUNG =====
 
 function showOverlay(title, color, p1, p2) {
   paused = false; pauseOverlayEl.classList.add('hidden');
@@ -3282,7 +3433,12 @@ function resize() {
   ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
   if (!state || mouse.x > W || mouse.y > H || mouse.x < 0 || mouse.y < 0) { mouse.x = W / 2; mouse.y = H / 2; }
 }
-addEventListener('resize', resize); resize();
+addEventListener('resize', () => { resize(); applyCustomPositions(); });
+addEventListener('orientationchange', () => {
+  setTimeout(() => { resize(); applyCustomPositions(); }, 120);
+});
+resize();
+
 const CELL = 128;
 function drawMap() {
   const left = cam.x - W / 2, top = cam.y - H / 2;
@@ -4081,7 +4237,6 @@ function drawGame(st) {
   drawMinimap(st);
 }
 
-// ===== BỔ SUNG: EVENT HANDLERS =====
 document.getElementById('btnRestart').onclick = () => {
   if (!state) { startGame('pve', null); return; }
   const wasBossTest = state.isBossTest;
@@ -4207,7 +4362,6 @@ addEventListener('blur', () => {
   mouse.down = false;
   keys[' '] = false;
 });
-// ===== HẾT BỔ SUNG =====
 
 applyUI();
 
