@@ -1372,6 +1372,31 @@ const BOSS_SKILLS = [
 ];
 const SKILL_DROP_CHANCE = 0.5;
 
+// ===== BỔ SUNG: ĐỊNH NGHĨA LOẠI QUÁI & POWERUP =====
+const TYPES = [
+  { behavior: 'chase',    hp: 30,  speed: 80,  r: 14, dmg: 10, score: 10, xp: 1, color: '#ff5b6e', stroke: '#8a1f35' },
+  { behavior: 'zigzag',   hp: 24,  speed: 110, r: 12, dmg: 8,  score: 12, xp: 1, color: '#ff8c1a', stroke: '#a04d00' },
+  { behavior: 'chase',    hp: 90,  speed: 55,  r: 26, dmg: 20, score: 30, xp: 3, color: '#ff4d6d', stroke: '#8a1f35' },
+  { behavior: 'shoot',    hp: 40,  speed: 70,  r: 16, dmg: 8,  score: 20, xp: 2, color: '#b46bff', stroke: '#6a2f9e' },
+  { behavior: 'splitter', hp: 45,  speed: 75,  r: 18, dmg: 12, score: 25, xp: 2, color: '#ff66b2', stroke: '#8a1f4d' },
+  { behavior: 'zigzag',   hp: 35,  speed: 130, r: 13, dmg: 10, score: 18, xp: 2, color: '#4dd9ff', stroke: '#1b6a8a' }
+];
+
+const PU_BAD = ['curse', 'slow', 'burn', 'confuse', 'freeze', 'jam'];
+const PU_COLOR = {
+  laser: '#ffdd00', bomb: '#ff8c1a', shield: '#ffd93d', speed: '#2ee07a',
+  pierce: '#b46bff', tripleshot: '#ff66b2', magnet: '#4dd9ff',
+  curse: '#ff5b6e', slow: '#4dd9ff', burn: '#ff8c1a', confuse: '#b46bff',
+  freeze: '#4dd9ff', jam: '#ff5b6e'
+};
+const PU_ICON = {
+  laser: '⚡', bomb: '💣', shield: '🛡', speed: '⚡',
+  pierce: '➤', tripleshot: '⋔', magnet: '🧲',
+  curse: '☠', slow: '🐌', burn: '🔥', confuse: '🌀',
+  freeze: '❄', jam: '✖'
+};
+// ===== HẾT BỔ SUNG =====
+
 function grantRandomSkills(player, count) {
   const allKeys = BOSS_SKILLS.map(s => s.key);
   for (let i = allKeys.length - 1; i > 0; i--) {
@@ -1419,6 +1444,141 @@ function makeBot(difficulty) {
   b.mana = MANA_MAX; b.maxMana = MANA_MAX;
   return b;
 }
+
+// ===== BỔ SUNG: CÁC HÀM TIỆN ÍCH GAME =====
+function spawnParticles(x, y, color, count, speed) {
+  if (!state) return;
+  for (let i = 0; i < count && state.particles.length < MAX_PARTICLES; i++) {
+    const a = Math.random() * TAU;
+    const sp = speed * (0.4 + Math.random() * 0.8);
+    state.particles.push({
+      x, y, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp,
+      life: 0.35 + Math.random() * 0.35, maxLife: 0.7,
+      color, r: 2 + Math.random() * 3
+    });
+  }
+}
+
+function killEnemy(e, ownerId) {
+  if (!state || !e) return;
+  const idx = state.enemies.indexOf(e);
+  if (idx === -1) return;
+  state.enemies.splice(idx, 1);
+  const me = state.players[myId];
+  spawnParticles(e.x, e.y, e.color || '#fff', e.isBoss ? 40 : 10, e.isBoss ? 500 : 200);
+  playSound(e.isBoss ? 'boom' : 'hit');
+  if (e.isBoss) {
+    shakeTime = 0.5; shakeIntensity = 20;
+    state.bossAlive = false;
+  }
+  if (state.waveActive && !state.isBossTest && !e.isAlly) state.waveKilled++;
+  if (me && (ownerId === myId) && !e.isAlly) {
+    me.score += e.score || 0;
+    const orbs = e.isBoss ? 8 : Math.min(3, Math.max(1, e.xp || 1));
+    const xpPerOrb = Math.max(1, Math.ceil((e.xp || 1) / orbs));
+    for (let i = 0; i < orbs; i++) {
+      if (state.pickups.length >= MAX_XP_ORBS + 50) break;
+      state.pickups.push({
+        type: 'xp', x: e.x + rand(-20, 20), y: e.y + rand(-20, 20),
+        xpValue: xpPerOrb, bob: Math.random() * 10, life: 30,
+        vx: rand(-80, 80), vy: rand(-80, 80)
+      });
+    }
+    if (Math.random() < (e.isBoss ? 0.9 : 0.15)) {
+      spawnPowerup(e.x + rand(-30, 30), e.y + rand(-30, 30));
+    }
+  }
+}
+
+function spawnPowerup(x, y) {
+  if (!state) return;
+  const hw = state.arena.w / 2 - 40, hh = state.arena.h / 2 - 40;
+  x = clamp(x, -hw, hw); y = clamp(y, -hh, hh);
+  const goodTypes = ['laser', 'bomb', 'shield', 'speed', 'pierce', 'tripleshot', 'magnet'];
+  const badTypes = ['curse', 'slow', 'burn', 'confuse', 'freeze', 'jam'];
+  const isBad = Math.random() < 0.35;
+  const arr = isBad ? badTypes : goodTypes;
+  const type = arr[Math.floor(Math.random() * arr.length)];
+  state.pickups.push({
+    type, bad: isBad, x, y, bob: Math.random() * 10,
+    life: 22, vx: 0, vy: 0
+  });
+}
+
+function applyPickup(p, k) {
+  if (!state || !p) return;
+  if (k.type === 'xp') {
+    p.xp = (p.xp || 0) + (k.xpValue || 1);
+    playSound('pickup');
+    while (p.xp >= xpNeeded(p.level)) {
+      p.xp -= xpNeeded(p.level);
+      p.level++;
+      p.levelUpFlash = 1;
+      p.maxHp += 15;
+      p.hp = Math.min(p.maxHp, p.hp + 30);
+      p.damage += 2;
+      p.maxMana += 10;
+      p.mana = p.maxMana;
+      spawnParticles(p.x, p.y, '#ffd93d', 20, 300);
+      playSound('levelup');
+    }
+    return;
+  }
+  const dur = k.bad ? 6 : 8;
+  p.powerups[k.type] = Math.max(p.powerups[k.type] || 0, dur);
+  if (k.type === 'shield') p.shieldHp = 40;
+  playSound(k.bad ? 'curse' : 'pickup');
+  spawnParticles(p.x, p.y, PU_COLOR[k.type] || '#fff', 15, 250);
+}
+
+function spawnLaser(x, y, aim, ownerId) {
+  if (!state) return;
+  const bLen = 2000;
+  for (let i = state.enemies.length - 1; i >= 0; i--) {
+    const e = state.enemies[i];
+    if (e.isAlly) continue;
+    const dx = e.x - x, dy = e.y - y;
+    const proj = dx * Math.cos(aim) + dy * Math.sin(aim);
+    if (proj < 0 || proj > bLen) continue;
+    const perp = Math.abs(-dx * Math.sin(aim) + dy * Math.cos(aim));
+    if (perp < 6 + e.r) {
+      e.hp -= 40;
+      e.hitFlash = 0.12;
+      spawnParticles(e.x, e.y, '#4dd9ff', 3, 150);
+      if (e.hp <= 0) killEnemy(e, ownerId);
+    }
+  }
+  state.beams.push({
+    x, y, angle: aim, life: 0.15, maxLife: 0.15, owner: ownerId,
+    isPlayerLaser: false
+  });
+  playSound('laser');
+}
+
+function explodeBomb(x, y, ownerId) {
+  if (!state) return;
+  const R = 120;
+  for (let i = state.enemies.length - 1; i >= 0; i--) {
+    const e = state.enemies[i];
+    if (e.isAlly) continue;
+    const d = dist(e.x, e.y, x, y);
+    if (d < R + e.r) {
+      e.hp -= 60;
+      e.hitFlash = 0.15;
+      spawnParticles(e.x, e.y, '#ff8c1a', 6, 200);
+      if (e.hp <= 0) killEnemy(e, ownerId);
+    }
+  }
+  state.beams.push({
+    x, y, angle: 0, life: 0.4, maxLife: 0.4, owner: ownerId,
+    bomb: true, radius: R
+  });
+  spawnParticles(x, y, '#ff8c1a', 30, 400);
+  playSound('boom');
+  shakeTime = 0.3; shakeIntensity = 12;
+}
+// ===== HẾT BỔ SUNG =====
+
 function initGame(mode, difficulty) {
   state = {
     mode, difficulty, time: 0, wave: 1, over: false,
@@ -1443,7 +1603,6 @@ function initGame(mode, difficulty) {
     state.players[myId].bulletSpeed = 1300;
     state.players[myId].x = -350;
     state.players['BOT'].x = 350;
-    // Random skills cho cả 2
     grantRandomSkills(state.players[myId], 3);
     grantRandomSkills(state.players['BOT'], 3);
     state.announce = { text: 'VS ' + BOT_CFG[difficulty].name + ' (SKILL NGẪU NHIÊN)', t: 2.5 };
@@ -1583,6 +1742,245 @@ function spawnBossInArena(bossType) {
   state.announce = { text: 'BOSS ' + s.name + ' Lv' + level + ' XUẤT HIỆN!', t: 2.5 };
   return type;
 }
+
+// ===== BỔ SUNG: AI BOSS =====
+function updateBoss(e, target, dt, st) {
+  if (!e || e.hp <= 0 || !target) return;
+  const t = st.time;
+  const dx = target.x - e.x, dy = target.y - e.y;
+  const d = Math.hypot(dx, dy) || 1;
+  const ux = dx / d, uy = dy / d;
+  e.angle = Math.atan2(uy, ux);
+  const hw = st.arena.w / 2 - e.r, hh = st.arena.h / 2 - e.r;
+
+  // Type 0: Charge
+  if (e.bossType === 0) {
+    if (e.chargeState === 'idle') {
+      e.x += ux * e.speed * dt; e.y += uy * e.speed * dt;
+      e.chargeTimer -= dt;
+      if (e.chargeTimer <= 0 && d < 700) {
+        e.chargeState = 'charging'; e.chargeTimer = 0.8;
+        e.chargeDirX = ux; e.chargeDirY = uy;
+        spawnParticles(e.x, e.y, '#b46bff', 15, 300);
+        playSound('charge');
+      }
+    } else if (e.chargeState === 'charging') {
+      e.chargeTimer -= dt;
+      e.chargeDirX = ux; e.chargeDirY = uy;
+      e.x += Math.cos(t * 40) * 1; e.y += Math.sin(t * 40) * 1;
+      if (e.chargeTimer <= 0) { e.chargeState = 'dashing'; e.chargeTimer = 0.5; playSound('roar'); }
+    } else if (e.chargeState === 'dashing') {
+      const speed = 900;
+      e.x += e.chargeDirX * speed * dt; e.y += e.chargeDirY * speed * dt;
+      e.chargeTimer -= dt;
+      if (target.hp > 0 && dist(e.x, e.y, target.x, target.y) < e.r + 22) {
+        if (target.powerups && target.powerups.shield > 0 && target.shieldHp > 0) {
+          target.shieldHp -= e.dmg;
+          if (target.shieldHp <= 0) { target.powerups.shield = 0; target.shieldHp = 0; }
+        } else {
+          target.hp -= e.dmg * 0.4;
+          st.events.push({ type: 'hurt', target: target.id });
+        }
+        if (!target.isBot) {
+          target.knockbackX = (target.knockbackX || 0) + e.chargeDirX * 800;
+          target.knockbackY = (target.knockbackY || 0) + e.chargeDirY * 800;
+        }
+      }
+      if (e.chargeTimer <= 0) { e.chargeState = 'recover'; e.chargeTimer = 0.6; }
+    } else if (e.chargeState === 'recover') {
+      e.chargeTimer -= dt;
+      if (e.chargeTimer <= 0) { e.chargeState = 'idle'; e.chargeTimer = rand(1.5, 2.5); }
+    }
+  }
+  // Type 1: Flame
+  else if (e.bossType === 1) {
+    e.x += ux * e.speed * 0.6 * dt; e.y += uy * e.speed * 0.6 * dt;
+    e.fireTimer -= dt;
+    if (e.fireTimer <= 0 && d < 700 && st.ebullets.length < MAX_EBULLETS) {
+      e.fireTimer = rand(2, 3);
+      for (let k = -2; k <= 2; k++) {
+        const a = Math.atan2(uy, ux) + k * 0.15;
+        st.ebullets.push({
+          x: e.x + Math.cos(a) * 40, y: e.y + Math.sin(a) * 40,
+          vx: Math.cos(a) * 500, vy: Math.sin(a) * 500,
+          r: 10, dmg: e.dmg * 0.5, life: 2, color: '#ff8c1a', isFire: true, trail: []
+        });
+      }
+      playSound('fire'); spawnParticles(e.x, e.y, '#ff8c1a', 10, 250);
+    }
+  }
+  // Type 2: Freeze
+  else if (e.bossType === 2) {
+    e.x += ux * e.speed * 0.7 * dt; e.y += uy * e.speed * 0.7 * dt;
+    e.freezeCd -= dt;
+    if (e.freezeCd <= 0 && d < 700 && st.ebullets.length < MAX_EBULLETS) {
+      e.freezeCd = rand(2, 3);
+      const baseA = Math.atan2(uy, ux);
+      for (let k = 0; k < 4; k++) {
+        const a = (k / 4) * TAU + baseA;
+        st.ebullets.push({
+          x: e.x + Math.cos(a) * 40, y: e.y + Math.sin(a) * 40,
+          vx: Math.cos(a) * 400, vy: Math.sin(a) * 400,
+          r: 9, dmg: e.dmg * 0.4, life: 3, color: '#4dd9ff',
+          isFreeze: true, freezeDuration: 1.8
+        });
+      }
+      playSound('freeze'); spawnParticles(e.x, e.y, '#4dd9ff', 15, 250);
+    }
+  }
+  // Type 3: Drain
+  else if (e.bossType === 3) {
+    e.x += ux * e.speed * 0.5 * dt; e.y += uy * e.speed * 0.5 * dt;
+    e.drainTimer -= dt;
+    e.draining = false;
+    if (e.drainTimer <= 0) e.drainTimer = rand(3, 4);
+    if (e.drainTimer < 1.5) {
+      e.draining = true;
+      const R = 320;
+      for (const pid in st.players) {
+        const p = st.players[pid];
+        if (p.hp <= 0) continue;
+        if (dist(p.x, p.y, e.x, e.y) < R) {
+          const dmg = e.dmg * 0.5 * dt;
+          if (p.powerups && p.powerups.shield > 0 && p.shieldHp > 0) {
+            p.shieldHp -= dmg * 2;
+            if (p.shieldHp <= 0) { p.powerups.shield = 0; p.shieldHp = 0; }
+          } else { p.hp -= dmg; }
+          e.hp = Math.min(e.maxHp, e.hp + dmg * 0.5);
+          if (Math.random() < 0.3) {
+            const ang = Math.atan2(e.y - p.y, e.x - p.x);
+            st.particles.push({
+              x: p.x, y: p.y, vx: Math.cos(ang) * 400, vy: Math.sin(ang) * 400,
+              life: 0.5, maxLife: 0.5, color: '#ff4d6d', r: 4
+            });
+          }
+        }
+      }
+      for (const al of st.enemies) {
+        if (!al.isAlly || al.hp <= 0) continue;
+        if (dist(al.x, al.y, e.x, e.y) < R) {
+          al.hp -= e.dmg * dt;
+          e.hp = Math.min(e.maxHp, e.hp + e.dmg * dt * 0.5);
+          if (al.hp <= 0) {
+            spawnParticles(al.x, al.y, '#ff4d6d', 10, 200);
+            const idx = st.enemies.indexOf(al);
+            if (idx !== -1) st.enemies.splice(idx, 1);
+          }
+        }
+      }
+    }
+  }
+  // Type 4: Split
+  else if (e.bossType === 4) {
+    e.x += ux * e.speed * 0.6 * dt; e.y += uy * e.speed * 0.6 * dt;
+    e._spawnCd -= dt;
+    if (e._spawnCd <= 0 && st.enemies.length < MAX_ENEMIES - 2) {
+      e._spawnCd = rand(6, 9);
+      for (let k = 0; k < 2; k++) {
+        const a = Math.random() * TAU;
+        const tt = TYPES[Math.floor(Math.random() * 3)];
+        st.enemies.push({
+          x: e.x + Math.cos(a) * 70, y: e.y + Math.sin(a) * 70,
+          behavior: tt.behavior, hp: tt.hp * 1.5, maxHp: tt.hp * 1.5,
+          speed: tt.speed * 1.2, r: tt.r, dmg: tt.dmg, score: tt.score, xp: tt.xp,
+          color: '#ff66b2', stroke: '#8a1f4d', level: e.level || 1,
+          angle: 0, hitFlash: 0, seed: Math.random() * 10,
+          isBoss: false, isMiniBoss: true, atkCd: 1.5, spawnAnim: 0.4, wobble: Math.random() * 100
+        });
+      }
+      playSound('split'); spawnParticles(e.x, e.y, '#ff66b2', 20, 300);
+    }
+  }
+  // Type 5: Laserbeam
+  else if (e.bossType === 5) {
+    if (e.laserState === 'idle') {
+      e.x += ux * e.speed * 0.4 * dt; e.y += uy * e.speed * 0.4 * dt;
+      e._laserCd -= dt;
+      if (e._laserCd <= 0) {
+        e.laserState = 'charging'; e.laserTimer = 0.8;
+        e.laserAim = Math.atan2(uy, ux);
+        playSound('charge');
+      }
+    } else if (e.laserState === 'charging') {
+      e.laserTimer -= dt;
+      const ta = Math.atan2(uy, ux);
+      let diff = ta - e.laserAim;
+      while (diff > Math.PI) diff -= TAU;
+      while (diff < -Math.PI) diff += TAU;
+      e.laserAim += diff * 2 * dt;
+      if (e.laserTimer <= 0) {
+        e.laserState = 'firing'; e.laserTimer = 0.6;
+        playSound('laser');
+        st.beams.push({
+          x: e.x, y: e.y, angle: e.laserAim, life: 0.6, maxLife: 0.6,
+          owner: 'BOSS', wideLaser: true, isPlayerLaser: false,
+          halfWidth: 20
+        });
+        spawnParticles(e.x, e.y, '#ffdd00', 30, 400);
+      }
+    } else if (e.laserState === 'firing') {
+      e.laserTimer -= dt;
+      const bLen = 12000;
+      const a = e.laserAim;
+      for (const pid in st.players) {
+        const p = st.players[pid];
+        if (p.hp <= 0) continue;
+        const pdx = p.x - e.x, pdy = p.y - e.y;
+        const proj = pdx * Math.cos(a) + pdy * Math.sin(a);
+        if (proj < 0 || proj > bLen) continue;
+        const perp = Math.abs(-pdx * Math.sin(a) + pdy * Math.cos(a));
+        if (perp < 20 + 20) {
+          if (p.powerups && p.powerups.shield > 0 && p.shieldHp > 0) {
+            p.shieldHp -= e.dmg * 1.5 * dt;
+            if (p.shieldHp <= 0) { p.powerups.shield = 0; p.shieldHp = 0; }
+          } else {
+            p.hp -= e.dmg * 1.5 * dt;
+            if (Math.random() < 0.3) st.events.push({ type: 'hurt', target: p.id });
+          }
+        }
+      }
+      if (e.laserTimer <= 0) { e.laserState = 'idle'; e._laserCd = rand(4, 6); }
+    }
+  }
+  // Type 6: Nuke
+  else if (e.bossType === 6) {
+    e.x += ux * e.speed * 0.4 * dt; e.y += uy * e.speed * 0.4 * dt;
+    e._nukeCd -= dt;
+    if (e._nukeCd <= 0 && d < 1000) {
+      e._nukeCd = rand(6, 8);
+      st.nukeStrikes.push({
+        x: target.x, y: target.y, radius: 220, timer: 3.0, maxTimer: 3.0,
+        owner: 'BOSS', isPlayer: false
+      });
+      playSound('charge');
+    }
+    e._burstCd -= dt;
+    if (e._burstCd <= 0 && d < 700 && st.ebullets.length < MAX_EBULLETS) {
+      e._burstCd = rand(3, 5);
+      for (let k = 0; k < 8; k++) {
+        const a = (k / 8) * TAU;
+        st.ebullets.push({
+          x: e.x, y: e.y, vx: Math.cos(a) * 350, vy: Math.sin(a) * 350,
+          r: 8, dmg: e.dmg * 0.3, life: 3, color: '#88ff00'
+        });
+      }
+    }
+  }
+  // Contact damage
+  if (target.hp > 0 && d < e.r + 20) {
+    const dmg = e.dmg * dt;
+    if (target.powerups && target.powerups.shield > 0 && target.shieldHp > 0) {
+      target.shieldHp -= dmg * 2;
+      if (target.shieldHp <= 0) { target.powerups.shield = 0; target.shieldHp = 0; }
+    } else {
+      target.hp -= dmg;
+      if (Math.random() < 0.1) st.events.push({ type: 'hurt', target: target.id });
+    }
+  }
+  e.x = clamp(e.x, -hw, hw); e.y = clamp(e.y, -hh, hh);
+}
+// ===== HẾT BỔ SUNG =====
+
 function startNewWave() {
   if (!state) return;
   const wave = state.wave;
@@ -1636,6 +2034,37 @@ function startSpectate() {
   lastTime = performance.now();
   requestAnimationFrame(gameLoop);
 }
+
+// ===== BỔ SUNG: BOSS TEST =====
+function startBossTest(bossType) {
+  initAudio(); hideOverlay();
+  shakeTime = 0; shakeIntensity = 0; hitFlash = 0; nukeFlash = 0;
+  state = null; resetTouchState();
+  initGame('pve', null);
+  state.isBossTest = true;
+  state.testBossType = bossType;
+  state.testTrashTimer = 1.5;
+  state.waveActive = false;
+  state.waveSpawnQueue = [];
+  state.enemies = [];
+  state.ebullets = [];
+  if (bossType === 'all') {
+    for (let i = 0; i < BOSS_TYPES.length; i++) spawnBossInArena(i);
+    state.announce = { text: '💥 TẤT CẢ 7 BOSS!', t: 2.5 };
+  } else {
+    spawnBossInArena(bossType);
+    state.announce = { text: 'BOSS ' + BOSS_TYPES[bossType].name + '!', t: 2.5 };
+  }
+  document.getElementById('modeTag').textContent = '🧪 BOSS TEST';
+  document.getElementById('modeTag').style.color = '#b46bff';
+  show('game');
+  document.getElementById('devPanel').classList.remove('hidden');
+  document.getElementById('dvOpen').classList.remove('hidden');
+  lastTime = performance.now();
+  requestAnimationFrame(gameLoop);
+}
+// ===== HẾT BỔ SUNG =====
+
 document.getElementById('btnPvE').onclick = () => startGame('pve', null);
 document.getElementById('btnSpectate').onclick = () => startSpectate();
 document.getElementById('btnEasy').onclick = () => startGame('bot', 'easy');
@@ -1706,7 +2135,6 @@ function triggerSkill(skillKey, casterId) {
   me.skillCooldowns[skillKey] = sk.cd * me.skillCdMultiplier;
   state.events.push('skill');
 
-  // Silent bot (in PvP) to avoid spamming player's alerts
   const silent = me.isBot && !state.isSpectate;
   const announce = (text, t) => { if (!silent) state.announce = { text, t }; };
   const playSnd = (type) => { if (!silent) playSound(type); };
@@ -1888,11 +2316,7 @@ function computePvEBotInput(bot, st) {
   let aim = bot.aimSmooth !== undefined ? bot.aimSmooth : (bot.aim || 0);
   let shoot = false;
   if (nearestEnemy) {
-    const bulletSpeed = bot.bulletSpeed || 1000;
-    const bulletTime = minED / bulletSpeed;
-    const targetX = nearestEnemy.x;
-    const targetY = nearestEnemy.y;
-    const targetAim = Math.atan2(targetY - bot.y, targetX - bot.x);
+    const targetAim = Math.atan2(nearestEnemy.y - bot.y, nearestEnemy.x - bot.x);
     let aimDiff = targetAim - aim;
     while (aimDiff > Math.PI) aimDiff -= TAU;
     while (aimDiff < -Math.PI) aimDiff += TAU;
@@ -2023,7 +2447,7 @@ function gameLoop(now) {
       if (state.isSpectate) {
         showOverlay('💀 BOT ĐÃ CHẾT', '#ff5b6e', 'Điểm: <b>' + state.players[myId].score + '</b>', 'Cấp: <b>' + state.players[myId].level + ' · Màn ' + state.wave + '</b>');
       } else {
-        recordPvEScore(state.players[myId].score);
+        if (!state.isBossTest) recordPvEScore(state.players[myId].score);
         showOverlay('GAME OVER', '#ff5b6e', 'Điểm: <b>' + state.players[myId].score + '</b>', 'Cấp đạt được: <b>' + state.players[myId].level + ' · Màn ' + state.wave + '</b>');
       }
       return;
@@ -2665,6 +3089,121 @@ function gameLoop(now) {
   drawGame(state);
   requestAnimationFrame(gameLoop);
 }
+
+// ===== BỔ SUNG: HUD UPDATE =====
+function updateHUD(st) {
+  if (!st) return;
+  const me = st.players[myId];
+  if (!me) return;
+  const hpFill = document.getElementById('hpFillP1');
+  const hpText = document.getElementById('hpTextP1');
+  const manaFill = document.getElementById('manaFillP1');
+  const manaText = document.getElementById('manaTextP1');
+  const shieldFill = document.getElementById('shieldFillP1');
+  const manaBarWrap = document.getElementById('manaBarP1');
+
+  if (hpFill) hpFill.style.width = (Math.max(0, me.hp / me.maxHp) * 100) + '%';
+  if (hpText) hpText.textContent = Math.max(0, Math.ceil(me.hp)) + ' / ' + Math.ceil(me.maxHp);
+  if (manaFill) manaFill.style.width = (Math.max(0, me.mana / me.maxMana) * 100) + '%';
+  if (manaText) manaText.textContent = 'MANA ' + Math.floor(me.mana) + ' / ' + me.maxMana;
+  if (shieldFill) {
+    if (me.powerups.shield > 0 && me.shieldHp > 0) {
+      shieldFill.style.width = Math.min(100, (me.shieldHp / me.maxHp) * 100) + '%';
+    } else shieldFill.style.width = '0%';
+  }
+  if (manaBarWrap) {
+    if (me.manaFlash > 0 || me.mana < 20) manaBarWrap.classList.add('low');
+    else manaBarWrap.classList.remove('low');
+  }
+
+  const xpFill = document.getElementById('xpFillP1');
+  const xpVal = document.getElementById('xpValP1');
+  const xpNeed = document.getElementById('xpNeedP1');
+  const lvlVal = document.getElementById('lvlValP1');
+  if (xpFill) xpFill.style.width = Math.min(100, ((me.xp || 0) / xpNeeded(me.level)) * 100) + '%';
+  if (xpVal) xpVal.textContent = me.xp || 0;
+  if (xpNeed) xpNeed.textContent = xpNeeded(me.level);
+  if (lvlVal) lvlVal.textContent = me.level;
+
+  const scoreVal = document.getElementById('scoreVal');
+  if (scoreVal) scoreVal.textContent = me.score || 0;
+  const waveVal = document.getElementById('waveVal');
+  if (waveVal) waveVal.textContent = st.wave || 1;
+
+  const enemiesLeftBox = document.getElementById('enemiesLeftBox');
+  const enemiesLeftVal = document.getElementById('enemiesLeftVal');
+  if (enemiesLeftBox && enemiesLeftVal) {
+    const show = uiSettings.enemiesLeft && st.mode === 'pve' && !st.isBossTest && !st.isSpectate;
+    if (show) {
+      enemiesLeftBox.classList.remove('hidden');
+      let enemyCount = 0;
+      for (const e of st.enemies) if (!e.isAlly) enemyCount++;
+      const remaining = (st.waveSpawnQueue ? st.waveSpawnQueue.length : 0) + enemyCount;
+      enemiesLeftVal.textContent = remaining;
+      enemiesLeftBox.classList.toggle('urgent', remaining > 0 && remaining <= 3);
+      enemiesLeftBox.classList.toggle('clear', remaining === 0);
+    } else {
+      enemiesLeftBox.classList.add('hidden');
+    }
+  }
+
+  const p2 = st.players['BOT'];
+  if (p2) {
+    const p2fill = document.getElementById('hpFillP2');
+    const p2text = document.getElementById('hpTextP2');
+    if (p2fill) p2fill.style.width = (Math.max(0, p2.hp / p2.maxHp) * 100) + '%';
+    if (p2text) p2text.textContent = p2.name + ' · ' + Math.max(0, Math.ceil(p2.hp)) + ' / ' + Math.ceil(p2.maxHp);
+  }
+}
+
+function updatePowerupHUD(st) {
+  if (!st || !puHudEl) return;
+  const me = st.players[myId];
+  if (!me) return;
+  const active = [];
+  for (const k in me.powerups) {
+    if (me.powerups[k] > 0) active.push({ key: k, val: me.powerups[k] });
+  }
+  const sig = active.map(a => a.key + Math.ceil(a.val)).join(',');
+  if (puHudEl._lastSig === sig) return;
+  puHudEl._lastSig = sig;
+  puHudEl.innerHTML = '';
+  for (const a of active) {
+    const badge = document.createElement('div');
+    badge.className = 'pu-badge' + (PU_BAD.includes(a.key) ? ' bad' : '');
+    badge.textContent = (PU_ICON[a.key] || '?') + ' ' + a.key.toUpperCase() + ' ' + Math.ceil(a.val) + 's';
+    puHudEl.appendChild(badge);
+  }
+}
+
+function updateDevPanelUI() {
+  if (!state) return;
+  const me = state.players[myId];
+  if (!me) return;
+  const set = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val; };
+  set('dvLvVal', me.level);
+  set('dvDmgVal', me.damage);
+  set('dvHpVal', me.maxHp);
+  set('dvManaVal', me.maxMana);
+  set('dvFrVal', me.fireRate);
+  set('dvSkillCdVal', (me.skillCdMultiplier || 1).toFixed(1));
+}
+
+function hideOverlay() {
+  const ov = document.getElementById('overlay');
+  if (ov) ov.classList.add('hidden');
+}
+function pauseGame() {
+  if (!state || state.over) return;
+  paused = true;
+  pauseOverlayEl.classList.remove('hidden');
+}
+function resumeGame() {
+  paused = false;
+  pauseOverlayEl.classList.add('hidden');
+  lastTime = performance.now();
+}
+// ===== HẾT BỔ SUNG =====
 
 function showOverlay(title, color, p1, p2) {
   paused = false; pauseOverlayEl.classList.add('hidden');
@@ -3541,6 +4080,134 @@ function drawGame(st) {
   }
   drawMinimap(st);
 }
+
+// ===== BỔ SUNG: EVENT HANDLERS =====
+document.getElementById('btnRestart').onclick = () => {
+  if (!state) { startGame('pve', null); return; }
+  const wasBossTest = state.isBossTest;
+  const testBossType = state.testBossType;
+  const mode = state.mode;
+  const diff = state.difficulty;
+  hideOverlay();
+  if (wasBossTest) startBossTest(testBossType);
+  else startGame(mode, diff);
+};
+document.getElementById('btnToMenu').onclick = () => {
+  state = null;
+  hideOverlay();
+  paused = false;
+  pauseOverlayEl.classList.add('hidden');
+  showMenu();
+};
+document.getElementById('btnMenu').onclick = () => {
+  if (!state) return;
+  if (state.over || confirm('Thoát về menu?')) {
+    state = null;
+    hideOverlay();
+    paused = false;
+    pauseOverlayEl.classList.add('hidden');
+    showMenu();
+  }
+};
+if (btnResumeEl) btnResumeEl.onclick = resumeGame;
+
+document.getElementById('dvOpen').onclick = () => {
+  document.getElementById('devPanel').classList.remove('hidden');
+};
+document.getElementById('dvClose').onclick = () => {
+  document.getElementById('devPanel').classList.add('hidden');
+};
+document.querySelectorAll('.dvbtn').forEach(btn => {
+  btn.onclick = () => {
+    if (!state) return;
+    const me = state.players[myId];
+    if (!me) return;
+    const stat = btn.dataset.stat;
+    const delta = parseFloat(btn.dataset.delta);
+    if (stat === 'level') me.level = Math.max(1, me.level + delta);
+    else if (stat === 'damage') me.damage = Math.max(1, me.damage + delta);
+    else if (stat === 'maxHp') { me.maxHp = Math.max(10, me.maxHp + delta); me.hp = Math.min(me.hp, me.maxHp); }
+    else if (stat === 'maxMana') { me.maxMana = Math.max(10, me.maxMana + delta); me.mana = Math.min(me.mana, me.maxMana); }
+    else if (stat === 'fireRate') me.fireRate = Math.max(20, me.fireRate + delta);
+    else if (stat === 'skillCd') me.skillCdMultiplier = Math.max(0.1, (me.skillCdMultiplier || 1) + delta);
+    updateDevPanelUI();
+  };
+});
+document.querySelectorAll('.dv-spawn-boss').forEach(btn => {
+  btn.onclick = () => {
+    if (!state) return;
+    spawnBossInArena(parseInt(btn.dataset.boss, 10));
+  };
+});
+document.getElementById('dvSpawnAllBoss').onclick = () => {
+  if (!state) return;
+  for (let i = 0; i < BOSS_TYPES.length; i++) spawnBossInArena(i);
+};
+document.getElementById('dvFullHeal').onclick = () => {
+  if (!state) return;
+  const me = state.players[myId];
+  if (me) me.hp = me.maxHp;
+};
+document.getElementById('dvFullMana').onclick = () => {
+  if (!state) return;
+  const me = state.players[myId];
+  if (me) me.mana = me.maxMana;
+};
+document.getElementById('dvGodMode').onclick = () => {
+  if (!state) return;
+  state.godMode = !state.godMode;
+  const btn = document.getElementById('dvGodMode');
+  btn.style.background = state.godMode ? '#ffd93d' : '#2a1800';
+  btn.style.color = state.godMode ? '#000' : '#ffd93d';
+  state.announce = { text: state.godMode ? '🛡 GOD MODE ON' : '🛡 GOD MODE OFF', t: 1.5 };
+};
+document.getElementById('dvResetBoss').onclick = () => {
+  if (!state) return;
+  state.enemies = [];
+  state.ebullets = [];
+  state.bossRespawns = [];
+  state.respawningBoss = false;
+  state.respawnTimer = 0;
+  if (state.isBossTest) {
+    if (state.testBossType === 'all') {
+      for (let i = 0; i < BOSS_TYPES.length; i++) spawnBossInArena(i);
+    } else {
+      spawnBossInArena(state.testBossType);
+    }
+  }
+};
+document.getElementById('dvGiveSkill').onclick = () => {
+  if (!state) return;
+  const me = state.players[myId];
+  if (!me) return;
+  const available = BOSS_SKILLS.map(s => s.key).filter(k => !me.skills.includes(k));
+  if (available.length === 0) return;
+  const key = available[Math.floor(Math.random() * available.length)];
+  me.skills.push(key);
+  me.skillCooldowns[key] = 0;
+  updateSkillBarUI();
+};
+document.getElementById('dvGiveAllSkills').onclick = () => {
+  if (!state) return;
+  const me = state.players[myId];
+  if (!me) return;
+  me.skills = BOSS_SKILLS.map(s => s.key);
+  me.skills.forEach(k => me.skillCooldowns[k] = 0);
+  updateSkillBarUI();
+};
+
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden && state && !state.over && !paused) {
+    pauseGame();
+    mouse.down = false;
+    keys[' '] = false;
+  }
+});
+addEventListener('blur', () => {
+  mouse.down = false;
+  keys[' '] = false;
+});
+// ===== HẾT BỔ SUNG =====
 
 applyUI();
 
