@@ -253,6 +253,7 @@
     <button class="btn-diff" style="background:#001a26;border-color:#4dd9ff;color:#9df3f4" data-boss="2">❄️ BOSS BĂNG</button>
     <button class="btn-diff" style="background:#2a0010;border-color:#ff4d6d;color:#ff8a9a" data-boss="3">🩸 BOSS HÚT MÁU</button>
     <button class="btn-diff" style="background:#2a0020;border-color:#ff66b2;color:#ffb0d4" data-boss="4">🧬 BOSS PHÂN THÂN</button>
+    <button class="btn-diff" style="background:#2a2400;border-color:#ffdd00;color:#fff3a0" data-boss="5">⚡ BOSS LAZE</button>
     <button class="btn-diff" style="background:#1a1a1a;border-color:#888;color:#ccc" id="btnBackMenu">← QUAY LẠI</button>
   </div>
 </div>
@@ -535,7 +536,6 @@ function show(name) {
     } else {
       document.getElementById('joyLeft').style.display = 'none';
       document.getElementById('joyRight').style.display = 'none';
-      document.getElementById('aimHint').classList.remove('hidden');
     }
     skillBarEl.classList.remove('hidden');
   } else if (screens[name]) screens[name].classList.remove('hidden');
@@ -763,12 +763,15 @@ const XP_ORB_MAGNET_SPEED = 400;
 const MAGNET_POWERUP_RANGE = 600;
 const MAX_XP_ORBS = 500;
 
+// ==== SKILLS ====
+// cd đã tăng (trước đây quá ngắn)
 const BOSS_SKILLS = [
-  { key: 'charge',  name: 'LAO TỚI',   color: '#b46bff', icon: '🐂', cd: 6,   cost: 15, desc: 'Tích lực rồi lao thẳng' },
-  { key: 'flame',   name: 'PHUN LỬA',  color: '#ff8c1a', icon: '🔥', cd: 4,   cost: 20, desc: 'Bắn 5 tia lửa' },
-  { key: 'freeze',  name: 'BĂNG GIÁ',  color: '#4dd9ff', icon: '❄',  cd: 5,   cost: 18, desc: 'Bắn đạn băng làm chậm' },
-  { key: 'drain',   name: 'HÚT MÁU',   color: '#ff4d6d', icon: '🩸', cd: 8,   cost: 25, desc: 'Hút máu quái xung quanh' },
-  { key: 'split',   name: 'PHÂN THÂN', color: '#ff66b2', icon: '🧬', cd: 10,  cost: 30, desc: 'Triệu hồi 2 quái nhỏ' },
+  { key: 'charge',    name: 'LAO TỚI',   color: '#b46bff', icon: '🐂', cd: 10, cost: 15, desc: 'Tích lực rồi lao thẳng' },
+  { key: 'flame',     name: 'PHUN LỬA',  color: '#ff8c1a', icon: '🔥', cd: 8,  cost: 20, desc: 'Bắn 5 tia lửa gây cháy' },
+  { key: 'freeze',    name: 'BĂNG GIÁ',  color: '#4dd9ff', icon: '❄',  cd: 9,  cost: 18, desc: 'Bắn đạn băng làm chậm' },
+  { key: 'drain',     name: 'HÚT MÁU',   color: '#ff4d6d', icon: '🩸', cd: 14, cost: 25, desc: 'Hút máu quái xung quanh' },
+  { key: 'split',     name: 'PHÂN THÂN', color: '#ff66b2', icon: '🧬', cd: 18, cost: 30, desc: 'Triệu hồi 2 quái nhỏ' },
+  { key: 'laserbeam', name: 'TIA LAZE',  color: '#ffdd00', icon: '⚡', cd: 14, cost: 30, desc: 'Bắn tia laze xuyên toàn map' },
 ];
 const SKILL_DROP_CHANCE = 0.5;
 
@@ -791,6 +794,7 @@ function makePlayer(id, name) {
     skillCooldowns: {},
     skillCdMultiplier: 1.0,
     chargeState: 'idle', chargeTimer: 0, chargeDirX: 0, chargeDirY: 0,
+    drainTimer: 0, drainRadius: 350,
     isBot: false, difficulty: null,
     _prevX: 0, _prevY: 0,
     smoothX: 0, smoothY: 0, aimSmooth: undefined,
@@ -944,12 +948,14 @@ function spawnEnemyInArena(typeIdx, wave) {
   });
 }
 
+// ==== BOSS TYPES ==== (thêm boss 5 LAZE)
 const BOSS_TYPES = [
   { name: 'BÒ',        color: '#b46bff', stroke: '#6a2f9e', r: 48, hp: 1800, speed: 60, dmg: 40, xp: 30, skillKey: 'charge' },
   { name: 'LỬA',       color: '#ff8c1a', stroke: '#a04d00', r: 46, hp: 1500, speed: 65, dmg: 25, xp: 30, skillKey: 'flame' },
   { name: 'BĂNG',      color: '#4dd9ff', stroke: '#1b6a8a', r: 46, hp: 1600, speed: 70, dmg: 22, xp: 30, skillKey: 'freeze' },
   { name: 'HÚT MÁU',   color: '#ff4d6d', stroke: '#8a1f35', r: 48, hp: 1700, speed: 55, dmg: 18, xp: 30, skillKey: 'drain' },
   { name: 'PHÂN THÂN', color: '#ff66b2', stroke: '#8a1f4d', r: 52, hp: 2000, speed: 50, dmg: 30, xp: 30, skillKey: 'split' },
+  { name: 'LAZE',      color: '#ffdd00', stroke: '#a08a00', r: 50, hp: 1900, speed: 45, dmg: 35, xp: 30, skillKey: 'laserbeam' },
 ];
 
 function spawnBossInArena() {
@@ -986,6 +992,9 @@ function spawnBossInArena() {
     freezeCd: rand(1.5, 2.5),
     drainTimer: rand(2.5, 3.5), draining: false,
     splitLevel: 2,
+    // laser fields (cho boss 5)
+    laserState: 'idle', laserTimer: 0, laserAim: 0,
+    _laserCd: rand(4, 6),
     _contactCd: 0, _burstCd: rand(2.5, 3.5),
     _snipeCd: rand(1.5, 2.5), _spawnCd: rand(5, 6), _teleportCd: rand(4, 5)
   });
@@ -1135,7 +1144,7 @@ function triggerSkill(skillKey) {
         x: me.x + Math.cos(a) * 30, y: me.y + Math.sin(a) * 30,
         vx: Math.cos(a) * 700, vy: Math.sin(a) * 700,
         life: 1.2, owner: myId, dmg: me.damage * 3,
-        pierce: true, hitSet: [], isFire: true, color: '#ff8c1a', r: 10
+        pierce: true, hitSet: [], isFire: true, color: '#ff8c1a', r: 10, trail: []
       });
     }
     playSound('fire');
@@ -1147,37 +1156,17 @@ function triggerSkill(skillKey) {
         x: me.x + Math.cos(a) * 30, y: me.y + Math.sin(a) * 30,
         vx: Math.cos(a) * 500, vy: Math.sin(a) * 500,
         life: 2.5, owner: myId, dmg: me.damage * 2,
-        pierce: false, hitSet: [], isFreeze: true, freezeDuration: 2.0, color: '#4dd9ff', r: 9
+        pierce: false, hitSet: [], isFreeze: true, freezeDuration: 2.5, color: '#4dd9ff', r: 9
       });
     }
     playSound('freeze');
     spawnParticles(me.x, me.y, '#4dd9ff', 25, 300);
   } else if (skillKey === 'drain') {
-    const R = 350;
-    let totalDrain = 0;
-    for (let i = state.enemies.length - 1; i >= 0; i--) {
-      const e = state.enemies[i];
-      if (e.isAlly) continue;
-      if (dist(me.x, me.y, e.x, e.y) < R) {
-        const drain = me.damage * 3;
-        e.hp -= drain;
-        e.hitFlash = 0.15;
-        totalDrain += drain;
-        spawnParticles(e.x, e.y, '#ff4d6d', 6, 200);
-        state.particles.push({
-          x: e.x, y: e.y,
-          vx: (me.x - e.x) * 2, vy: (me.y - e.y) * 2,
-          life: 0.5, maxLife: 0.5, color: '#ff4d6d', r: 5
-        });
-        if (e.hp <= 0) killEnemy(e, myId);
-      }
-    }
-    if (totalDrain > 0) {
-      me.hp = Math.min(me.maxHp, me.hp + totalDrain * 0.6);
-      spawnParticles(me.x, me.y, '#ff4d6d', 30, 400);
-    }
+    me.drainTimer = 1.5;
+    me.drainRadius = 350;
     playSound('drain');
-    state.announce = { text: '🩸 HÚT MÁU!', t: 1.0 };
+    state.announce = { text: '🩸 HÚT MÁU!', t: 1.2 };
+    spawnParticles(me.x, me.y, '#ff4d6d', 20, 300);
   } else if (skillKey === 'split') {
     const allyHp = 100 + me.level * 20;
     for (let k = 0; k < 2; k++) {
@@ -1196,6 +1185,34 @@ function triggerSkill(skillKey) {
     playSound('split');
     spawnParticles(me.x, me.y, '#ff66b2', 25, 350);
     state.announce = { text: '🧬 PHÂN THÂN!', t: 1.2 };
+  } else if (skillKey === 'laserbeam') {
+    // ==== TIA LAZE CỦA PLAYER — bắn tức thì ====
+    const beamW = 90;
+    const beamLen = 10000;
+    state.beams.push({
+      x: me.x, y: me.y, angle: aim,
+      life: 0.5, maxLife: 0.5, owner: myId,
+      wideLaser: true, halfWidth: beamW / 2
+    });
+    // Damage all enemies along beam
+    for (let i = state.enemies.length - 1; i >= 0; i--) {
+      const e = state.enemies[i];
+      if (e.isAlly) continue;
+      const dx = e.x - me.x, dy = e.y - me.y;
+      const proj = dx * Math.cos(aim) + dy * Math.sin(aim);
+      if (proj < 0 || proj > beamLen) continue;
+      const perp = Math.abs(-dx * Math.sin(aim) + dy * Math.cos(aim));
+      if (perp < beamW / 2 + e.r) {
+        e.hp -= me.damage * 5;
+        e.hitFlash = 0.2;
+        spawnParticles(e.x, e.y, '#ffdd00', 6, 200);
+        if (e.hp <= 0) killEnemy(e, myId);
+      }
+    }
+    playSound('laser');
+    spawnParticles(me.x, me.y, '#ffdd00', 30, 380);
+    shakeTime = 0.25; shakeIntensity = 12;
+    state.announce = { text: '⚡ TIA LAZE!', t: 1.0 };
   }
 
   updateSkillCooldownUI();
@@ -2049,6 +2066,111 @@ function updateBoss(e, target, dt, st) {
       spawnParticles(e.x, e.y, e.color, 12, 200);
       playSound('spawn');
     }
+  } else if (e.bossType === 5) {
+    // ==== BOSS LAZE (type 5) ====
+    if (!e.laserState) { e.laserState = 'idle'; e.laserTimer = 0; e.laserAim = 0; }
+    if (typeof e._laserCd !== 'number') e._laserCd = rand(4, 6);
+
+    // Movement: giữ khoảng cách vừa phải
+    if (d > 380) { e.x += ux * e.speed * dt; e.y += uy * e.speed * dt; }
+    else if (d < 260) { e.x -= ux * e.speed * 0.5 * dt; e.y -= uy * e.speed * 0.5 * dt; }
+    else {
+      const strafe = Math.sin(st.time * 0.9);
+      e.x += -uy * strafe * e.speed * 0.35 * dt;
+      e.y += ux * strafe * e.speed * 0.35 * dt;
+    }
+    e.x = clamp(e.x, -hw, hw); e.y = clamp(e.y, -hh, hh);
+
+    // Đạn thường: 3 tia ngắn (chỉ bắn khi KHÔNG đang charge/fire)
+    if (e.laserState === 'idle' || e.laserState === 'recover') {
+      e._snipeCd -= dt;
+      if (e._snipeCd <= 0 && d < 800) {
+        e._snipeCd = rand(2, 3);
+        const baseA = Math.atan2(dy, dx);
+        for (let k = -1; k <= 1; k++) {
+          const a = baseA + k * 0.22;
+          st.ebullets.push({
+            x: e.x, y: e.y,
+            vx: Math.cos(a) * 340, vy: Math.sin(a) * 340,
+            r: 7, dmg: Math.floor(e.dmg * 0.3),
+            life: 2.5, color: '#ffdd00'
+          });
+        }
+        playSound('shoot');
+      }
+    }
+
+    // Laser state machine
+    if (e.laserState === 'idle') {
+      e._laserCd -= dt;
+      if (e._laserCd <= 0) {
+        e.laserState = 'charging';
+        e.laserTimer = 1.3;
+        e.laserAim = Math.atan2(dy, dx); // khóa hướng
+        playSound('charge');
+        st.announce = { text: '⚡ BOSS LAZE ĐANG TÍCH TỤ!', t: 1.2 };
+      }
+    } else if (e.laserState === 'charging') {
+      e.laserTimer -= dt;
+      // Rung nhẹ, không di chuyển
+      e.x += Math.cos(st.time * 30) * 0.8;
+      e.y += Math.sin(st.time * 30) * 0.8;
+      e.x = clamp(e.x, -hw, hw); e.y = clamp(e.y, -hh, hh);
+      if (e.laserTimer <= 0) {
+        e.laserState = 'firing';
+        e.laserTimer = 0.5;
+        playSound('laser');
+        shakeTime = 0.4; shakeIntensity = 20;
+        // Visual beam
+        st.beams.push({
+          x: e.x, y: e.y, angle: e.laserAim,
+          life: 0.5, maxLife: 0.5, owner: 'BOSS',
+          wideLaser: true, halfWidth: e.r
+        });
+        st.particles.length = 0; // dọn dẹp particle cũ cho đỡ lag
+        spawnParticles(e.x, e.y, '#ffdd00', 40, 500);
+      }
+    } else if (e.laserState === 'firing') {
+      e.laserTimer -= dt;
+      // Damage mỗi frame cho player nào nằm trong tia
+      const bLen = 10000;
+      for (const pid in st.players) {
+        const p = st.players[pid];
+        if (p.hp <= 0 || p.pvpInvuln > 0) continue;
+        const pdx = p.x - e.x, pdy = p.y - e.y;
+        const proj = pdx * Math.cos(e.laserAim) + pdy * Math.sin(e.laserAim);
+        if (proj < 0 || proj > bLen) continue;
+        const perp = Math.abs(-pdx * Math.sin(e.laserAim) + pdy * Math.cos(e.laserAim));
+        if (perp < e.r + 18) {
+          const dmg = e.dmg * 2.5 * dt;
+          if (p.powerups && p.powerups.shield > 0) {
+            if (!p.shieldHp) p.shieldHp = 40;
+            p.shieldHp -= dmg;
+            if (p.shieldHp <= 0) { p.powerups.shield = 0; p.shieldHp = 0; }
+          } else {
+            p.hp -= dmg;
+          }
+          if (Math.random() < 0.25) st.events.push({ type: 'hurt', target: p.id });
+          if (Math.random() < 0.4) {
+            st.particles.push({
+              x: p.x + rand(-10, 10), y: p.y + rand(-10, 10),
+              vx: rand(-120, 120), vy: rand(-120, 120),
+              life: 0.3, maxLife: 0.3, color: '#ffdd00', r: 3
+            });
+          }
+        }
+      }
+      if (e.laserTimer <= 0) {
+        e.laserState = 'recover';
+        e.laserTimer = 0.8;
+      }
+    } else if (e.laserState === 'recover') {
+      e.laserTimer -= dt;
+      if (e.laserTimer <= 0) {
+        e.laserState = 'idle';
+        e._laserCd = rand(6, 8);
+      }
+    }
   }
 }
 function computeBotInput(bot, player, pvx, pvy) {
@@ -2347,6 +2469,36 @@ function gameLoop(now) {
       }
     } else p.burnTick = 0;
 
+    // ==== DRAIN DoT (player tự hút máu quái) ====
+    if (p.drainTimer > 0) {
+      p.drainTimer -= dt;
+      const R = p.drainRadius || 350;
+      let totalDrain = 0;
+      for (let ei = state.enemies.length - 1; ei >= 0; ei--) {
+        const e = state.enemies[ei];
+        if (e.isAlly) continue;
+        if (dist(p.x, p.y, e.x, e.y) < R) {
+          const drain = p.damage * 2.5 * dt;
+          e.hp -= drain;
+          e.hitFlash = Math.max(e.hitFlash, 0.05);
+          totalDrain += drain;
+          if (Math.random() < 0.3) {
+            const ang = Math.atan2(p.y - e.y, p.x - e.x);
+            state.particles.push({
+              x: e.x, y: e.y,
+              vx: Math.cos(ang) * 300, vy: Math.sin(ang) * 300,
+              life: 0.45, maxLife: 0.45, color: '#ff4d6d', r: 4
+            });
+          }
+          if (e.hp <= 0) killEnemy(e, id);
+        }
+      }
+      if (totalDrain > 0) {
+        p.hp = Math.min(p.maxHp, p.hp + totalDrain * 0.6);
+      }
+      if (p.drainTimer <= 0) p.drainTimer = 0;
+    }
+
     let inX = p.input.x, inY = p.input.y;
     if (isFrozen) { inX = 0; inY = 0; }
     if (p.powerups.confuse > 0) { inX = -inX; inY = -inY; }
@@ -2420,6 +2572,14 @@ function gameLoop(now) {
   for (let i = state.bullets.length - 1; i >= 0; i--) {
     const b = state.bullets[i];
     b.x += b.vx * dt; b.y += b.vy * dt; b.life -= dt;
+    if (b.isFire) {
+      if (!b.trail) b.trail = [];
+      b.trail.push({ x: b.x, y: b.y, life: 0.3 });
+      for (let k = b.trail.length - 1; k >= 0; k--) {
+        b.trail[k].life -= dt;
+        if (b.trail[k].life <= 0) b.trail.splice(k, 1);
+      }
+    }
     if (b.life <= 0) { state.bullets.splice(i, 1); continue; }
     let consumed = false;
     if (isPvE) {
@@ -2432,6 +2592,10 @@ function gameLoop(now) {
           spawnParticles(b.x, b.y, '#fff8cc', 3, 120);
           if (b.isFreeze) {
             e.frozen = (e.frozen || 0) + (b.freezeDuration || 1.5);
+          }
+          if (b.isFire) {
+            e.burn = Math.min(6, (e.burn || 0) + 1.5);
+            e.burnTick = 0;
           }
           state.events.push('hit');
           if (e.hp <= 0) killEnemy(e, b.owner);
@@ -2508,6 +2672,18 @@ function gameLoop(now) {
         e.frozen -= dt;
         if (e.frozen <= 0) e.frozen = 0;
       }
+      if (e.burn && e.burn > 0) {
+        e.burn -= dt;
+        e.burnTick = (e.burnTick || 0) + dt;
+        if (e.burnTick >= 0.4) {
+          e.burnTick = 0;
+          e.hp -= 6;
+          e.hitFlash = Math.max(e.hitFlash, 0.05);
+          spawnParticles(e.x + rand(-8, 8), e.y + rand(-8, 8), '#ff8c1a', 2, 80);
+          if (e.hp <= 0) { killEnemy(e, myId); continue; }
+        }
+        if (e.burn <= 0) e.burn = 0;
+      }
       const enemySpeedMul = (e.frozen > 0) ? 0.3 : 1;
 
       let target = null, minD = Infinity;
@@ -2525,7 +2701,7 @@ function gameLoop(now) {
       if (!target) continue;
 
       if (e.isBoss) {
-        updateBoss(e, target, dt, state);
+        updateBoss(e, target, dt * enemySpeedMul, state);
       } else {
         const dx = target.x - e.x, dy = target.y - e.y;
         const d = Math.hypot(dx, dy) || 1;
@@ -2731,8 +2907,9 @@ function getDigitFromEvent(e) {
   if (code === 'Digit3' || code === 'Numpad3') return 3;
   if (code === 'Digit4' || code === 'Numpad4') return 4;
   if (code === 'Digit5' || code === 'Numpad5') return 5;
+  if (code === 'Digit6' || code === 'Numpad6') return 6;
   const n = parseInt(e.key || '', 10);
-  return (n >= 1 && n <= 5) ? n : 0;
+  return (n >= 1 && n <= 6) ? n : 0;
 }
 
 addEventListener('keydown', e => {
@@ -3020,6 +3197,41 @@ function drawBossAura(e, st) {
     ctx.setLineDash([]);
     ctx.restore();
   }
+  // ==== BOSS 5 LAZE — telegraph ====
+  if (e.bossType === 5 && e.laserState === 'charging') {
+    const fade = Math.min(1, 1 - e.laserTimer / 1.3);
+    ctx.save();
+    ctx.globalAlpha = 0.3 + 0.5 * Math.sin(performance.now() * 0.03);
+    ctx.strokeStyle = '#ffdd00';
+    ctx.shadowColor = '#ffdd00';
+    ctx.shadowBlur = 25;
+    ctx.lineWidth = e.r * 2 * fade;
+    ctx.setLineDash([18, 12]);
+    ctx.beginPath();
+    ctx.moveTo(0, 0);
+    ctx.lineTo(Math.cos(e.laserAim) * 3000, Math.sin(e.laserAim) * 3000);
+    ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.globalAlpha = 0.6 + 0.4 * Math.sin(performance.now() * 0.02);
+    ctx.strokeStyle = '#ffe866';
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.arc(0, 0, e.r + 18 + fade * 25, 0, TAU);
+    ctx.stroke();
+    ctx.restore();
+  }
+  if (e.bossType === 5 && e.laserState === 'firing') {
+    ctx.save();
+    ctx.globalAlpha = 0.8;
+    ctx.strokeStyle = '#ffdd00';
+    ctx.shadowColor = '#ffdd00';
+    ctx.shadowBlur = 30;
+    ctx.lineWidth = 5;
+    ctx.beginPath();
+    ctx.arc(0, 0, e.r + 12, 0, TAU);
+    ctx.stroke();
+    ctx.restore();
+  }
 }
 function drawEnemy(e, st, targetPlayer) {
   const t = st.time;
@@ -3123,6 +3335,33 @@ function drawEnemy(e, st, targetPlayer) {
         ctx.fillStyle = '#10151c'; ctx.fill();
       }
     }
+  }
+  // ==== Freeze / burn overlays ====
+  if (!e.isAlly && e.frozen > 0) {
+    ctx.save();
+    ctx.globalAlpha = 0.55;
+    ctx.fillStyle = 'rgba(77,217,255,0.25)';
+    ctx.beginPath(); ctx.arc(0, 0, e.r + 4, 0, TAU); ctx.fill();
+    ctx.strokeStyle = '#9df3f4'; ctx.lineWidth = 2.5;
+    ctx.beginPath(); ctx.arc(0, 0, e.r + 4, 0, TAU); ctx.stroke();
+    for (let i = 0; i < 6; i++) {
+      const a = i / 6 * TAU + performance.now() * 0.001;
+      ctx.beginPath();
+      ctx.moveTo(Math.cos(a) * e.r * 0.6, Math.sin(a) * e.r * 0.6);
+      ctx.lineTo(Math.cos(a) * (e.r + 7), Math.sin(a) * (e.r + 7));
+      ctx.strokeStyle = '#e0f8ff'; ctx.lineWidth = 2;
+      ctx.stroke();
+    }
+    ctx.restore();
+  }
+  if (!e.isAlly && e.burn > 0) {
+    ctx.save();
+    ctx.globalAlpha = 0.55 + 0.25 * Math.sin(performance.now() * 0.02);
+    ctx.strokeStyle = '#ff8c1a'; ctx.lineWidth = 3;
+    ctx.beginPath(); ctx.arc(0, 0, e.r + 2, 0, TAU); ctx.stroke();
+    ctx.fillStyle = 'rgba(255,140,26,0.18)';
+    ctx.beginPath(); ctx.arc(0, 0, e.r + 2, 0, TAU); ctx.fill();
+    ctx.restore();
   }
   if (e.hp < e.maxHp && !e.isAlly) {
     const w = e.r * 2;
@@ -3246,6 +3485,24 @@ function drawPlayer(p, isMe, st) {
     ctx.beginPath(); ctx.arc(0, 0, 32, 0, TAU); ctx.stroke();
     ctx.restore();
   }
+  // ==== Vòng aura HÚT MÁU cho player ====
+  if (p.drainTimer > 0) {
+    const drainRange = p.drainRadius || 350;
+    const fade = Math.min(1, p.drainTimer / 0.3);
+    ctx.save();
+    const grad = ctx.createRadialGradient(0, 0, 20, 0, 0, drainRange);
+    grad.addColorStop(0, 'rgba(255,77,109,' + (0.35 * fade) + ')');
+    grad.addColorStop(0.6, 'rgba(255,77,109,' + (0.12 * fade) + ')');
+    grad.addColorStop(1, 'rgba(255,77,109,0)');
+    ctx.fillStyle = grad;
+    ctx.beginPath(); ctx.arc(0, 0, drainRange, 0, TAU); ctx.fill();
+    ctx.strokeStyle = 'rgba(255,77,109,' + (0.65 * fade) + ')';
+    ctx.lineWidth = 2;
+    ctx.setLineDash([6, 6]);
+    ctx.beginPath(); ctx.arc(0, 0, drainRange, 0, TAU); ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.restore();
+  }
   if (p.powerups.shield > 0) {
     ctx.save();
     ctx.globalAlpha = 0.4 + 0.2 * Math.sin(performance.now() * 0.01);
@@ -3335,6 +3592,50 @@ function drawBeams(st) {
       grad.addColorStop(1, 'rgba(255, 50, 50, 0)');
       ctx.fillStyle = grad;
       ctx.beginPath(); ctx.arc(bm.x, bm.y, rr2, 0, TAU); ctx.fill();
+    } else if (bm.wideLaser) {
+      // ==== TIA LAZE RỘNG (boss LAZE / player skill) ====
+      ctx.globalAlpha = a;
+      ctx.translate(bm.x, bm.y);
+      ctx.rotate(bm.angle);
+      const beamLen = 12000;
+      const hw = bm.halfWidth;
+
+      // Outer glow
+      ctx.shadowColor = '#ffdd00';
+      ctx.shadowBlur = 45;
+      ctx.fillStyle = 'rgba(255, 200, 0, ' + (0.45 * a) + ')';
+      ctx.fillRect(0, -hw * 1.35, beamLen, hw * 2.7);
+
+      // Mid body
+      ctx.shadowBlur = 25;
+      const grad = ctx.createLinearGradient(0, 0, beamLen, 0);
+      grad.addColorStop(0, 'rgba(255,235,80,0.95)');
+      grad.addColorStop(0.5, 'rgba(255,210,20,0.85)');
+      grad.addColorStop(0.85, 'rgba(255,170,0,0.55)');
+      grad.addColorStop(1, 'rgba(255,140,0,0)');
+      ctx.fillStyle = grad;
+      ctx.fillRect(0, -hw, beamLen, hw * 2);
+
+      // Bright core
+      ctx.shadowBlur = 0;
+      ctx.fillStyle = 'rgba(255, 255, 230, ' + (0.9 * a) + ')';
+      ctx.fillRect(0, -hw * 0.35, beamLen, hw * 0.7);
+
+      // Sparkling edge lines
+      ctx.strokeStyle = 'rgba(255,255,180,' + (0.7 * a) + ')';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(0, -hw); ctx.lineTo(beamLen, -hw);
+      ctx.moveTo(0, hw); ctx.lineTo(beamLen, hw);
+      ctx.stroke();
+
+      // Origin burst
+      ctx.save();
+      ctx.shadowColor = '#fff';
+      ctx.shadowBlur = 30;
+      ctx.fillStyle = 'rgba(255,255,240,1)';
+      ctx.beginPath(); ctx.arc(0, 0, hw * 0.9, 0, TAU); ctx.fill();
+      ctx.restore();
     } else {
       ctx.globalAlpha = a;
       ctx.translate(bm.x, bm.y);
@@ -3357,6 +3658,16 @@ function drawBullets(st) {
   ctx.lineCap = 'round';
   for (const b of st.bullets) {
     const isPlayer = b.owner === myId;
+    // Fire trail
+    if (b.isFire && b.trail) {
+      for (const tr of b.trail) {
+        ctx.save();
+        ctx.globalAlpha = (tr.life / 0.3) * 0.55;
+        ctx.fillStyle = '#ff8c1a';
+        ctx.beginPath(); ctx.arc(tr.x, tr.y, 7 * (tr.life / 0.3), 0, TAU); ctx.fill();
+        ctx.restore();
+      }
+    }
     let outer, glow, core;
     if (b.isFire) {
       outer = 'rgba(255,140,26,0.45)';
