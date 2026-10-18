@@ -413,7 +413,11 @@ function hexA(hex, a) {
 const canvasEl = document.getElementById('game');
 const ctx = canvasEl.getContext('2d');
 let W = innerWidth, H = innerHeight;
-const DPR = Math.min(devicePixelRatio || 1, 2);
+// DPR thấp hơn cho màn hình lớn → giảm fillrate
+const DPR = Math.min(
+  devicePixelRatio || 1,
+  (innerWidth > 2000 || innerHeight > 1400) ? 1 : 1.5
+);
 let cam = { x: 0, y: 0 };
 
 const isTouchDevice = ('ontouchstart' in window) || (navigator.maxTouchPoints > 0);
@@ -788,10 +792,11 @@ const XP_ORB_RADIUS = 34;
 const XP_ORB_MAGNET_RANGE = 90;
 const XP_ORB_MAGNET_SPEED = 400;
 const MAGNET_POWERUP_RANGE = 600;
-const MAX_XP_ORBS = 500;
-const MAX_PARTICLES = 300;
-const MAX_BULLETS = 400;
-const MAX_EBULLETS = 400;
+const MAX_XP_ORBS = 300;
+const MAX_PARTICLES = 120;
+const MAX_BULLETS = 220;
+const MAX_EBULLETS = 180;
+const MAX_ENEMIES = 150;
 
 const BOSS_SKILLS = [
   { key: 'charge',    name: 'LAO TỚI',   color: '#b46bff', icon: '🐂', cd: 10, cost: 15, desc: 'Tích lực rồi lao thẳng' },
@@ -938,7 +943,7 @@ function getEnemyScaling(wave) {
 
 function spawnEnemyInArena(typeIdx, wave) {
   if (!state) return;
-  if (state.enemies.length > 320) return;
+  if (state.enemies.length >= MAX_ENEMIES) return;
 
   const me = state.players[myId];
   if (!me) return;
@@ -1897,7 +1902,7 @@ function killEnemy(e, ownerId) {
   if (e.isBoss && e.bossType === 4) spawnSplitChildren(e, ownerId);
   if (e.isMiniBoss && e.splitLevel > 0) spawnSplitChildren(e, ownerId);
 
-  if (e.behavior === 'splitter' && state.enemies.length < 300) {
+  if (e.behavior === 'splitter' && state.enemies.length < MAX_ENEMIES - 5) {
     for (let k = 0; k < 2; k++) {
       state.enemies.push({
         x: e.x+rand(-20,20), y: e.y+rand(-20,20),
@@ -1957,8 +1962,8 @@ function updateBoss(e, target, dt, st) {
     e._burstCd -= dt;
     if (e._burstCd <= 0 && d < 1000) {
       e._burstCd = rand(1.7, 2.5);
-      if (st.ebullets.length < MAX_EBULLETS) {
-        const n = 7;
+      if (st.ebullets.length < MAX_EBULLETS - 20) {
+        const n = 5;
         const baseA = Math.atan2(dy, dx);
         for (let k = -Math.floor(n/2); k <= Math.floor(n/2); k++) {
           const a = baseA + k * 0.15;
@@ -1980,7 +1985,7 @@ function updateBoss(e, target, dt, st) {
       e.x += ux * e.speed * dt;
       e.y += uy * e.speed * dt;
       e._snipeCd -= dt;
-      if (e._snipeCd <= 0) {
+      if (e._snipeCd <= 0 && st.ebullets.length < MAX_EBULLETS) {
         e._snipeCd = rand(1.2, 1.8);
         st.ebullets.push({
           x: e.x, y: e.y,
@@ -2092,7 +2097,7 @@ function updateBoss(e, target, dt, st) {
     e.fireTimer -= dt;
     if (e.fireTimer <= 0) {
       e.fireTimer = rand(1.1, 1.8);
-      if (st.ebullets.length < MAX_EBULLETS) {
+      if (st.ebullets.length < MAX_EBULLETS - 15) {
         const baseAngle = Math.atan2(dy, dx);
         for (let k = -3; k <= 3; k++) {
           const a = baseAngle + k * 0.16;
@@ -2105,8 +2110,8 @@ function updateBoss(e, target, dt, st) {
           });
         }
         if (d < 220) {
-          for (let k = 0; k < 10; k++) {
-            const a = (k / 10) * TAU + st.time;
+          for (let k = 0; k < 8; k++) {
+            const a = (k / 8) * TAU + st.time;
             st.ebullets.push({
               x: e.x, y: e.y,
               vx: Math.cos(a) * 320, vy: Math.sin(a) * 320,
@@ -2125,7 +2130,7 @@ function updateBoss(e, target, dt, st) {
     e.freezeCd -= dt;
     if (e.freezeCd <= 0 && d < 800) {
       e.freezeCd = rand(1.3, 2.0);
-      if (st.ebullets.length < MAX_EBULLETS) {
+      if (st.ebullets.length < MAX_EBULLETS - 10) {
         st.ebullets.push({
           x: e.x, y: e.y,
           vx: ux * 380, vy: uy * 380,
@@ -2217,7 +2222,7 @@ function updateBoss(e, target, dt, st) {
     e.atkCd -= dt;
     if (e.atkCd <= 0) {
       e.atkCd = rand(0.8, 1.4);
-      if (st.ebullets.length < MAX_EBULLETS) {
+      if (st.ebullets.length < MAX_EBULLETS - 10) {
         for (let k = 0; k < 6; k++) {
           const a = (k / 6) * TAU + st.time;
           st.ebullets.push({
@@ -2230,9 +2235,9 @@ function updateBoss(e, target, dt, st) {
       }
     }
     e._spawnCd -= dt;
-    if (e._spawnCd <= 0 && st.enemies.length < 250) {
-      e._spawnCd = rand(4, 6);
-      for (let k = 0; k < 3; k++) {
+    if (e._spawnCd <= 0 && st.enemies.length < MAX_ENEMIES) {
+      e._spawnCd = rand(8, 11);
+      for (let k = 0; k < 2; k++) {
         const a = Math.random() * TAU;
         st.enemies.push({
           x: e.x + Math.cos(a) * 80, y: e.y + Math.sin(a) * 80,
@@ -2262,7 +2267,7 @@ function updateBoss(e, target, dt, st) {
       e._snipeCd -= dt;
       if (e._snipeCd <= 0 && d < 900) {
         e._snipeCd = rand(1.2, 1.8);
-        if (st.ebullets.length < MAX_EBULLETS) {
+        if (st.ebullets.length < MAX_EBULLETS - 10) {
           const baseA = Math.atan2(dy, dx);
           for (let k = -2; k <= 2; k++) {
             const a = baseA + k * 0.20;
@@ -2447,6 +2452,7 @@ function computeBotInput(bot, player, pvx, pvy) {
   const shoot = d < cfg.shootRange;
   return { x: mx, y: my, aim, shoot };
 }
+let _lastLoopTs = 0;
 function gameLoop(now) {
   if (!state || state.over) return;
   if (paused) {
@@ -2454,6 +2460,11 @@ function gameLoop(now) {
     requestAnimationFrame(gameLoop);
     return;
   }
+  if (now - _lastLoopTs < 16) {
+    requestAnimationFrame(gameLoop);
+    return;
+  }
+  _lastLoopTs = now;
   const dt = Math.min((now - lastTime) / 1000, 0.1);
   lastTime = now;
   state.time += dt;
@@ -2505,14 +2516,14 @@ function gameLoop(now) {
     if (state.isBossTest) {
       state.testTrashTimer -= dt;
       if (state.testTrashTimer <= 0) {
-        state.testTrashTimer = rand(1.2, 2.2);
+        state.testTrashTimer = rand(2.0, 3.5);
         let trashCount = 0;
         for (let i = 0; i < state.enemies.length; i++) {
           const ee = state.enemies[i];
           if (!ee.isBoss && !ee.isAlly) trashCount++;
         }
-        if (trashCount < 25 && state.enemies.length < 200) {
-          const maxGroup = 2 + Math.floor(Math.random() * 3);
+        if (trashCount < 12 && state.enemies.length < MAX_ENEMIES) {
+          const maxGroup = 1 + Math.floor(Math.random() * 2);
           for (let i = 0; i < maxGroup; i++) {
             const typeIdx = Math.floor(Math.random() * TYPES.length);
             spawnEnemyInArena(typeIdx, Math.max(1, state.wave));
@@ -2634,7 +2645,6 @@ function gameLoop(now) {
         p.x += Math.cos(state.time * 40) * 1.5;
         p.y += Math.sin(state.time * 40) * 1.5;
 
-        // Bắn 3 tia đạn như boss BÒ
         if (!p._chargeShootCd) p._chargeShootCd = 0.6;
         p._chargeShootCd -= dt;
         if (p._chargeShootCd <= 0 && state.bullets.length < MAX_BULLETS) {
@@ -2896,9 +2906,13 @@ function gameLoop(now) {
   }
 
   if (isPvE) {
-    const enemiesSnapshot = state.enemies.slice();
-    for (const e of enemiesSnapshot) {
-      if (!state.enemies.includes(e)) continue;
+    // Reverse iteration — không tạo slice() mỗi frame
+    for (let ei = state.enemies.length - 1; ei >= 0; ei--) {
+      const e = state.enemies[ei];
+      if (!e) continue;
+      if (e.hp <= 0) continue;
+      if (state.enemies[ei] !== e) continue;
+
       if (e.spawnAnim > 0) { e.spawnAnim -= dt; e.wobble += dt * 8; continue; }
       e.wobble += dt * 4;
       if (e.hitFlash > 0) e.hitFlash = Math.max(0, e.hitFlash - dt);
@@ -3709,7 +3723,6 @@ function drawPlayer(p, isMe, st) {
   ctx.save();
   ctx.translate(p.x, p.y);
 
-  // === HIỆU ỨNG CHARGE — GIỐNG BOSS ===
   if (p.chargeState === 'charging') {
     ctx.save();
     ctx.globalAlpha = 0.5 + 0.4 * Math.sin(performance.now() * 0.03);
@@ -3985,49 +3998,28 @@ function drawBeams(st) {
 }
 function drawBullets(st) {
   ctx.lineCap = 'round';
-  for (const b of st.bullets) {
+  for (let i = 0; i < st.bullets.length; i++) {
+    const b = st.bullets[i];
     const isPlayer = b.owner === myId;
     if (b.isFire && b.trail) {
-      for (const tr of b.trail) {
-        ctx.save();
-        ctx.globalAlpha = (tr.life / 0.3) * 0.55;
-        ctx.fillStyle = '#ff8c1a';
+      ctx.fillStyle = '#ff8c1a';
+      for (let k = 0; k < b.trail.length; k++) {
+        const tr = b.trail[k];
+        ctx.globalAlpha = (tr.life / 0.3) * 0.5;
         ctx.beginPath(); ctx.arc(tr.x, tr.y, 7 * (tr.life / 0.3), 0, TAU); ctx.fill();
-        ctx.restore();
       }
+      ctx.globalAlpha = 1;
     }
-    let outer, glow, core;
-    if (b.isFire) {
-      outer = 'rgba(255,140,26,0.45)';
-      glow = '#ff8c1a';
-      core = '#ffe0b0';
-    } else if (b.isFreeze) {
-      outer = 'rgba(77,217,255,0.45)';
-      glow = '#4dd9ff';
-      core = '#e0f8ff';
-    } else if (b.pierce) {
-      outer = 'rgba(180,107,255,0.45)';
-      glow = '#b46bff';
-      core = '#e0c6ff';
-    } else if (isPlayer) {
-      outer = 'rgba(255,214,102,0.35)';
-      glow = '#ffe066';
-      core = '#fff8cc';
-    } else {
-      outer = 'rgba(255,120,120,0.5)';
-      glow = '#ff5b6e';
-      core = '#ffb0b8';
-    }
-    ctx.strokeStyle = outer;
-    ctx.lineWidth = 9.6;
-    ctx.beginPath();
-    ctx.moveTo(b.x, b.y);
-    ctx.lineTo(b.x - b.vx * 0.022, b.y - b.vy * 0.022);
-    ctx.stroke();
+    let glow, core;
+    if (b.isFire)       { glow = '#ff8c1a'; core = '#ffe0b0'; }
+    else if (b.isFreeze){ glow = '#4dd9ff'; core = '#e0f8ff'; }
+    else if (b.pierce)  { glow = '#b46bff'; core = '#e0c6ff'; }
+    else if (isPlayer)  { glow = '#ffe066'; core = '#fff8cc'; }
+    else                { glow = '#ff5b6e'; core = '#ffb0b8'; }
     const br = b.r || 6;
-    ctx.globalAlpha = 0.45;
+    ctx.globalAlpha = 0.4;
     ctx.fillStyle = glow;
-    ctx.beginPath(); ctx.arc(b.x, b.y, br * 1.9, 0, TAU); ctx.fill();
+    ctx.beginPath(); ctx.arc(b.x, b.y, br * 1.7, 0, TAU); ctx.fill();
     ctx.globalAlpha = 1;
     ctx.fillStyle = core;
     ctx.beginPath(); ctx.arc(b.x, b.y, br, 0, TAU); ctx.fill();
@@ -4035,38 +4027,35 @@ function drawBullets(st) {
   ctx.globalAlpha = 1;
 }
 function drawEBullets(st) {
-  for (const b of st.ebullets) {
+  ctx.lineWidth = 1.5;
+  for (let i = 0; i < st.ebullets.length; i++) {
+    const b = st.ebullets[i];
     if (b.isFire && b.trail) {
-      for (const tr of b.trail) {
-        ctx.save();
-        ctx.globalAlpha = tr.life / 0.3 * 0.6;
-        ctx.fillStyle = '#ff8c1a';
+      ctx.fillStyle = '#ff8c1a';
+      for (let k = 0; k < b.trail.length; k++) {
+        const tr = b.trail[k];
+        ctx.globalAlpha = (tr.life / 0.3) * 0.5;
         ctx.beginPath(); ctx.arc(tr.x, tr.y, 8 * (tr.life / 0.3), 0, TAU); ctx.fill();
-        ctx.restore();
       }
     }
-    ctx.save();
-    ctx.globalAlpha = 0.45;
+    ctx.globalAlpha = 0.4;
     ctx.fillStyle = b.color;
-    ctx.beginPath(); ctx.arc(b.x, b.y, b.r * 1.9, 0, TAU); ctx.fill();
+    ctx.beginPath(); ctx.arc(b.x, b.y, b.r * 1.7, 0, TAU); ctx.fill();
     ctx.globalAlpha = 1;
-    ctx.fillStyle = '#fff0f6';
-    ctx.beginPath(); ctx.arc(b.x, b.y, b.r, 0, TAU); ctx.fill();
     ctx.fillStyle = b.color;
-    ctx.beginPath(); ctx.arc(b.x, b.y, b.r * 0.6, 0, TAU); ctx.fill();
+    ctx.beginPath(); ctx.arc(b.x, b.y, b.r, 0, TAU); ctx.fill();
     if (b.isFreeze) {
       ctx.strokeStyle = '#e0f8ff';
-      ctx.lineWidth = 1.5;
       ctx.beginPath();
-      for (let i = 0; i < 3; i++) {
-        const a = i / 3 * Math.PI;
+      for (let k = 0; k < 3; k++) {
+        const a = k / 3 * Math.PI;
         ctx.moveTo(b.x - Math.cos(a) * b.r * 0.5, b.y - Math.sin(a) * b.r * 0.5);
         ctx.lineTo(b.x + Math.cos(a) * b.r * 0.5, b.y + Math.sin(a) * b.r * 0.5);
       }
       ctx.stroke();
     }
-    ctx.restore();
   }
+  ctx.globalAlpha = 1;
 }
 function drawParticles(st) {
   for (const pa of st.particles) {
@@ -4143,7 +4132,13 @@ function drawGame(st) {
   if (st.arena) drawArena(st.arena);
   for (const k of st.pickups) drawPickup(k);
   drawBeams(st);
-  const targetPlayer = Object.values(st.players).find(pp => pp.hp > 0) || st.players[myId];
+  // Cache targetPlayer, không Object.values mỗi frame
+  let targetPlayer = null;
+  for (const pid in st.players) {
+    const pp = st.players[pid];
+    if (pp.hp > 0) { targetPlayer = pp; break; }
+  }
+  if (!targetPlayer) targetPlayer = st.players[myId];
   for (const e of st.enemies) drawEnemy(e, st, targetPlayer);
   drawBullets(st);
   drawEBullets(st);
