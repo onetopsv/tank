@@ -353,6 +353,15 @@
 
 <button id="dvOpen" class="hidden" style="position:fixed;top:70px;right:16px;z-index:59;padding:8px 14px;background:#2a1030;border:2px solid #b46bff;color:#e0c6ff;border-radius:8px;cursor:pointer;font-size:12px;font-weight:800">⚙️ DEV</button>
 
+<div id="pauseOverlay" class="hidden" style="position:fixed;inset:0;z-index:70;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;background:radial-gradient(circle,#0d1a20ee,#000000fa);backdrop-filter:blur(6px);text-align:center;padding:24px">
+  <div style="font-size:64px">⏸️</div>
+  <h1 style="font-size:clamp(28px,6vw,48px);letter-spacing:6px;color:#9df3c4;text-shadow:0 0 30px #2ee07a88">TẠM DỪNG</h1>
+  <p style="font-size:14px;letter-spacing:1px;opacity:.8;max-width:360px;line-height:1.7;color:#cfe9d8">
+    Bạn vừa chuyển tab hoặc rời ứng dụng.<br>Game đã tạm dừng để bạn không bị chết oan.
+  </p>
+  <button id="btnResume" style="padding:16px 40px;border-radius:12px;font-size:15px;font-weight:800;letter-spacing:2px;cursor:pointer;border:2px solid #2ee07a;background:#0e2a1e;color:#9df3c4;transition:.15s">▶ TIẾP TỤC</button>
+</div>
+
 <div id="overlay" class="hidden">
   <h1 id="ovTitle">GAME OVER</h1>
   <p id="ovP1"></p>
@@ -483,6 +492,8 @@ const hudEl = document.getElementById('hud');
 const puHudEl = document.getElementById('powerupHud');
 const touchControlsEl = document.getElementById('touchControls');
 const skillBarEl = document.getElementById('skillBar');
+const pauseOverlayEl = document.getElementById('pauseOverlay');
+const btnResumeEl = document.getElementById('btnResume');
 
 const touch = {
   moveX: 0, moveY: 0,
@@ -512,6 +523,8 @@ function show(name) {
   document.getElementById('devPanel').classList.add('hidden');
   document.getElementById('dvOpen').classList.add('hidden');
   document.getElementById('aimHint').classList.add('hidden');
+  pauseOverlayEl.classList.add('hidden');
+  paused = false;
   if (name !== 'game') resetTouchState();
   if (name === 'game') {
     canvasEl.classList.remove('hidden');
@@ -766,6 +779,7 @@ const BOSS_SKILLS = [
 const SKILL_DROP_CHANCE = 0.5;
 
 let state = null, lastTime = performance.now();
+let paused = false;
 const myId = 'PLAYER';
 
 function xpNeeded(lvl) { return 5 + (lvl - 1) * 3; }
@@ -835,6 +849,8 @@ function initGame(mode, difficulty) {
     isBossTest: false,
     testBossType: null,
     testWinShown: false,
+    respawningBoss: false,
+    respawnTimer: 0,
     godMode: false
   };
 
@@ -1214,6 +1230,8 @@ function startBossTest(bossType) {
   state.testBossType = bossType;
   state.testWinShown = false;
   state.godMode = false;
+  state.respawningBoss = false;
+  state.respawnTimer = 0;
   state.wave = 1;
   state.waveActive = false;
   state.waveSpawnQueue = [];
@@ -1277,6 +1295,27 @@ document.getElementById('btnRestart').onclick = () => {
   }
 };
 function hideOverlay() { document.getElementById('overlay').classList.add('hidden'); }
+
+const pauseOverlayEl2 = pauseOverlayEl;
+
+function pauseGame() {
+  if (!state || state.over || paused) return;
+  paused = true;
+  pauseOverlayEl.classList.remove('hidden');
+}
+function resumeGame() {
+  if (!paused) return;
+  paused = false;
+  pauseOverlayEl.classList.add('hidden');
+  lastTime = performance.now();
+  requestAnimationFrame(gameLoop);
+}
+btnResumeEl.onclick = resumeGame;
+
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden) pauseGame();
+});
+window.addEventListener('blur', () => pauseGame());
 
 function updateDevPanelUI() {
   if (!state || !state.isBossTest) return;
@@ -1346,6 +1385,8 @@ document.getElementById('dvResetBoss').onclick = () => {
   state.enemies = [];
   state.ebullets = [];
   state.testWinShown = false;
+  state.respawningBoss = false;
+  state.respawnTimer = 0;
   state.bossIndex = state.testBossType;
   spawnBossInArena();
   state.bossIndex = state.testBossType;
@@ -1661,6 +1702,7 @@ function spawnSplitChildren(boss, ownerId) {
       score: 80, xp: 4, color: boss.color, stroke: boss.stroke,
       angle: 0, hitFlash: 0, seed: Math.random() * 10,
       isBoss: false, isMiniBoss: true,
+      bossType: boss.bossType,
       splitLevel: level - 1,
       atkCd: 1.5, spawnAnim: 0.3, wobble: Math.random() * 100
     });
@@ -2128,6 +2170,10 @@ function computeBotInput(bot, player, pvx, pvy) {
 
 function gameLoop(now) {
   if (!state || state.over) return;
+  if (paused) {
+    lastTime = now;
+    return;
+  }
   const dt = Math.min((now - lastTime) / 1000, 0.1);
   lastTime = now;
   state.time += dt;
@@ -2177,17 +2223,28 @@ function gameLoop(now) {
 
   if (isPvE) {
     if (state.isBossTest) {
-      if (state.enemies.filter(e => e.isBoss).length === 0 && !state.testWinShown) {
-        state.testWinShown = true;
-        const bt = state.testBossType;
-        setTimeout(() => {
-          if (!state || !state.isBossTest) return;
-          state.over = true;
-          recordPvEScore(state.players[myId].score);
-          showOverlay('✅ HẠ GỤC BOSS!', '#2ee07a',
-            'Boss: <b>' + BOSS_TYPES[bt].name + '</b>',
-            'Điểm: <b>' + state.players[myId].score + '</b> · Cấp: <b>' + state.players[myId].level + '</b>');
-        }, 1200);
+      const bossAlive = state.enemies.some(e => e.isBoss);
+      const miniAlive = state.enemies.some(e => e.isMiniBoss);
+
+      if (!bossAlive && !state.testWinShown && !state.respawningBoss) {
+        state.respawningBoss = true;
+        state.respawnTimer = 3.0;
+      }
+
+      if (state.respawningBoss) {
+        if (miniAlive) {
+          state.respawnTimer = 3.0;
+        } else {
+          state.respawnTimer -= dt;
+          if (state.respawnTimer <= 0) {
+            state.respawningBoss = false;
+            state.bossIndex = state.testBossType;
+            spawnBossInArena();
+            state.bossIndex = state.testBossType;
+            const bossName = BOSS_TYPES[state.testBossType].name;
+            state.announce = { text: 'BOSS ' + bossName + ' HỒI SINH!', t: 2.0 };
+          }
+        }
       }
     } else if (state.waveActive) {
       if (state.waveSpawnQueue.length > 0) {
@@ -3003,13 +3060,11 @@ function drawEnemy(e, st, targetPlayer) {
     ctx.strokeStyle = '#fff'; ctx.lineWidth = 2;
     ctx.strokeRect(-e.r*0.7, -e.r*0.7, e.r*1.4, e.r*1.4);
     ctx.restore();
-    // HP bar
     ctx.fillStyle = 'rgba(0,0,0,0.65)';
     ctx.fillRect(-e.r, -e.r-14, e.r*2, 4);
     const hpPct = Math.max(0, e.hp / e.maxHp);
     ctx.fillStyle = hpPct > 0.4 ? '#2ee07a' : '#ff5b6e';
     ctx.fillRect(-e.r, -e.r-14, e.r*2 * hpPct, 4);
-    // Life bar
     ctx.fillStyle = 'rgba(0,0,0,0.5)';
     ctx.fillRect(-e.r, -e.r-8, e.r*2, 2);
     ctx.fillStyle = '#ff66b2';
@@ -3595,6 +3650,22 @@ function drawGame(st) {
       ctx.textAlign = 'center';
       const bossName = BOSS_TYPES[boss.bossType].name;
       ctx.fillText('BOSS ' + bossName + '   ' + Math.ceil(boss.hp) + ' / ' + Math.ceil(boss.maxHp), W / 2, y + 14);
+    } else if (st.isBossTest && st.respawningBoss && !st.testWinShown) {
+      const miniLeft = st.enemies.filter(e => e.isMiniBoss).length;
+      ctx.save();
+      ctx.font = 'bold 20px system-ui,sans-serif';
+      ctx.textAlign = 'center';
+      ctx.shadowBlur = 20;
+      if (miniLeft > 0) {
+        ctx.fillStyle = '#ff8a9a';
+        ctx.shadowColor = '#ff5b6e';
+        ctx.fillText('DIỆT HẾT PHÂN THÂN! (còn ' + miniLeft + ')', W / 2, 110);
+      } else {
+        ctx.fillStyle = '#ffd93d';
+        ctx.shadowColor = '#ff8c1a';
+        ctx.fillText('BOSS HỒI SINH SAU ' + Math.ceil(st.respawnTimer) + 's', W / 2, 110);
+      }
+      ctx.restore();
     }
   }
 }
