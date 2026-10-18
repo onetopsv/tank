@@ -5,6 +5,10 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
 <title>Tank Arena</title>
 <style>
+  :root{
+    --joy-size:140px;
+    --knob-size:64px;
+  }
   *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
   html,body{width:100%;height:100%;overflow:hidden;background:#080c11;
     font-family:system-ui,"Segoe UI",Arial,sans-serif;user-select:none;color:#dff5e8;
@@ -62,9 +66,25 @@
   #bossTestMenu button { padding: 14px 10px; font-size: 13px; font-weight: 800; letter-spacing: 1px; }
 
   #hud{position:fixed;inset:0;pointer-events:none;padding:18px;
-    display:flex;justify-content:space-between;align-items:flex-start;
+    display:flex;justify-content:flex-end;align-items:flex-start;
     text-shadow:0 2px 8px #000;font-weight:700}
-  #hudLeft{display:flex;flex-direction:column;gap:6px}
+
+  #hudLeft{position:fixed;
+    left:20px;
+    bottom:20px;
+    display:flex;flex-direction:column;gap:6px;
+    pointer-events:none;
+    transform-origin:left bottom;
+  }
+
+  @media (pointer: coarse), (max-width: 768px) {
+    #hudLeft {
+      bottom: auto;
+      top: 200px;
+      transform-origin:left top;
+    }
+  }
+
   .hpbar{width:min(240px,45vw);height:18px;border-radius:9px;background:#101c24;
     border:2px solid #26485a;overflow:hidden;position:relative;
     transition:border-color 0.2s;box-shadow:0 0 18px #0af3}
@@ -101,6 +121,10 @@
     border-radius:8px;background:#0e1a20;color:#cfe9d8;border:2px solid #26485a;
     font-size:11px;font-weight:800;letter-spacing:2px}
   #btnMenu:hover{background:#12463a;border-color:#2ee07a;color:#9df3c4}
+  #btnSettings{pointer-events:auto;cursor:pointer;margin-top:6px;margin-left:6px;
+    padding:8px 12px;border-radius:8px;background:#0e1a20;color:#9df3c4;
+    border:2px solid #2ee07a;font-size:11px;font-weight:800;letter-spacing:2px}
+  #btnSettings:hover{background:#12463a}
   #powerupHud{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);
     display:flex;gap:8px;flex-wrap:wrap;justify-content:center;
     pointer-events:none;z-index:30;max-width:60vw}
@@ -126,7 +150,7 @@
 
   #touchControls{position:fixed;inset:0;pointer-events:none;z-index:25}
   .joystick{
-    position:absolute;width:140px;height:140px;border-radius:50%;
+    position:absolute;width:var(--joy-size);height:var(--joy-size);border-radius:50%;
     background:rgba(46,224,122,0.10);border:2px solid rgba(46,224,122,0.55);
     bottom:30px;pointer-events:auto;touch-action:none;
     box-shadow:inset 0 0 30px rgba(46,224,122,0.15),0 0 20px rgba(46,224,122,0.2);
@@ -140,7 +164,7 @@
     box-shadow:inset 0 0 30px rgba(255,91,110,0.15),0 0 20px rgba(255,91,110,0.2);
   }
   .knob{
-    position:absolute;width:64px;height:64px;border-radius:50%;
+    position:absolute;width:var(--knob-size);height:var(--knob-size);border-radius:50%;
     background:rgba(46,224,122,0.75);border:2px solid #2ee07a;
     top:50%;left:50%;transform:translate(-50%,-50%);
     pointer-events:none;box-shadow:0 0 25px #2ee07a88;
@@ -224,7 +248,7 @@
 
   #minimap{
     position:fixed;
-    bottom:20px;
+    top:20px;
     left:20px;
     z-index:15;
     pointer-events:none;
@@ -232,8 +256,17 @@
     border-radius:10px;
     background:rgba(8,16,22,0.92);
     box-shadow:0 0 20px rgba(46,224,122,0.35), inset 0 0 20px rgba(46,224,122,0.08);
-    transition:bottom 0.3s;
   }
+  body.mini-right #minimap{ left: auto; right: 20px; }
+  body.mini-right #enemiesLeftBox{ right: auto; left: 16px; }
+
+  .st-row{display:flex;justify-content:space-between;align-items:center;gap:8px;
+    font-size:12px;color:#cfe9d8;letter-spacing:.5px}
+  .st-btns{display:flex;gap:4px}
+  .st-btns button{padding:6px 10px;background:#0e1a20;border:1px solid #26485a;
+    color:#9df3c4;border-radius:6px;font-size:11px;font-weight:800;cursor:pointer;transition:.15s}
+  .st-btns button.active{background:#2ee07a;color:#04140c;border-color:#2ee07a}
+  .st-btns button:hover{border-color:#2ee07a}
 </style>
 </head>
 <body>
@@ -265,6 +298,7 @@
     <button id="btnInsane" class="btn-diff insane">💀 SIÊU KHÓ</button>
   </div>
   <button id="btnChangeName" class="btn-change-name">✏️ ĐỔI TÊN</button>
+  <button id="btnSettingsMenu" class="btn-change-name" style="background:#0e2a1e;border-color:#2ee07a;color:#9df3c4">⚙ CÀI ĐẶT GIAO DIỆN</button>
   <button id="btnTestBoss" class="btn-change-name" style="margin-top:14px;background:#2a1030;border-color:#b46bff;color:#e0c6ff">🧪 TEST BOSS</button>
   <div id="bossTestMenu" class="hidden" style="display:flex;flex-direction:column;gap:10px;width:min(340px,92vw);margin-top:8px">
     <button class="btn-diff" style="background:#2a1030;border-color:#b46bff;color:#e0c6ff" data-boss="0">🐂 BOSS BÒ (CHARGE)</button>
@@ -305,6 +339,7 @@
     ĐIỂM<b id="scoreVal">0</b>
     MÀN<b id="waveVal">1</b>
     <button id="btnMenu">☰ MENU</button>
+    <button id="btnSettings">⚙</button>
   </div>
 </div>
 <div id="powerupHud" class="hidden"></div>
@@ -391,6 +426,79 @@
 
 <button id="dvOpen" class="hidden" style="position:fixed;top:70px;right:16px;z-index:59;padding:8px 14px;background:#2a1030;border:2px solid #b46bff;color:#e0c6ff;border-radius:8px;cursor:pointer;font-size:12px;font-weight:800">⚙️ DEV</button>
 
+<div id="settingsPanel" class="hidden" style="position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);z-index:75;background:rgba(10,20,26,0.98);border:2px solid #2ee07a;border-radius:14px;padding:18px 20px;width:min(360px,92vw);box-shadow:0 0 40px rgba(46,224,122,0.5);display:flex;flex-direction:column;gap:10px;max-height:90vh;overflow-y:auto">
+  <div style="font-size:15px;font-weight:800;letter-spacing:2px;color:#9df3c4;text-align:center;margin-bottom:4px">⚙️ CÀI ĐẶT GIAO DIỆN</div>
+
+  <div class="st-row">
+    <span>Minimap</span>
+    <div class="st-btns">
+      <button data-set="miniSize" data-val="130">S</button>
+      <button data-set="miniSize" data-val="170">M</button>
+      <button data-set="miniSize" data-val="210">L</button>
+    </div>
+  </div>
+
+  <div class="st-row">
+    <span>Vị trí minimap</span>
+    <div class="st-btns">
+      <button data-set="miniCorner" data-val="left">TRÁI</button>
+      <button data-set="miniCorner" data-val="right">PHẢI</button>
+    </div>
+  </div>
+
+  <div class="st-row">
+    <span>Joystick</span>
+    <div class="st-btns">
+      <button data-set="joySize" data-val="110">S</button>
+      <button data-set="joySize" data-val="140">M</button>
+      <button data-set="joySize" data-val="170">L</button>
+    </div>
+  </div>
+
+  <div class="st-row">
+    <span>HUD scale</span>
+    <div class="st-btns">
+      <button data-set="hudScale" data-val="0.85">S</button>
+      <button data-set="hudScale" data-val="1">M</button>
+      <button data-set="hudScale" data-val="1.15">L</button>
+    </div>
+  </div>
+
+  <div class="st-row">
+    <span>Gợi ý ngắm</span>
+    <div class="st-btns">
+      <button data-set="aimHint" data-val="on">BẬT</button>
+      <button data-set="aimHint" data-val="off">TẮT</button>
+    </div>
+  </div>
+
+  <div class="st-row">
+    <span>Hộp quái còn</span>
+    <div class="st-btns">
+      <button data-set="enemiesLeft" data-val="on">BẬT</button>
+      <button data-set="enemiesLeft" data-val="off">TẮT</button>
+    </div>
+  </div>
+
+  <div class="st-row">
+    <span>Rung màn hình</span>
+    <div class="st-btns">
+      <button data-set="screenShake" data-val="on">BẬT</button>
+      <button data-set="screenShake" data-val="off">TẮT</button>
+    </div>
+  </div>
+
+  <div class="st-row">
+    <span>Âm thanh</span>
+    <div class="st-btns">
+      <button data-set="sound" data-val="on">BẬT</button>
+      <button data-set="sound" data-val="off">TẮT</button>
+    </div>
+  </div>
+
+  <button id="stClose" style="padding:10px;background:#1a1a1a;border:2px solid #888;color:#ccc;border-radius:8px;cursor:pointer;font-size:12px;font-weight:800;margin-top:4px">ĐÓNG</button>
+</div>
+
 <div id="pauseOverlay" class="hidden" style="position:fixed;inset:0;z-index:70;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;background:radial-gradient(circle,#0d1a20ee,#000000fa);backdrop-filter:blur(6px);text-align:center;padding:24px">
   <div style="font-size:64px">⏸️</div>
   <h1 style="font-size:clamp(28px,6vw,48px);letter-spacing:6px;color:#9df3c4;text-shadow:0 0 30px #2ee07a88">TẠM DỪNG</h1>
@@ -416,7 +524,27 @@
 let state = null;
 let lastTime = performance.now();
 let paused = false;
+let wasPausedBySettings = false;
 const myId = 'PLAYER';
+
+const UI_KEY = 'tankArenaUI';
+const DEFAULT_UI = {
+  miniSize: 170,
+  miniRight: false,
+  hudScale: 1,
+  joySize: 140,
+  aimHint: true,
+  enemiesLeft: true,
+  screenShake: true,
+  sound: true
+};
+let uiSettings = Object.assign({}, DEFAULT_UI);
+try {
+  const saved = JSON.parse(localStorage.getItem(UI_KEY) || '{}');
+  Object.assign(uiSettings, saved || {});
+} catch (_) {}
+function saveUI(){ try { localStorage.setItem(UI_KEY, JSON.stringify(uiSettings)); } catch(_){} }
+
 function rand(a, b) { return a + Math.random() * (b - a); }
 function clamp(v, a, b) { return Math.max(a, Math.min(b, v)); }
 function dist(x1,y1,x2,y2){ const dx=x2-x1, dy=y2-y1; return Math.sqrt(dx*dx+dy*dy); }
@@ -444,18 +572,23 @@ let cam = { x: 0, y: 0 };
 
 const isTouchDevice = ('ontouchstart' in window) || (navigator.maxTouchPoints > 0);
 
-/* === MINIMAP === */
 const minimapEl = document.getElementById('minimap');
 const minimapCtx = minimapEl.getContext('2d');
-const MINI_SIZE = 170;
+let MINI_SIZE = uiSettings.miniSize || 170;
 const MINI_DPR = Math.min(2, devicePixelRatio || 1);
 minimapEl.width = MINI_SIZE * MINI_DPR;
 minimapEl.height = MINI_SIZE * MINI_DPR;
 minimapEl.style.width = MINI_SIZE + 'px';
 minimapEl.style.height = MINI_SIZE + 'px';
 minimapCtx.setTransform(MINI_DPR, 0, 0, MINI_DPR, 0, 0);
-if (isTouchDevice) {
-  minimapEl.style.bottom = '200px';
+
+function resizeMinimap(size) {
+  MINI_SIZE = size;
+  minimapEl.width = MINI_SIZE * MINI_DPR;
+  minimapEl.height = MINI_SIZE * MINI_DPR;
+  minimapEl.style.width = MINI_SIZE + 'px';
+  minimapEl.style.height = MINI_SIZE + 'px';
+  minimapCtx.setTransform(MINI_DPR, 0, 0, MINI_DPR, 0, 0);
 }
 
 function drawMinimap(st) {
@@ -478,17 +611,12 @@ function drawMinimap(st) {
   const offY = (mh - drawH) / 2;
 
   function toMini(wx, wy) {
-    return {
-      x: offX + (wx + arena.w / 2) * scale,
-      y: offY + (wy + arena.h / 2) * scale
-    };
+    return { x: offX + (wx + arena.w / 2) * scale, y: offY + (wy + arena.h / 2) * scale };
   }
 
-  // Arena fill
   mctx.fillStyle = 'rgba(255,50,50,0.05)';
   mctx.fillRect(offX, offY, drawW, drawH);
 
-  // Grid lines
   mctx.strokeStyle = 'rgba(60,130,100,0.18)';
   mctx.lineWidth = 0.5;
   const gridStep = 1000;
@@ -503,12 +631,10 @@ function drawMinimap(st) {
     mctx.beginPath(); mctx.moveTo(a.x, a.y); mctx.lineTo(b.x, b.y); mctx.stroke();
   }
 
-  // Arena border
   mctx.strokeStyle = 'rgba(255,80,80,0.65)';
   mctx.lineWidth = 1.5;
   mctx.strokeRect(offX, offY, drawW, drawH);
 
-  // Center crosshair
   const center = toMini(0, 0);
   mctx.strokeStyle = 'rgba(255,255,255,0.15)';
   mctx.lineWidth = 0.5;
@@ -517,7 +643,6 @@ function drawMinimap(st) {
   mctx.moveTo(center.x, center.y - 6); mctx.lineTo(center.x, center.y + 6);
   mctx.stroke();
 
-  // Pickups (skip xp orbs, only powerups)
   for (const k of st.pickups) {
     if (k.type === 'xp') continue;
     const p = toMini(k.x, k.y);
@@ -527,7 +652,6 @@ function drawMinimap(st) {
     mctx.fill();
   }
 
-  // Allies (from split)
   for (const e of st.enemies) {
     if (!e.isAlly) continue;
     const p = toMini(e.x, e.y);
@@ -537,7 +661,6 @@ function drawMinimap(st) {
     mctx.fill();
   }
 
-  // Enemies
   for (const e of st.enemies) {
     if (e.isAlly) continue;
     const p = toMini(e.x, e.y);
@@ -564,7 +687,6 @@ function drawMinimap(st) {
     }
   }
 
-  // Players
   for (const id in st.players) {
     const p = st.players[id];
     if (p.hp <= 0) continue;
@@ -573,14 +695,12 @@ function drawMinimap(st) {
       mctx.save();
       mctx.shadowColor = '#2ee07a';
       mctx.shadowBlur = 10;
-      // Aim indicator
       mctx.strokeStyle = 'rgba(157,243,196,0.75)';
       mctx.lineWidth = 1.2;
       mctx.beginPath();
       mctx.moveTo(pos.x, pos.y);
       mctx.lineTo(pos.x + Math.cos(p.aim) * 14, pos.y + Math.sin(p.aim) * 14);
       mctx.stroke();
-      // Player dot
       mctx.fillStyle = '#2ee07a';
       mctx.beginPath();
       mctx.arc(pos.x, pos.y, 3.6, 0, TAU);
@@ -610,7 +730,6 @@ function drawMinimap(st) {
     }
   }
 
-  // Camera viewport indicator
   const viewW = W * scale;
   const viewH = H * scale;
   if (viewW < drawW * 0.98 || viewH < drawH * 0.98) {
@@ -640,14 +759,13 @@ function initAudio() {
     if (!AudioContextClass) return;
     if (!audioCtx) audioCtx = new AudioContextClass();
     if (audioCtx.state === 'suspended') {
-      const resumeResult = audioCtx.resume();
-      if (resumeResult && typeof resumeResult.catch === 'function') resumeResult.catch(() => {});
+      const r = audioCtx.resume();
+      if (r && typeof r.catch === 'function') r.catch(() => {});
     }
-  } catch (_) {
-    audioCtx = null;
-  }
+  } catch (_) { audioCtx = null; }
 }
 function playSound(type) {
+  if (!uiSettings.sound) return;
   if (!audioCtx || typeof type !== 'string') return;
   const osc = audioCtx.createOscillator(), gain = audioCtx.createGain();
   osc.connect(gain); gain.connect(audioCtx.destination);
@@ -723,6 +841,7 @@ const touchControlsEl = document.getElementById('touchControls');
 const skillBarEl = document.getElementById('skillBar');
 const pauseOverlayEl = document.getElementById('pauseOverlay');
 const btnResumeEl = document.getElementById('btnResume');
+const settingsPanelEl = document.getElementById('settingsPanel');
 const touch = {
   moveX: 0, moveY: 0,
   aimX: 0, aimY: 0,
@@ -739,6 +858,54 @@ function resetTouchState() {
   if (kl) kl.style.transform = 'translate(-50%,-50%)';
   if (kr) kr.style.transform = 'translate(-50%,-50%)';
 }
+
+function applyUI() {
+  document.documentElement.style.setProperty('--joy-size', uiSettings.joySize + 'px');
+  document.documentElement.style.setProperty('--knob-size', Math.round(uiSettings.joySize * 0.46) + 'px');
+  document.body.classList.toggle('mini-right', !!uiSettings.miniRight);
+  const hudLeft = document.getElementById('hudLeft');
+  if (hudLeft) hudLeft.style.transform = 'scale(' + uiSettings.hudScale + ')';
+  if (uiSettings.miniSize !== MINI_SIZE) resizeMinimap(uiSettings.miniSize);
+  if (state && !state.over) {
+    const ah = document.getElementById('aimHint');
+    if (uiSettings.aimHint && !isTouchDevice) ah.classList.remove('hidden');
+    else ah.classList.add('hidden');
+  }
+  refreshSettingsButtons();
+}
+
+function refreshSettingsButtons() {
+  document.querySelectorAll('#settingsPanel [data-set]').forEach(b => {
+    const key = b.dataset.set;
+    const val = b.dataset.val;
+    let active = false;
+    if (key === 'miniSize' || key === 'joySize') active = parseInt(val, 10) === uiSettings[key];
+    else if (key === 'hudScale') active = parseFloat(val) === uiSettings.hudScale;
+    else if (key === 'miniCorner') active = (val === 'right') === !!uiSettings.miniRight;
+    else if (key === 'aimHint') active = (val === 'on') === !!uiSettings.aimHint;
+    else if (key === 'enemiesLeft') active = (val === 'on') === !!uiSettings.enemiesLeft;
+    else if (key === 'screenShake') active = (val === 'on') === !!uiSettings.screenShake;
+    else if (key === 'sound') active = (val === 'on') === !!uiSettings.sound;
+    b.classList.toggle('active', active);
+  });
+}
+
+function openSettings() {
+  settingsPanelEl.classList.remove('hidden');
+  if (state && !state.over && !paused) {
+    wasPausedBySettings = true;
+    pauseGame();
+  }
+  refreshSettingsButtons();
+}
+function closeSettings() {
+  settingsPanelEl.classList.add('hidden');
+  if (wasPausedBySettings) {
+    wasPausedBySettings = false;
+    resumeGame();
+  }
+}
+
 function show(name) {
   Object.values(screens).forEach(s => s.classList.add('hidden'));
   canvasEl.classList.add('hidden');
@@ -751,6 +918,7 @@ function show(name) {
   document.getElementById('devPanel').classList.add('hidden');
   document.getElementById('dvOpen').classList.add('hidden');
   document.getElementById('aimHint').classList.add('hidden');
+  settingsPanelEl.classList.add('hidden');
   pauseOverlayEl.classList.add('hidden');
   paused = false;
   if (name !== 'game') resetTouchState();
@@ -766,6 +934,9 @@ function show(name) {
       document.getElementById('joyRight').style.display = 'none';
     }
     skillBarEl.classList.remove('hidden');
+    if (uiSettings.aimHint && !isTouchDevice) {
+      document.getElementById('aimHint').classList.remove('hidden');
+    }
   } else if (screens[name]) screens[name].classList.remove('hidden');
 }
 
@@ -806,29 +977,39 @@ inputName.addEventListener('keydown', e => {
   if (e.key === 'Enter') submitName();
 });
 
-document.getElementById('btnChangeName').onclick = () => {
-  showNameScreen();
-};
+document.getElementById('btnChangeName').onclick = () => { showNameScreen(); };
 const bossTestMenu = document.getElementById('bossTestMenu');
-document.getElementById('btnTestBoss').onclick = () => {
-  bossTestMenu.classList.toggle('hidden');
-};
-document.getElementById('btnBackMenu').onclick = () => {
-  bossTestMenu.classList.add('hidden');
-};
+document.getElementById('btnTestBoss').onclick = () => { bossTestMenu.classList.toggle('hidden'); };
+document.getElementById('btnBackMenu').onclick = () => { bossTestMenu.classList.add('hidden'); };
 bossTestMenu.querySelectorAll('[data-boss]').forEach(btn => {
   btn.onclick = () => {
     const raw = btn.dataset.boss;
     bossTestMenu.classList.add('hidden');
-    if (raw === 'all') {
-      startBossTest('all');
-    } else {
-      startBossTest(parseInt(raw, 10));
-    }
+    if (raw === 'all') startBossTest('all');
+    else startBossTest(parseInt(raw, 10));
   };
 });
+
+document.getElementById('btnSettingsMenu').onclick = openSettings;
+document.getElementById('btnSettings').onclick = openSettings;
+document.getElementById('stClose').onclick = closeSettings;
+settingsPanelEl.querySelectorAll('[data-set]').forEach(btn => {
+  btn.onclick = () => {
+    const key = btn.dataset.set;
+    const val = btn.dataset.val;
+    if (key === 'miniSize' || key === 'joySize') uiSettings[key] = parseInt(val, 10);
+    else if (key === 'hudScale') uiSettings.hudScale = parseFloat(val);
+    else if (key === 'miniCorner') uiSettings.miniRight = (val === 'right');
+    else if (key === 'aimHint') uiSettings.aimHint = (val === 'on');
+    else if (key === 'enemiesLeft') uiSettings.enemiesLeft = (val === 'on');
+    else if (key === 'screenShake') uiSettings.screenShake = (val === 'on');
+    else if (key === 'sound') uiSettings.sound = (val === 'on');
+    saveUI();
+    applyUI();
+  };
+});
+
 function setupJoystick(el, knob, onMove, onEnd) {
-  const maxR = 50;
   let activePointerId = null;
   let usingMouse = false;
 
@@ -838,6 +1019,7 @@ function setupJoystick(el, knob, onMove, onEnd) {
 
   function applyFromClient(clientX, clientY) {
     const rect = el.getBoundingClientRect();
+    const maxR = rect.width * 0.36;
     const cx = rect.left + rect.width / 2;
     const cy = rect.top + rect.height / 2;
     let dx = clientX - cx;
@@ -872,14 +1054,12 @@ function setupJoystick(el, knob, onMove, onEnd) {
       try { el.setPointerCapture(e.pointerId); } catch (_) {}
       applyFromClient(e.clientX, e.clientY);
     });
-
     el.addEventListener('pointermove', (e) => {
       if (activePointerId === null || e.pointerId !== activePointerId) return;
       e.preventDefault();
       e.stopPropagation();
       applyFromClient(e.clientX, e.clientY);
     });
-
     el.addEventListener('pointerup', (e) => {
       if (e.pointerId !== activePointerId) return;
       endJoystick(e);
@@ -904,7 +1084,6 @@ function setupJoystick(el, knob, onMove, onEnd) {
       usingMouse = false;
       applyFromClient(t.clientX, t.clientY);
     }, { passive: false });
-
     el.addEventListener('touchmove', (e) => {
       if (activePointerId === null) return;
       e.preventDefault();
@@ -916,7 +1095,6 @@ function setupJoystick(el, knob, onMove, onEnd) {
       if (found) applyFromClient(found.clientX, found.clientY);
       else endJoystick(e);
     }, { passive: false });
-
     const onTouchEnd = (e) => {
       if (activePointerId === null) return;
       let stillThere = false;
@@ -927,7 +1105,6 @@ function setupJoystick(el, knob, onMove, onEnd) {
     };
     el.addEventListener('touchend', onTouchEnd);
     el.addEventListener('touchcancel', onTouchEnd);
-
     el.addEventListener('mousedown', (e) => {
       if (activePointerId !== null) return;
       if (e.button !== 0) return;
@@ -974,6 +1151,7 @@ setupJoystick(
     touch.shooting = false;
   }
 );
+
 const BOT_CFG = {
   easy: { speedBonus: 0.60, aimJitter: 0.55, shootRange: 500, dodge: false, dodgeRange: 0, smart: false, lead: 0, fireRate: 550, damage: 5, idealDist: 450, hp: 70, name: 'BOT DỄ', color: '#7bd66b', aimSpeed: 0.15 },
   normal: { speedBonus: 0.80, aimJitter: 0.28, shootRange: 650, dodge: true, dodgeRange: 140, smart: false, lead: 0.2, fireRate: 360, damage: 8, idealDist: 380, hp: 90, name: 'BOT THƯỜNG', color: '#4dd9ff', aimSpeed: 0.22 },
@@ -1088,10 +1266,8 @@ function initGame(mode, difficulty) {
 
   if (mode === 'bot') {
     state.players['BOT'] = makeBot(difficulty);
-
     state.players[myId].fireRate = 130;
     state.players[myId].bulletSpeed = 1300;
-
     state.players[myId].x = -350;
     state.players['BOT'].x = 350;
     state.announce = { text: 'VS ' + BOT_CFG[difficulty].name, t: 2.5 };
@@ -1203,9 +1379,6 @@ function spawnEnemyInArena(typeIdx, wave) {
   });
 }
 
-/* =========================================================
-   BOSS — ĐÃ NERF (giảm HP, DMG, tăng cooldown)
-   ========================================================= */
 const BOSS_TYPES = [
   { name: 'BÒ',        color: '#b46bff', stroke: '#6a2f9e', r: 50, hp: 2400, speed: 95, dmg: 32, xp: 40, skillKey: 'charge' },
   { name: 'LỬA',       color: '#ff8c1a', stroke: '#a04d00', r: 48, hp: 2100, speed: 88, dmg: 26, xp: 40, skillKey: 'flame' },
@@ -1304,9 +1477,7 @@ function startNewWave() {
   state.waveActive = true;
   state.bossAlive = false;
 
-  if (res.hasBoss) {
-    spawnBossInArena();
-  }
+  if (res.hasBoss) spawnBossInArena();
 
   state.announce = { text: 'MÀN ' + wave, t: 2 };
 }
@@ -1334,6 +1505,7 @@ document.getElementById('btnEasy').onclick = () => startGame('bot', 'easy');
 document.getElementById('btnNormal').onclick = () => startGame('bot', 'normal');
 document.getElementById('btnHard').onclick = () => startGame('bot', 'hard');
 document.getElementById('btnInsane').onclick = () => startGame('bot', 'insane');
+
 function updateSkillBarUI() {
   if (!state) { skillBarEl.innerHTML = ''; return; }
   const me = state.players[myId];
@@ -1544,9 +1716,7 @@ function startBossTest(bossType) {
   me.skills.forEach(k => { me.skillCooldowns[k] = 0; });
 
   if (bossType === 'all') {
-    for (let i = 0; i < BOSS_TYPES.length; i++) {
-      spawnBossInArena(i);
-    }
+    for (let i = 0; i < BOSS_TYPES.length; i++) spawnBossInArena(i);
     state.announce = { text: 'TEST: TẤT CẢ BOSS Lv' + getBossLevel(), t: 3.0 };
     document.getElementById('modeTag').textContent = '🧪 TEST: ALL BOSS Lv' + getBossLevel();
     document.getElementById('modeTag').style.color = '#ff0055';
@@ -1618,6 +1788,7 @@ document.addEventListener('visibilitychange', () => {
   if (document.hidden) pauseGame();
 });
 window.addEventListener('blur', () => pauseGame());
+
 function updateDevPanelUI() {
   if (!state || !state.isBossTest) return;
   const me = state.players[myId];
@@ -1679,21 +1850,17 @@ document.querySelectorAll('.dv-spawn-boss').forEach(btn => {
 });
 document.getElementById('dvSpawnAllBoss').onclick = () => {
   if (!state || !state.isBossTest) return;
-  for (let i = 0; i < BOSS_TYPES.length; i++) {
-    spawnBossInArena(i);
-  }
+  for (let i = 0; i < BOSS_TYPES.length; i++) spawnBossInArena(i);
   state.announce = { text: 'SPAWN: TẤT CẢ BOSS Lv' + getBossLevel(), t: 2.0 };
 };
 
 document.getElementById('dvFullHeal').onclick = () => {
   if (!state || !state.isBossTest) return;
-  const me = state.players[myId];
-  me.hp = me.maxHp;
+  state.players[myId].hp = state.players[myId].maxHp;
 };
 document.getElementById('dvFullMana').onclick = () => {
   if (!state || !state.isBossTest) return;
-  const me = state.players[myId];
-  me.mana = me.maxMana;
+  state.players[myId].mana = state.players[myId].maxMana;
 };
 document.getElementById('dvGodMode').onclick = (e) => {
   if (!state || !state.isBossTest) return;
@@ -1757,6 +1924,7 @@ document.getElementById('dvOpen').onclick = () => {
   document.getElementById('dvOpen').classList.add('hidden');
   updateDevPanelUI();
 };
+
 function updateHUD(st) {
   if (!st) return;
   const me = st.players[myId];
@@ -1801,7 +1969,9 @@ function updateHUD(st) {
   }
 
   const elLeft = document.getElementById('enemiesLeftBox');
-  if (st.isBossTest) {
+  if (!uiSettings.enemiesLeft) {
+    elLeft.classList.add('hidden');
+  } else if (st.isBossTest) {
     let bossCount = 0, trashCount = 0;
     for (let i = 0; i < st.enemies.length; i++) {
       const e = st.enemies[i];
@@ -1828,6 +1998,7 @@ function updateHUD(st) {
     elLeft.classList.add('hidden');
   }
 }
+
 const PU_LABEL = {
   laser: '⚡ LASER', bomb: '💣 BOM', shield: '🛡️ KHIÊN',
   speed: '👟 TỐC ĐỘ', pierce: '🔱 XUYÊN', tripleshot: '🔥 3 TIA',
@@ -2157,9 +2328,6 @@ function knockbackPlayer(p, fromX, fromY, force) {
   p.knockbackY = (p.knockbackY || 0) + ny * force;
 }
 
-/* =========================================================
-   UPDATE BOSS — ĐÃ NERF
-   ========================================================= */
 function updateBoss(e, target, dt, st) {
   const dx = target.x - e.x, dy = target.y - e.y;
   const d = Math.hypot(dx, dy) || 1;
@@ -2724,6 +2892,7 @@ function computeBotInput(bot, player, pvx, pvy) {
   const shoot = d < cfg.shootRange;
   return { x: mx, y: my, aim, shoot };
 }
+
 let _lastLoopTs = 0;
 function gameLoop(now) {
   if (!state || state.over) return;
@@ -3361,7 +3530,6 @@ function gameLoop(now) {
       const knockR = R * 2.2;
 
       if (ns.isPlayer) {
-        // === BOM HẠT NHÂN CỦA PLAYER: dmg + KNOCKBACK quái & boss ===
         for (let j = state.enemies.length - 1; j >= 0; j--) {
           const e = state.enemies[j];
           if (e.isAlly) continue;
@@ -3393,7 +3561,6 @@ function gameLoop(now) {
           }
         }
       } else {
-        // === BOM HẠT NHÂN CỦA BOSS ===
         for (const pid in state.players) {
           const p = state.players[pid];
           if (p.hp <= 0) continue;
@@ -3841,14 +4008,10 @@ function drawBossAura(e, st) {
     ctx.globalAlpha = 0.5;
     ctx.strokeStyle = '#ff4dff';
     ctx.lineWidth = 6;
-    ctx.beginPath();
-    ctx.arc(0, 0, e.r + 10, 0, TAU);
-    ctx.stroke();
+    ctx.beginPath(); ctx.arc(0, 0, e.r + 10, 0, TAU); ctx.stroke();
     ctx.globalAlpha = 0.15;
     ctx.fillStyle = '#ff4dff';
-    ctx.beginPath();
-    ctx.arc(0, 0, e.r + 80, 0, TAU);
-    ctx.fill();
+    ctx.beginPath(); ctx.arc(0, 0, e.r + 80, 0, TAU); ctx.fill();
     ctx.restore();
   }
   if (e.bossType === 3 && e.draining) {
@@ -3896,9 +4059,7 @@ function drawBossAura(e, st) {
     ctx.shadowColor = '#ffdd00';
     ctx.shadowBlur = 15;
     ctx.lineWidth = 5;
-    ctx.beginPath();
-    ctx.arc(0, 0, e.r + 12, 0, TAU);
-    ctx.stroke();
+    ctx.beginPath(); ctx.arc(0, 0, e.r + 12, 0, TAU); ctx.stroke();
     ctx.restore();
   }
   if (e.bossType === 6) {
@@ -3930,14 +4091,10 @@ function drawEnemy(e, st, targetPlayer) {
     ctx.globalAlpha = 0.4 + 0.3 * Math.sin(performance.now() * 0.03);
     ctx.strokeStyle = '#00fff0';
     ctx.lineWidth = 5;
-    ctx.beginPath();
-    ctx.arc(0, 0, e.r + 12, 0, TAU);
-    ctx.stroke();
+    ctx.beginPath(); ctx.arc(0, 0, e.r + 12, 0, TAU); ctx.stroke();
     ctx.globalAlpha = 0.25;
     ctx.fillStyle = '#00fff0';
-    ctx.beginPath();
-    ctx.arc(0, 0, e.r + 12, 0, TAU);
-    ctx.fill();
+    ctx.beginPath(); ctx.arc(0, 0, e.r + 12, 0, TAU); ctx.fill();
     ctx.font = 'bold 20px system-ui,sans-serif';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
@@ -4624,10 +4781,12 @@ function drawGame(st) {
   cam.y += (targetY - cam.y) * 0.15;
 
   let sx = 0, sy = 0;
-  if (shakeTime > 0) {
+  if (uiSettings.screenShake && shakeTime > 0) {
     shakeTime = Math.max(0, shakeTime - 0.016);
     sx = (Math.random() - 0.5) * shakeIntensity;
     sy = (Math.random() - 0.5) * shakeIntensity;
+  } else if (!uiSettings.screenShake) {
+    shakeTime = 0;
   }
   ctx.save();
   ctx.translate(W / 2 - cam.x + sx, H / 2 - cam.y + sy);
@@ -4750,9 +4909,10 @@ function drawGame(st) {
     }
   }
 
-  // === MINIMAP (vẽ mỗi frame) ===
   drawMinimap(st);
 }
+
+applyUI();
 
 })();
 </script>
