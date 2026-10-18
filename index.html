@@ -221,6 +221,19 @@
     border:1px solid #26485a;color:#7a9a92;font-size:10px;font-weight:700;
     letter-spacing:1px;pointer-events:none;z-index:5;
   }
+
+  #minimap{
+    position:fixed;
+    bottom:20px;
+    left:20px;
+    z-index:15;
+    pointer-events:none;
+    border:2px solid #26485a;
+    border-radius:10px;
+    background:rgba(8,16,22,0.92);
+    box-shadow:0 0 20px rgba(46,224,122,0.35), inset 0 0 20px rgba(46,224,122,0.08);
+    transition:bottom 0.3s;
+  }
 </style>
 </head>
 <body>
@@ -295,6 +308,8 @@
   </div>
 </div>
 <div id="powerupHud" class="hidden"></div>
+
+<canvas id="minimap" class="hidden"></canvas>
 
 <div id="enemiesLeftBox" class="hidden">
   QUÁI CÒN<b id="enemiesLeftVal">0</b>
@@ -429,6 +444,183 @@ let cam = { x: 0, y: 0 };
 
 const isTouchDevice = ('ontouchstart' in window) || (navigator.maxTouchPoints > 0);
 
+/* === MINIMAP === */
+const minimapEl = document.getElementById('minimap');
+const minimapCtx = minimapEl.getContext('2d');
+const MINI_SIZE = 170;
+const MINI_DPR = Math.min(2, devicePixelRatio || 1);
+minimapEl.width = MINI_SIZE * MINI_DPR;
+minimapEl.height = MINI_SIZE * MINI_DPR;
+minimapEl.style.width = MINI_SIZE + 'px';
+minimapEl.style.height = MINI_SIZE + 'px';
+minimapCtx.setTransform(MINI_DPR, 0, 0, MINI_DPR, 0, 0);
+if (isTouchDevice) {
+  minimapEl.style.bottom = '200px';
+}
+
+function drawMinimap(st) {
+  if (!st || !minimapCtx) return;
+  const mctx = minimapCtx;
+  const mw = MINI_SIZE;
+  const mh = MINI_SIZE;
+  mctx.clearRect(0, 0, mw, mh);
+
+  const arena = st.arena;
+  if (!arena) return;
+
+  const pad = 10;
+  const innerW = mw - pad * 2;
+  const innerH = mh - pad * 2;
+  const scale = Math.min(innerW / arena.w, innerH / arena.h);
+  const drawW = arena.w * scale;
+  const drawH = arena.h * scale;
+  const offX = (mw - drawW) / 2;
+  const offY = (mh - drawH) / 2;
+
+  function toMini(wx, wy) {
+    return {
+      x: offX + (wx + arena.w / 2) * scale,
+      y: offY + (wy + arena.h / 2) * scale
+    };
+  }
+
+  // Arena fill
+  mctx.fillStyle = 'rgba(255,50,50,0.05)';
+  mctx.fillRect(offX, offY, drawW, drawH);
+
+  // Grid lines
+  mctx.strokeStyle = 'rgba(60,130,100,0.18)';
+  mctx.lineWidth = 0.5;
+  const gridStep = 1000;
+  for (let gx = -arena.w/2 + gridStep; gx < arena.w/2; gx += gridStep) {
+    const a = toMini(gx, -arena.h/2);
+    const b = toMini(gx, arena.h/2);
+    mctx.beginPath(); mctx.moveTo(a.x, a.y); mctx.lineTo(b.x, b.y); mctx.stroke();
+  }
+  for (let gy = -arena.h/2 + gridStep; gy < arena.h/2; gy += gridStep) {
+    const a = toMini(-arena.w/2, gy);
+    const b = toMini(arena.w/2, gy);
+    mctx.beginPath(); mctx.moveTo(a.x, a.y); mctx.lineTo(b.x, b.y); mctx.stroke();
+  }
+
+  // Arena border
+  mctx.strokeStyle = 'rgba(255,80,80,0.65)';
+  mctx.lineWidth = 1.5;
+  mctx.strokeRect(offX, offY, drawW, drawH);
+
+  // Center crosshair
+  const center = toMini(0, 0);
+  mctx.strokeStyle = 'rgba(255,255,255,0.15)';
+  mctx.lineWidth = 0.5;
+  mctx.beginPath();
+  mctx.moveTo(center.x - 6, center.y); mctx.lineTo(center.x + 6, center.y);
+  mctx.moveTo(center.x, center.y - 6); mctx.lineTo(center.x, center.y + 6);
+  mctx.stroke();
+
+  // Pickups (skip xp orbs, only powerups)
+  for (const k of st.pickups) {
+    if (k.type === 'xp') continue;
+    const p = toMini(k.x, k.y);
+    mctx.fillStyle = k.bad ? 'rgba(255,91,110,0.9)' : 'rgba(255,217,61,0.95)';
+    mctx.beginPath();
+    mctx.arc(p.x, p.y, 1.6, 0, TAU);
+    mctx.fill();
+  }
+
+  // Allies (from split)
+  for (const e of st.enemies) {
+    if (!e.isAlly) continue;
+    const p = toMini(e.x, e.y);
+    mctx.fillStyle = '#ff66b2';
+    mctx.beginPath();
+    mctx.arc(p.x, p.y, 1.6, 0, TAU);
+    mctx.fill();
+  }
+
+  // Enemies
+  for (const e of st.enemies) {
+    if (e.isAlly) continue;
+    const p = toMini(e.x, e.y);
+    if (e.isBoss) {
+      mctx.save();
+      mctx.shadowColor = e.color;
+      mctx.shadowBlur = 8;
+      mctx.fillStyle = e.color;
+      mctx.beginPath();
+      mctx.arc(p.x, p.y, 4.5, 0, TAU);
+      mctx.fill();
+      mctx.shadowBlur = 0;
+      mctx.strokeStyle = '#ffffff';
+      mctx.lineWidth = 1.2;
+      mctx.beginPath();
+      mctx.arc(p.x, p.y, 5.8, 0, TAU);
+      mctx.stroke();
+      mctx.restore();
+    } else {
+      mctx.fillStyle = '#ff5b6e';
+      mctx.beginPath();
+      mctx.arc(p.x, p.y, 1.6, 0, TAU);
+      mctx.fill();
+    }
+  }
+
+  // Players
+  for (const id in st.players) {
+    const p = st.players[id];
+    if (p.hp <= 0) continue;
+    const pos = toMini(p.x, p.y);
+    if (id === myId) {
+      mctx.save();
+      mctx.shadowColor = '#2ee07a';
+      mctx.shadowBlur = 10;
+      // Aim indicator
+      mctx.strokeStyle = 'rgba(157,243,196,0.75)';
+      mctx.lineWidth = 1.2;
+      mctx.beginPath();
+      mctx.moveTo(pos.x, pos.y);
+      mctx.lineTo(pos.x + Math.cos(p.aim) * 14, pos.y + Math.sin(p.aim) * 14);
+      mctx.stroke();
+      // Player dot
+      mctx.fillStyle = '#2ee07a';
+      mctx.beginPath();
+      mctx.arc(pos.x, pos.y, 3.6, 0, TAU);
+      mctx.fill();
+      mctx.shadowBlur = 0;
+      mctx.strokeStyle = '#ffffff';
+      mctx.lineWidth = 1.2;
+      mctx.beginPath();
+      mctx.arc(pos.x, pos.y, 4.6, 0, TAU);
+      mctx.stroke();
+      mctx.restore();
+    } else {
+      mctx.save();
+      mctx.shadowColor = '#6ba8ff';
+      mctx.shadowBlur = 6;
+      mctx.fillStyle = '#6ba8ff';
+      mctx.beginPath();
+      mctx.arc(pos.x, pos.y, 3.2, 0, TAU);
+      mctx.fill();
+      mctx.shadowBlur = 0;
+      mctx.strokeStyle = '#ffffff';
+      mctx.lineWidth = 1;
+      mctx.beginPath();
+      mctx.arc(pos.x, pos.y, 4.2, 0, TAU);
+      mctx.stroke();
+      mctx.restore();
+    }
+  }
+
+  // Camera viewport indicator
+  const viewW = W * scale;
+  const viewH = H * scale;
+  if (viewW < drawW * 0.98 || viewH < drawH * 0.98) {
+    const vpCenter = toMini(cam.x, cam.y);
+    mctx.strokeStyle = 'rgba(255,255,255,0.4)';
+    mctx.lineWidth = 1;
+    mctx.strokeRect(vpCenter.x - viewW / 2, vpCenter.y - viewH / 2, viewW, viewH);
+  }
+}
+
 function rr(x, y, w, h, r) {
   w = Math.max(w, 1); h = Math.max(h, 1);
   r = Math.min(r, w / 2, h / 2);
@@ -554,6 +746,7 @@ function show(name) {
   puHudEl.classList.add('hidden');
   touchControlsEl.classList.add('hidden');
   skillBarEl.classList.add('hidden');
+  minimapEl.classList.add('hidden');
   document.getElementById('enemiesLeftBox').classList.add('hidden');
   document.getElementById('devPanel').classList.add('hidden');
   document.getElementById('dvOpen').classList.add('hidden');
@@ -565,6 +758,7 @@ function show(name) {
     canvasEl.classList.remove('hidden');
     hudEl.classList.remove('hidden');
     puHudEl.classList.remove('hidden');
+    minimapEl.classList.remove('hidden');
     if (isTouchDevice) {
       touchControlsEl.classList.remove('hidden');
     } else {
@@ -1046,7 +1240,6 @@ function spawnBossInArena(bossType) {
   if (!me) return;
 
   const level = getBossLevel();
-  // NERF: giảm scaling HP/DMG, giảm bonus speed
   const hpBonus = 350 + (level - 1) * 500;
   const dmgBonus = (level - 1) * 3;
   const speedBonus = 1 + (level - 1) * 0.012;
@@ -1066,7 +1259,6 @@ function spawnBossInArena(bossType) {
   bx = clamp(bx, -hw, hw);
   by = clamp(by, -hh, hh);
 
-  // NERF: tất cả timer khởi đầu đều dài hơn (delay trước đòn đầu tiên)
   state.enemies.push({
     x: bx, y: by,
     hp: finalHp, maxHp: finalHp,
@@ -1966,7 +2158,7 @@ function knockbackPlayer(p, fromX, fromY, force) {
 }
 
 /* =========================================================
-   UPDATE BOSS — ĐÃ NERF: cooldown dài hơn, dmg thấp hơn, ít đạn hơn
+   UPDATE BOSS — ĐÃ NERF
    ========================================================= */
 function updateBoss(e, target, dt, st) {
   const dx = target.x - e.x, dy = target.y - e.y;
@@ -1978,7 +2170,6 @@ function updateBoss(e, target, dt, st) {
 
   const isBullCharging = (e.bossType === 0 && e.chargeState === 'charging');
 
-  // NERF: contact damage 0.7x (was 1.0), CD 0.9s (was 0.6s)
   if (!e._contactCd) e._contactCd = 0;
   e._contactCd -= dt;
   if (d < e.r + 30 && e._contactCd <= 0 && !isBullCharging) {
@@ -1998,7 +2189,6 @@ function updateBoss(e, target, dt, st) {
     shakeTime = 0.15; shakeIntensity = 8;
   }
 
-  // NERF: burst 5 đạn (was 7), CD 2.0-2.8s (was 1.2-1.8s), speed 380, dmg 0.55x
   if (!e._burstCd) e._burstCd = rand(2.5, 3.5);
   if (e.bossType !== 0 && e.bossType !== 3) {
     e._burstCd -= dt;
@@ -2022,18 +2212,17 @@ function updateBoss(e, target, dt, st) {
   }
 
   if (e.bossType === 0) {
-    // === BOSS BÒ ===
     e.chargeTimer -= dt;
     if (e.chargeState === 'idle') {
       e.x += ux * e.speed * dt;
       e.y += uy * e.speed * dt;
       e._snipeCd -= dt;
       if (e._snipeCd <= 0 && st.ebullets.length < MAX_EBULLETS) {
-        e._snipeCd = rand(1.5, 2.2);   // NERF: was 0.9-1.3
+        e._snipeCd = rand(1.5, 2.2);
         st.ebullets.push({
           x: e.x, y: e.y,
-          vx: ux * 450, vy: uy * 450,   // NERF: was 550
-          r: 10, dmg: Math.floor(e.dmg * 0.65),  // NERF: was 0.85
+          vx: ux * 450, vy: uy * 450,
+          r: 10, dmg: Math.floor(e.dmg * 0.65),
           life: 2.5, color: e.color
         });
         playSound('shoot');
@@ -2051,17 +2240,17 @@ function updateBoss(e, target, dt, st) {
     } else if (e.chargeState === 'charging') {
       e.x += Math.cos(st.time * 40) * 1.5;
       e.y += Math.sin(st.time * 40) * 1.5;
-      if (!e._chargeShootCd) e._chargeShootCd = 0.7;   // NERF: was 0.5
+      if (!e._chargeShootCd) e._chargeShootCd = 0.7;
       e._chargeShootCd -= dt;
       if (e._chargeShootCd <= 0 && st.ebullets.length < MAX_EBULLETS) {
-        e._chargeShootCd = 0.7;    // NERF: was 0.5
+        e._chargeShootCd = 0.7;
         const baseA = Math.atan2(dy, dx);
         for (let k = -1; k <= 1; k++) {
           const a = baseA + k * 0.3;
           st.ebullets.push({
             x: e.x, y: e.y,
-            vx: Math.cos(a) * 260, vy: Math.sin(a) * 260,  // NERF: was 300
-            r: 7, dmg: Math.floor(e.dmg * 0.4),   // NERF: was 0.5
+            vx: Math.cos(a) * 260, vy: Math.sin(a) * 260,
+            r: 7, dmg: Math.floor(e.dmg * 0.4),
             life: 2.2, color: '#ff4dff'
           });
         }
@@ -2074,7 +2263,7 @@ function updateBoss(e, target, dt, st) {
       }
     } else if (e.chargeState === 'dashing') {
       const prevX = e.x, prevY = e.y;
-      const dashSpeed = 850;   // NERF: was 1100
+      const dashSpeed = 850;
       e.x += e.chargeDirX * dashSpeed * dt;
       e.y += e.chargeDirY * dashSpeed * dt;
       e.x = clamp(e.x, -hw, hw); e.y = clamp(e.y, -hh, hh);
@@ -2090,7 +2279,7 @@ function updateBoss(e, target, dt, st) {
         const pd = dist(closestX, closestY, p.x, p.y);
         const impactR = e.r + p.r + 70;
         if (pd < impactR) {
-          const dmg = e.dmg * 1.3;   // NERF: was 1.8
+          const dmg = e.dmg * 1.3;
           if (p.powerups && p.powerups.shield > 0) {
             if (!p.shieldHp) p.shieldHp = 40;
             p.shieldHp -= dmg;
@@ -2101,9 +2290,9 @@ function updateBoss(e, target, dt, st) {
           st.events.push({ type: 'hurt', target: pid });
           spawnParticles(p.x, p.y, '#ff5b6e', 12, 350);
           spawnParticles(p.x, p.y, e.color, 10, 300);
-          knockbackPlayer(p, closestX, closestY, 1400);   // NERF: was 1800
+          knockbackPlayer(p, closestX, closestY, 1400);
           p.pvpInvuln = Math.max(p.pvpInvuln || 0, 0.5);
-          shakeTime = 0.3; shakeIntensity = 18;   // NERF: was 0.45, 26
+          shakeTime = 0.3; shakeIntensity = 18;
           e.chargeHitSet.push(pid);
         }
       }
@@ -2117,7 +2306,7 @@ function updateBoss(e, target, dt, st) {
       }
       if (e.chargeTimer <= 0) {
         e.chargeState = 'recover';
-        e.chargeTimer = 1.2;   // NERF: was 0.7
+        e.chargeTimer = 1.2;
       }
     } else if (e.chargeState === 'recover') {
       e.x += ux * e.speed * 0.3 * dt;
@@ -2125,11 +2314,10 @@ function updateBoss(e, target, dt, st) {
       e.x = clamp(e.x, -hw, hw); e.y = clamp(e.y, -hh, hh);
       if (e.chargeTimer <= 0) {
         e.chargeState = 'idle';
-        e.chargeTimer = rand(1.8, 2.8);   // NERF: was 0.9-1.5
+        e.chargeTimer = rand(1.8, 2.8);
       }
     }
   } else if (e.bossType === 1) {
-    // === BOSS LỬA ===
     if (d > 280) { e.x += ux * e.speed * dt; e.y += uy * e.speed * dt; }
     else if (d < 200) { e.x -= ux * e.speed * 0.7 * dt; e.y -= uy * e.speed * 0.7 * dt; }
     else {
@@ -2140,26 +2328,26 @@ function updateBoss(e, target, dt, st) {
     e.x = clamp(e.x, -hw, hw); e.y = clamp(e.y, -hh, hh);
     e.fireTimer -= dt;
     if (e.fireTimer <= 0) {
-      e.fireTimer = rand(1.3, 2.0);   // NERF: was 0.75-1.2
+      e.fireTimer = rand(1.3, 2.0);
       if (st.ebullets.length < MAX_EBULLETS - 15) {
         const baseAngle = Math.atan2(dy, dx);
-        for (let k = -2; k <= 2; k++) {   // NERF: 5 đạn (was 7)
+        for (let k = -2; k <= 2; k++) {
           const a = baseAngle + k * 0.18;
           st.ebullets.push({
             x: e.x, y: e.y,
-            vx: Math.cos(a) * 450, vy: Math.sin(a) * 450,   // NERF: was 550
-            r: 13, dmg: Math.floor(e.dmg * 0.7),   // NERF: was 0.9
+            vx: Math.cos(a) * 450, vy: Math.sin(a) * 450,
+            r: 13, dmg: Math.floor(e.dmg * 0.7),
             life: 1.8, color: '#ff8c1a',
             isFire: true, trail: []
           });
         }
         if (d < 260) {
-          for (let k = 0; k < 8; k++) {   // NERF: 8 đạn (was 10)
+          for (let k = 0; k < 8; k++) {
             const a = (k / 8) * TAU + st.time;
             st.ebullets.push({
               x: e.x, y: e.y,
-              vx: Math.cos(a) * 300, vy: Math.sin(a) * 300,   // NERF: was 400
-              r: 11, dmg: Math.floor(e.dmg * 0.55),   // NERF: was 0.75
+              vx: Math.cos(a) * 300, vy: Math.sin(a) * 300,
+              r: 11, dmg: Math.floor(e.dmg * 0.55),
               life: 1.3, color: '#ff3a1a', isFire: true, trail: []
             });
           }
@@ -2168,30 +2356,29 @@ function updateBoss(e, target, dt, st) {
       playSound('fire');
     }
   } else if (e.bossType === 2) {
-    // === BOSS BĂNG ===
     if (d > 350) { e.x += ux * e.speed * dt; e.y += uy * e.speed * dt; }
     else if (d < 260) { e.x -= ux * e.speed * 0.6 * dt; e.y -= uy * e.speed * 0.6 * dt; }
     e.x = clamp(e.x, -hw, hw); e.y = clamp(e.y, -hh, hh);
     e.freezeCd -= dt;
     if (e.freezeCd <= 0 && d < 900) {
-      e.freezeCd = rand(1.5, 2.2);   // NERF: was 0.9-1.4
+      e.freezeCd = rand(1.5, 2.2);
       if (st.ebullets.length < MAX_EBULLETS - 10) {
         st.ebullets.push({
           x: e.x, y: e.y,
-          vx: ux * 400, vy: uy * 400,   // NERF: was 480
-          r: 13, dmg: Math.floor(e.dmg * 0.9),   // NERF: was 1.25
+          vx: ux * 400, vy: uy * 400,
+          r: 13, dmg: Math.floor(e.dmg * 0.9),
           life: 2.8, color: '#4dd9ff',
-          isFreeze: true, freezeDuration: 2.2   // NERF: was 2.8
+          isFreeze: true, freezeDuration: 2.2
         });
         if (d < 300) {
-          for (let k = 0; k < 8; k++) {   // NERF: 8 đạn (was 10)
+          for (let k = 0; k < 8; k++) {
             const a = (k / 8) * TAU;
             st.ebullets.push({
               x: e.x, y: e.y,
-              vx: Math.cos(a) * 300, vy: Math.sin(a) * 300,   // NERF: was 380
-              r: 10, dmg: Math.floor(e.dmg * 0.6),   // NERF: was 0.8
+              vx: Math.cos(a) * 300, vy: Math.sin(a) * 300,
+              r: 10, dmg: Math.floor(e.dmg * 0.6),
               life: 2.4, color: '#4dd9ff',
-              isFreeze: true, freezeDuration: 1.5   // NERF: was 1.8
+              isFreeze: true, freezeDuration: 1.5
             });
           }
         }
@@ -2199,20 +2386,19 @@ function updateBoss(e, target, dt, st) {
       playSound('freeze');
     }
   } else if (e.bossType === 3) {
-    // === BOSS HÚT MÁU ===
     if (d > 260) { e.x += ux * e.speed * dt; e.y += uy * e.speed * dt; }
     e.x = clamp(e.x, -hw, hw); e.y = clamp(e.y, -hh, hh);
     e._snipeCd -= dt;
     if (e._snipeCd <= 0 && d < 1000) {
-      e._snipeCd = rand(1.4, 2.0);   // NERF: was 0.8-1.2
+      e._snipeCd = rand(1.4, 2.0);
       if (st.ebullets.length < MAX_EBULLETS) {
         const baseA = Math.atan2(dy, dx);
         for (let k = -1; k <= 1; k++) {
           const a = baseA + k * 0.2;
           st.ebullets.push({
             x: e.x, y: e.y,
-            vx: Math.cos(a) * 380, vy: Math.sin(a) * 380,   // NERF: was 420
-            r: 9, dmg: Math.floor(e.dmg * 0.6),   // NERF: was 0.75
+            vx: Math.cos(a) * 380, vy: Math.sin(a) * 380,
+            r: 9, dmg: Math.floor(e.dmg * 0.6),
             life: 2.5, color: '#ff4d6d'
           });
         }
@@ -2221,16 +2407,16 @@ function updateBoss(e, target, dt, st) {
     }
     e.drainTimer -= dt;
     if (e.drainTimer <= 0) {
-      e.drainTimer = rand(2.5, 3.5);   // NERF: was 1.4-2.0
+      e.drainTimer = rand(2.5, 3.5);
       e.draining = true;
-      e.drainActive = 1.2;   // NERF: was 1.5
+      e.drainActive = 1.2;
       playSound('drain');
     }
     if (e.draining) {
       e.drainActive -= dt;
-      const drainRange = 320;   // NERF: was 400
+      const drainRange = 320;
       if (d < drainRange) {
-        const drainAmt = 12 * dt;   // NERF: was 20
+        const drainAmt = 12 * dt;
         target.hp -= drainAmt;
         e.hp = Math.min(e.maxHp, e.hp + drainAmt * 1.0);
         if (Math.random() < 0.3) {
@@ -2251,7 +2437,7 @@ function updateBoss(e, target, dt, st) {
     }
     e._teleportCd -= dt;
     if (d < 100 && e._teleportCd <= 0) {
-      e._teleportCd = rand(3, 4.5);   // NERF: was 1.8-2.8
+      e._teleportCd = rand(3, 4.5);
       const a = Math.atan2(-dy, -dx) + rand(-0.8, 0.8);
       e.x = target.x + Math.cos(a) * 400;
       e.y = target.y + Math.sin(a) * 400;
@@ -2262,20 +2448,19 @@ function updateBoss(e, target, dt, st) {
       playSound('teleport');
     }
   } else if (e.bossType === 4) {
-    // === BOSS PHÂN THÂN ===
     e.x += ux * e.speed * dt;
     e.y += uy * e.speed * dt;
     e.x = clamp(e.x, -hw, hw); e.y = clamp(e.y, -hh, hh);
     e.atkCd -= dt;
     if (e.atkCd <= 0) {
-      e.atkCd = rand(1.0, 1.5);   // NERF: was 0.6-1.0
+      e.atkCd = rand(1.0, 1.5);
       if (st.ebullets.length < MAX_EBULLETS - 10) {
-        for (let k = 0; k < 6; k++) {   // NERF: 6 đạn (was 8)
+        for (let k = 0; k < 6; k++) {
           const a = (k / 6) * TAU + st.time;
           st.ebullets.push({
             x: e.x, y: e.y,
-            vx: Math.cos(a) * 320, vy: Math.sin(a) * 320,   // NERF: was 380
-            r: 9, dmg: Math.floor(e.dmg * 0.6),   // NERF: was 0.8
+            vx: Math.cos(a) * 320, vy: Math.sin(a) * 320,
+            r: 9, dmg: Math.floor(e.dmg * 0.6),
             life: 3, color: e.color
           });
         }
@@ -2283,8 +2468,8 @@ function updateBoss(e, target, dt, st) {
     }
     e._spawnCd -= dt;
     if (e._spawnCd <= 0 && st.enemies.length < MAX_ENEMIES) {
-      e._spawnCd = rand(8, 11);   // NERF: was 5-7
-      for (let k = 0; k < 2; k++) {   // NERF: 2 quái (was 3)
+      e._spawnCd = rand(8, 11);
+      for (let k = 0; k < 2; k++) {
         const a = Math.random() * TAU;
         st.enemies.push({
           x: e.x + Math.cos(a) * 80, y: e.y + Math.sin(a) * 80,
@@ -2298,7 +2483,6 @@ function updateBoss(e, target, dt, st) {
       playSound('spawn');
     }
   } else if (e.bossType === 5) {
-    // === BOSS LAZE ===
     if (!e.laserState) { e.laserState = 'idle'; e.laserTimer = 0; e.laserAim = 0; }
     if (typeof e._laserCd !== 'number') e._laserCd = rand(4, 5.5);
 
@@ -2314,15 +2498,15 @@ function updateBoss(e, target, dt, st) {
     if (e.laserState === 'idle' || e.laserState === 'recover') {
       e._snipeCd -= dt;
       if (e._snipeCd <= 0 && d < 1000) {
-        e._snipeCd = rand(1.4, 2.0);   // NERF: was 0.9-1.3
+        e._snipeCd = rand(1.4, 2.0);
         if (st.ebullets.length < MAX_EBULLETS - 10) {
           const baseA = Math.atan2(dy, dx);
           for (let k = -2; k <= 2; k++) {
             const a = baseA + k * 0.20;
             st.ebullets.push({
               x: e.x, y: e.y,
-              vx: Math.cos(a) * 380, vy: Math.sin(a) * 380,   // NERF: was 450
-              r: 8, dmg: Math.floor(e.dmg * 0.55),   // NERF: was 0.7
+              vx: Math.cos(a) * 380, vy: Math.sin(a) * 380,
+              r: 8, dmg: Math.floor(e.dmg * 0.55),
               life: 2.5, color: '#ffdd00'
             });
           }
@@ -2353,7 +2537,7 @@ function updateBoss(e, target, dt, st) {
         st.beams.push({
           x: e.x, y: e.y, angle: e.laserAim,
           life: 0.5, maxLife: 0.5, owner: 'BOSS',
-          wideLaser: true, halfWidth: e.r + 10   // NERF: was e.r + 20
+          wideLaser: true, halfWidth: e.r + 10
         });
         spawnParticles(e.x, e.y, '#ffdd00', 25, 500);
       }
@@ -2367,8 +2551,8 @@ function updateBoss(e, target, dt, st) {
         const proj = pdx * Math.cos(e.laserAim) + pdy * Math.sin(e.laserAim);
         if (proj < 0 || proj > bLen) continue;
         const perp = Math.abs(-pdx * Math.sin(e.laserAim) + pdy * Math.cos(e.laserAim));
-        if (perp < e.r + 12) {   // NERF: was e.r + 20
-          const dmg = e.dmg * 1.5 * dt;   // NERF: was 2.5
+        if (perp < e.r + 12) {
+          const dmg = e.dmg * 1.5 * dt;
           if (p.powerups && p.powerups.shield > 0) {
             if (!p.shieldHp) p.shieldHp = 40;
             p.shieldHp -= dmg;
@@ -2394,11 +2578,10 @@ function updateBoss(e, target, dt, st) {
       e.laserTimer -= dt;
       if (e.laserTimer <= 0) {
         e.laserState = 'idle';
-        e._laserCd = rand(5, 7);   // NERF: was 2.5-3.5
+        e._laserCd = rand(5, 7);
       }
     }
   } else if (e.bossType === 6) {
-    // === BOSS HẠT NHÂN ===
     if (d > 420) { e.x += ux * e.speed * dt; e.y += uy * e.speed * dt; }
     else if (d < 300) { e.x -= ux * e.speed * 0.6 * dt; e.y -= uy * e.speed * 0.6 * dt; }
     else {
@@ -2410,15 +2593,15 @@ function updateBoss(e, target, dt, st) {
 
     e._snipeCd = (e._snipeCd || 2) - dt;
     if (e._snipeCd <= 0 && d < 1000) {
-      e._snipeCd = rand(1.3, 1.9);   // NERF: was 0.75-1.15
+      e._snipeCd = rand(1.3, 1.9);
       if (st.ebullets.length < MAX_EBULLETS - 5) {
         const baseA = Math.atan2(dy, dx);
         for (let k = -1; k <= 1; k++) {
           const a = baseA + k * 0.22;
           st.ebullets.push({
             x: e.x, y: e.y,
-            vx: Math.cos(a) * 420, vy: Math.sin(a) * 420,   // NERF: was 480
-            r: 9, dmg: Math.floor(e.dmg * 0.6),   // NERF: was 0.8
+            vx: Math.cos(a) * 420, vy: Math.sin(a) * 420,
+            r: 9, dmg: Math.floor(e.dmg * 0.6),
             life: 2.5, color: '#88ff00'
           });
         }
@@ -2426,13 +2609,13 @@ function updateBoss(e, target, dt, st) {
       playSound('shoot');
     }
 
-    if (typeof e._nukeCd !== 'number') e._nukeCd = rand(5, 7);   // NERF: was 3-4.5
+    if (typeof e._nukeCd !== 'number') e._nukeCd = rand(5, 7);
     e._nukeCd -= dt;
     if (e._nukeCd <= 0) {
-      e._nukeCd = rand(7, 10);   // NERF: was 4-6
+      e._nukeCd = rand(7, 10);
       st.nukeStrikes.push({
         x: target.x, y: target.y, radius: 260,
-        timer: 3.0, maxTimer: 3.0,   // NERF: cho thêm 0.5s để chạy
+        timer: 3.0, maxTimer: 3.0,
         owner: 'BOSS', isPlayer: false
       });
       playSound('charge');
@@ -3184,7 +3367,6 @@ function gameLoop(now) {
           if (e.isAlly) continue;
           const dd = dist(e.x, e.y, ns.x, ns.y);
 
-          // Damage trong bán kính kill
           if (dd < R + e.r) {
             e.hp -= 500;
             e.hitFlash = 0.3;
@@ -3192,7 +3374,6 @@ function gameLoop(now) {
             if (e.hp <= 0) { killEnemy(e, ns.owner); continue; }
           }
 
-          // KNOCKBACK mọi quái (kể cả boss) trong bán kính lớn hơn
           if (dd < knockR) {
             const nx = (e.x - ns.x) / (dd || 1);
             const ny = (e.y - ns.y) / (dd || 1);
@@ -3205,7 +3386,6 @@ function gameLoop(now) {
               e.x = clamp(e.x, -hw, hw);
               e.y = clamp(e.y, -hh, hh);
             }
-            // Cancel bull charge nếu đang lao
             if (e.isBoss && e.bossType === 0 && e.chargeState === 'dashing') {
               e.chargeState = 'recover';
               e.chargeTimer = 1.0;
@@ -3213,7 +3393,7 @@ function gameLoop(now) {
           }
         }
       } else {
-        // === BOM HẠT NHÂN CỦA BOSS: NERF — 70% maxHp thay vì instant kill ===
+        // === BOM HẠT NHÂN CỦA BOSS ===
         for (const pid in state.players) {
           const p = state.players[pid];
           if (p.hp <= 0) continue;
@@ -3237,7 +3417,7 @@ function gameLoop(now) {
           } else if (dd < knockR) {
             const nx = (p.x - ns.x) / (dd || 1);
             const ny = (p.y - ns.y) / (dd || 1);
-            const force = 2500 * (1 - dd / knockR);   // NERF: was 3500
+            const force = 2500 * (1 - dd / knockR);
             p.knockbackX = (p.knockbackX || 0) + nx * force;
             p.knockbackY = (p.knockbackY || 0) + ny * force;
             spawnParticles(p.x, p.y, '#88ff00', 10, 300);
@@ -4569,6 +4749,9 @@ function drawGame(st) {
       ctx.restore();
     }
   }
+
+  // === MINIMAP (vẽ mỗi frame) ===
+  drawMinimap(st);
 }
 
 })();
