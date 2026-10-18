@@ -8,6 +8,8 @@
   :root{
     --joy-size:140px;
     --knob-size:64px;
+    --joy-bottom:30px;
+    --joy-edge:30px;
   }
   *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
   html,body{width:100%;height:100%;overflow:hidden;background:#080c11;
@@ -152,14 +154,14 @@
   .joystick{
     position:absolute;width:var(--joy-size);height:var(--joy-size);border-radius:50%;
     background:rgba(46,224,122,0.10);border:2px solid rgba(46,224,122,0.55);
-    bottom:30px;pointer-events:auto;touch-action:none;
+    bottom:var(--joy-bottom);pointer-events:auto;touch-action:none;
     box-shadow:inset 0 0 30px rgba(46,224,122,0.15),0 0 20px rgba(46,224,122,0.2);
     cursor:grab;
   }
   .joystick:active{cursor:grabbing}
-  #joyLeft{left:30px}
+  #joyLeft{left:var(--joy-edge)}
   #joyRight{
-    right:30px;
+    right:var(--joy-edge);
     background:rgba(255,91,110,0.10);border-color:rgba(255,91,110,0.55);
     box-shadow:inset 0 0 30px rgba(255,91,110,0.15),0 0 20px rgba(255,91,110,0.2);
   }
@@ -257,11 +259,33 @@
     background:rgba(8,16,22,0.92);
     box-shadow:0 0 20px rgba(46,224,122,0.35), inset 0 0 20px rgba(46,224,122,0.08);
   }
-  body.mini-right #minimap{ left: auto; right: 20px; }
   body.mini-right #enemiesLeftBox{ right: auto; left: 16px; }
 
-  .st-row{display:flex;justify-content:space-between;align-items:center;gap:8px;
-    font-size:12px;color:#cfe9d8;letter-spacing:.5px}
+  #settingsPanel .st-row{display:flex;flex-direction:column;gap:2px;font-size:12px;color:#cfe9d8;letter-spacing:.5px}
+  #settingsPanel .st-row.row{flex-direction:row;justify-content:space-between;align-items:center;gap:8px}
+  #settingsPanel .st-label{display:flex;justify-content:space-between;font-size:12px;color:#cfe9d8;letter-spacing:.5px}
+  #settingsPanel .st-val{color:#9df3c4;font-weight:800;font-size:12px;font-variant-numeric:tabular-nums}
+  #settingsPanel input[type="range"]{
+    -webkit-appearance:none;appearance:none;
+    width:100%;height:22px;background:transparent;cursor:pointer;margin:0;
+  }
+  #settingsPanel input[type="range"]::-webkit-slider-runnable-track{
+    height:6px;border-radius:3px;background:#0e1a20;border:1px solid #26485a;
+  }
+  #settingsPanel input[type="range"]::-webkit-slider-thumb{
+    -webkit-appearance:none;appearance:none;
+    width:18px;height:18px;border-radius:50%;
+    background:#2ee07a;border:2px solid #04140c;
+    margin-top:-7px;box-shadow:0 0 8px #2ee07a;cursor:grab;
+  }
+  #settingsPanel input[type="range"]::-webkit-slider-thumb:active{cursor:grabbing}
+  #settingsPanel input[type="range"]::-moz-range-track{
+    height:6px;border-radius:3px;background:#0e1a20;border:1px solid #26485a;
+  }
+  #settingsPanel input[type="range"]::-moz-range-thumb{
+    width:18px;height:18px;border-radius:50%;
+    background:#2ee07a;border:2px solid #04140c;box-shadow:0 0 8px #2ee07a;cursor:grab;
+  }
   .st-btns{display:flex;gap:4px}
   .st-btns button{padding:6px 10px;background:#0e1a20;border:1px solid #26485a;
     color:#9df3c4;border-radius:6px;font-size:11px;font-weight:800;cursor:pointer;transition:.15s}
@@ -426,20 +450,26 @@
 
 <button id="dvOpen" class="hidden" style="position:fixed;top:70px;right:16px;z-index:59;padding:8px 14px;background:#2a1030;border:2px solid #b46bff;color:#e0c6ff;border-radius:8px;cursor:pointer;font-size:12px;font-weight:800">⚙️ DEV</button>
 
-<div id="settingsPanel" class="hidden" style="position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);z-index:75;background:rgba(10,20,26,0.98);border:2px solid #2ee07a;border-radius:14px;padding:18px 20px;width:min(360px,92vw);box-shadow:0 0 40px rgba(46,224,122,0.5);display:flex;flex-direction:column;gap:10px;max-height:90vh;overflow-y:auto">
+<div id="settingsPanel" class="hidden" style="position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);z-index:75;background:rgba(10,20,26,0.98);border:2px solid #2ee07a;border-radius:14px;padding:18px 20px;width:min(380px,94vw);box-shadow:0 0 40px rgba(46,224,122,0.5);display:flex;flex-direction:column;gap:10px;max-height:92vh;overflow-y:auto">
   <div style="font-size:15px;font-weight:800;letter-spacing:2px;color:#9df3c4;text-align:center;margin-bottom:4px">⚙️ CÀI ĐẶT GIAO DIỆN</div>
 
   <div class="st-row">
-    <span>Minimap</span>
-    <div class="st-btns">
-      <button data-set="miniSize" data-val="130">S</button>
-      <button data-set="miniSize" data-val="170">M</button>
-      <button data-set="miniSize" data-val="210">L</button>
-    </div>
+    <div class="st-label"><span>Kích thước minimap</span><span class="st-val" id="vMiniSize">170px</span></div>
+    <input type="range" id="rMiniSize" min="100" max="320" step="1" value="170">
   </div>
 
   <div class="st-row">
-    <span>Vị trí minimap</span>
+    <div class="st-label"><span>Minimap — khoảng cách ngang</span><span class="st-val" id="vMiniX">20px</span></div>
+    <input type="range" id="rMiniX" min="0" max="500" step="1" value="20">
+  </div>
+
+  <div class="st-row">
+    <div class="st-label"><span>Minimap — khoảng cách dọc</span><span class="st-val" id="vMiniY">20px</span></div>
+    <input type="range" id="rMiniY" min="0" max="500" step="1" value="20">
+  </div>
+
+  <div class="st-row row">
+    <span>Minimap nằm bên</span>
     <div class="st-btns">
       <button data-set="miniCorner" data-val="left">TRÁI</button>
       <button data-set="miniCorner" data-val="right">PHẢI</button>
@@ -447,24 +477,26 @@
   </div>
 
   <div class="st-row">
-    <span>Joystick</span>
-    <div class="st-btns">
-      <button data-set="joySize" data-val="110">S</button>
-      <button data-set="joySize" data-val="140">M</button>
-      <button data-set="joySize" data-val="170">L</button>
-    </div>
+    <div class="st-label"><span>Kích thước joystick</span><span class="st-val" id="vJoySize">140px</span></div>
+    <input type="range" id="rJoySize" min="80" max="240" step="1" value="140">
   </div>
 
   <div class="st-row">
-    <span>HUD scale</span>
-    <div class="st-btns">
-      <button data-set="hudScale" data-val="0.85">S</button>
-      <button data-set="hudScale" data-val="1">M</button>
-      <button data-set="hudScale" data-val="1.15">L</button>
-    </div>
+    <div class="st-label"><span>Joystick — cách đáy</span><span class="st-val" id="vJoyBottom">30px</span></div>
+    <input type="range" id="rJoyBottom" min="5" max="300" step="1" value="30">
   </div>
 
   <div class="st-row">
+    <div class="st-label"><span>Joystick — cách cạnh</span><span class="st-val" id="vJoyEdge">30px</span></div>
+    <input type="range" id="rJoyEdge" min="5" max="300" step="1" value="30">
+  </div>
+
+  <div class="st-row">
+    <div class="st-label"><span>Scale HUD</span><span class="st-val" id="vHudScale">1.00</span></div>
+    <input type="range" id="rHudScale" min="0.6" max="1.8" step="0.05" value="1">
+  </div>
+
+  <div class="st-row row">
     <span>Gợi ý ngắm</span>
     <div class="st-btns">
       <button data-set="aimHint" data-val="on">BẬT</button>
@@ -472,7 +504,7 @@
     </div>
   </div>
 
-  <div class="st-row">
+  <div class="st-row row">
     <span>Hộp quái còn</span>
     <div class="st-btns">
       <button data-set="enemiesLeft" data-val="on">BẬT</button>
@@ -480,7 +512,7 @@
     </div>
   </div>
 
-  <div class="st-row">
+  <div class="st-row row">
     <span>Rung màn hình</span>
     <div class="st-btns">
       <button data-set="screenShake" data-val="on">BẬT</button>
@@ -488,7 +520,7 @@
     </div>
   </div>
 
-  <div class="st-row">
+  <div class="st-row row">
     <span>Âm thanh</span>
     <div class="st-btns">
       <button data-set="sound" data-val="on">BẬT</button>
@@ -496,7 +528,8 @@
     </div>
   </div>
 
-  <button id="stClose" style="padding:10px;background:#1a1a1a;border:2px solid #888;color:#ccc;border-radius:8px;cursor:pointer;font-size:12px;font-weight:800;margin-top:4px">ĐÓNG</button>
+  <button id="stReset" style="padding:8px;background:#2a1800;border:2px solid #ff8c1a;color:#ffd93d;border-radius:8px;cursor:pointer;font-size:12px;font-weight:800;margin-top:4px">↺ MẶC ĐỊNH</button>
+  <button id="stClose" style="padding:10px;background:#1a1a1a;border:2px solid #888;color:#ccc;border-radius:8px;cursor:pointer;font-size:12px;font-weight:800">ĐÓNG</button>
 </div>
 
 <div id="pauseOverlay" class="hidden" style="position:fixed;inset:0;z-index:70;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;background:radial-gradient(circle,#0d1a20ee,#000000fa);backdrop-filter:blur(6px);text-align:center;padding:24px">
@@ -531,8 +564,12 @@ const UI_KEY = 'tankArenaUI';
 const DEFAULT_UI = {
   miniSize: 170,
   miniRight: false,
+  miniOffsetX: 20,
+  miniOffsetY: 20,
   hudScale: 1,
   joySize: 140,
+  joyBottom: 30,
+  joyEdge: 30,
   aimHint: true,
   enemiesLeft: true,
   screenShake: true,
@@ -859,19 +896,56 @@ function resetTouchState() {
   if (kr) kr.style.transform = 'translate(-50%,-50%)';
 }
 
+const SLIDER_DEFS = [
+  { id: 'rMiniSize', key: 'miniSize', label: 'vMiniSize', fmt: v => v + 'px' },
+  { id: 'rMiniX', key: 'miniOffsetX', label: 'vMiniX', fmt: v => v + 'px' },
+  { id: 'rMiniY', key: 'miniOffsetY', label: 'vMiniY', fmt: v => v + 'px' },
+  { id: 'rJoySize', key: 'joySize', label: 'vJoySize', fmt: v => v + 'px' },
+  { id: 'rJoyBottom', key: 'joyBottom', label: 'vJoyBottom', fmt: v => v + 'px' },
+  { id: 'rJoyEdge', key: 'joyEdge', label: 'vJoyEdge', fmt: v => v + 'px' },
+  { id: 'rHudScale', key: 'hudScale', label: 'vHudScale', fmt: v => v.toFixed(2) }
+];
+
+function syncSliders() {
+  SLIDER_DEFS.forEach(def => {
+    const el = document.getElementById(def.id);
+    const lbl = document.getElementById(def.label);
+    if (!el || !lbl) return;
+    el.value = uiSettings[def.key];
+    lbl.textContent = def.fmt(uiSettings[def.key]);
+  });
+}
+
 function applyUI() {
-  document.documentElement.style.setProperty('--joy-size', uiSettings.joySize + 'px');
-  document.documentElement.style.setProperty('--knob-size', Math.round(uiSettings.joySize * 0.46) + 'px');
+  const root = document.documentElement.style;
+  root.setProperty('--joy-size', uiSettings.joySize + 'px');
+  root.setProperty('--knob-size', Math.round(uiSettings.joySize * 0.46) + 'px');
+  root.setProperty('--joy-bottom', uiSettings.joyBottom + 'px');
+  root.setProperty('--joy-edge', uiSettings.joyEdge + 'px');
+
   document.body.classList.toggle('mini-right', !!uiSettings.miniRight);
+
+  minimapEl.style.top = uiSettings.miniOffsetY + 'px';
+  if (uiSettings.miniRight) {
+    minimapEl.style.left = 'auto';
+    minimapEl.style.right = uiSettings.miniOffsetX + 'px';
+  } else {
+    minimapEl.style.right = 'auto';
+    minimapEl.style.left = uiSettings.miniOffsetX + 'px';
+  }
+
   const hudLeft = document.getElementById('hudLeft');
   if (hudLeft) hudLeft.style.transform = 'scale(' + uiSettings.hudScale + ')';
+
   if (uiSettings.miniSize !== MINI_SIZE) resizeMinimap(uiSettings.miniSize);
+
   if (state && !state.over) {
     const ah = document.getElementById('aimHint');
     if (uiSettings.aimHint && !isTouchDevice) ah.classList.remove('hidden');
     else ah.classList.add('hidden');
   }
   refreshSettingsButtons();
+  syncSliders();
 }
 
 function refreshSettingsButtons() {
@@ -879,9 +953,7 @@ function refreshSettingsButtons() {
     const key = b.dataset.set;
     const val = b.dataset.val;
     let active = false;
-    if (key === 'miniSize' || key === 'joySize') active = parseInt(val, 10) === uiSettings[key];
-    else if (key === 'hudScale') active = parseFloat(val) === uiSettings.hudScale;
-    else if (key === 'miniCorner') active = (val === 'right') === !!uiSettings.miniRight;
+    if (key === 'miniCorner') active = (val === 'right') === !!uiSettings.miniRight;
     else if (key === 'aimHint') active = (val === 'on') === !!uiSettings.aimHint;
     else if (key === 'enemiesLeft') active = (val === 'on') === !!uiSettings.enemiesLeft;
     else if (key === 'screenShake') active = (val === 'on') === !!uiSettings.screenShake;
@@ -897,6 +969,7 @@ function openSettings() {
     pauseGame();
   }
   refreshSettingsButtons();
+  syncSliders();
 }
 function closeSettings() {
   settingsPanelEl.classList.add('hidden');
@@ -905,6 +978,18 @@ function closeSettings() {
     resumeGame();
   }
 }
+
+SLIDER_DEFS.forEach(def => {
+  const el = document.getElementById(def.id);
+  const lbl = document.getElementById(def.label);
+  if (!el) return;
+  el.addEventListener('input', () => {
+    uiSettings[def.key] = parseFloat(el.value);
+    if (lbl) lbl.textContent = def.fmt(uiSettings[def.key]);
+    saveUI();
+    applyUI();
+  });
+});
 
 function show(name) {
   Object.values(screens).forEach(s => s.classList.add('hidden'));
@@ -993,13 +1078,16 @@ bossTestMenu.querySelectorAll('[data-boss]').forEach(btn => {
 document.getElementById('btnSettingsMenu').onclick = openSettings;
 document.getElementById('btnSettings').onclick = openSettings;
 document.getElementById('stClose').onclick = closeSettings;
+document.getElementById('stReset').onclick = () => {
+  uiSettings = Object.assign({}, DEFAULT_UI);
+  saveUI();
+  applyUI();
+};
 settingsPanelEl.querySelectorAll('[data-set]').forEach(btn => {
   btn.onclick = () => {
     const key = btn.dataset.set;
     const val = btn.dataset.val;
-    if (key === 'miniSize' || key === 'joySize') uiSettings[key] = parseInt(val, 10);
-    else if (key === 'hudScale') uiSettings.hudScale = parseFloat(val);
-    else if (key === 'miniCorner') uiSettings.miniRight = (val === 'right');
+    if (key === 'miniCorner') uiSettings.miniRight = (val === 'right');
     else if (key === 'aimHint') uiSettings.aimHint = (val === 'on');
     else if (key === 'enemiesLeft') uiSettings.enemiesLeft = (val === 'on');
     else if (key === 'screenShake') uiSettings.screenShake = (val === 'on');
