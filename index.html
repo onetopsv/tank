@@ -2401,7 +2401,6 @@ function updateBoss(e, target, dt, st) {
     }
     e.x = clamp(e.x, -hw, hw); e.y = clamp(e.y, -hh, hh);
 
-    // Bắn đạn thường
     e._snipeCd = (e._snipeCd || 2) - dt;
     if (e._snipeCd <= 0 && d < 900) {
       e._snipeCd = rand(1.0, 1.6);
@@ -2420,7 +2419,6 @@ function updateBoss(e, target, dt, st) {
       playSound('shoot');
     }
 
-    // Đặt bom hạt nhân tại vị trí player
     if (typeof e._nukeCd !== 'number') e._nukeCd = rand(4, 6);
     e._nukeCd -= dt;
     if (e._nukeCd <= 0) {
@@ -2712,7 +2710,7 @@ function gameLoop(now) {
     const cursePenalty = (p.powerups.curse > 0) ? 0.5 : 1;
     p.mana = Math.min(p.maxMana, p.mana + regen * cursePenalty * dt);
 
-    // === SKILL CHARGE — GIỐNG HỆT BOSS ===
+    // === SKILL CHARGE ===
     if (p.chargeState && p.chargeState !== 'idle') {
       p.chargeTimer -= dt;
       const hw = state.arena.w / 2 - p.r, hh = state.arena.h / 2 - p.r;
@@ -3171,7 +3169,6 @@ function gameLoop(now) {
       const knockR = R * 2.2;
 
       if (ns.isPlayer) {
-        // Player nuke → damage enemies
         for (let j = state.enemies.length - 1; j >= 0; j--) {
           const e = state.enemies[j];
           if (e.isAlly) continue;
@@ -3183,7 +3180,6 @@ function gameLoop(now) {
           }
         }
       } else {
-        // Boss nuke → kill / knockback players
         for (const pid in state.players) {
           const p = state.players[pid];
           if (p.hp <= 0) continue;
@@ -3208,7 +3204,6 @@ function gameLoop(now) {
         }
       }
 
-      // Visual shockwave
       state.beams.push({
         x: ns.x, y: ns.y, angle: 0,
         life: 0.8, maxLife: 0.8,
@@ -4326,6 +4321,73 @@ function drawBotIndicator(st) {
     ctx.restore();
   }
 }
+function drawBossIndicators(st) {
+  const me = st.players[myId];
+  if (!me || me.hp <= 0) return;
+
+  const bosses = [];
+  for (const e of st.enemies) {
+    if (e.isBoss && e.hp > 0) bosses.push(e);
+  }
+  if (bosses.length === 0) return;
+
+  const margin = 70;
+  const pSX = me.x - cam.x + W / 2;
+  const pSY = me.y - cam.y + H / 2;
+
+  for (const boss of bosses) {
+    const tx = boss.x - cam.x + W / 2;
+    const ty = boss.y - cam.y + H / 2;
+    if (tx > margin && tx < W - margin && ty > margin && ty < H - margin) continue;
+
+    const dx = boss.x - me.x, dy = boss.y - me.y;
+    const worldDist = Math.hypot(dx, dy) || 1;
+    const ux = dx / worldDist, uy = dy / worldDist;
+    let tEdge = Infinity;
+    if (ux > 0.0001) tEdge = Math.min(tEdge, (W - margin - pSX) / ux);
+    if (ux < -0.0001) tEdge = Math.min(tEdge, (margin - pSX) / ux);
+    if (uy > 0.0001) tEdge = Math.min(tEdge, (H - margin - pSY) / uy);
+    if (uy < -0.0001) tEdge = Math.min(tEdge, (margin - pSY) / uy);
+    if (!isFinite(tEdge) || tEdge <= 0) continue;
+
+    const ex = pSX + ux * tEdge;
+    const ey = pSY + uy * tEdge;
+    const angle = Math.atan2(uy, ux);
+
+    ctx.save();
+    ctx.translate(ex, ey);
+    ctx.rotate(angle);
+    ctx.fillStyle = boss.color;
+    ctx.shadowColor = boss.color;
+    ctx.shadowBlur = 18;
+    const aSize = 18;
+    ctx.beginPath();
+    ctx.moveTo(aSize, 0);
+    ctx.lineTo(-aSize * 0.6, -aSize * 0.75);
+    ctx.lineTo(-aSize * 0.15, 0);
+    ctx.lineTo(-aSize * 0.6, aSize * 0.75);
+    ctx.closePath();
+    ctx.fill();
+    ctx.restore();
+
+    const bossName = BOSS_TYPES[boss.bossType].name;
+    const distM = Math.round(worldDist / 10);
+    const labelX = ex - ux * 45;
+    const labelY = ey - uy * 45;
+
+    ctx.save();
+    ctx.font = 'bold 11px system-ui,sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    const label = bossName + ' ' + distM + 'm';
+    ctx.strokeStyle = 'rgba(0,0,0,0.9)';
+    ctx.lineWidth = 3;
+    ctx.strokeText(label, labelX, labelY);
+    ctx.fillStyle = boss.color;
+    ctx.fillText(label, labelX, labelY);
+    ctx.restore();
+  }
+}
 function drawGame(st) {
   if (!st) return;
   ctx.clearRect(0, 0, W, H);
@@ -4368,6 +4430,7 @@ function drawGame(st) {
   ctx.restore();
 
   drawBotIndicator(st);
+  drawBossIndicators(st);
 
   if (hitFlash > 0) {
     hitFlash -= 0.05;
