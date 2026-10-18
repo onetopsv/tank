@@ -1093,6 +1093,7 @@ function updateSkillCooldownUI() {
   const me = state.players[myId];
   if (!me) return;
   const btns = skillBarEl.querySelectorAll('.skill-btn');
+  if (btns.length === 0) return;
   btns.forEach(btn => {
     const key = btn.dataset.skillKey;
     const sk = BOSS_SKILLS.find(s => s.key === key);
@@ -1240,6 +1241,9 @@ function startBossTest(bossType) {
   state.waveSpawned = 0;
   state.enemies = [];
   state.ebullets = [];
+  state.pickups = [];
+  state.particles = [];
+  state.beams = [];
   state.bossIndex = bossType;
   state.arena = { w: 2200, h: 2200 };
 
@@ -1296,8 +1300,6 @@ document.getElementById('btnRestart').onclick = () => {
 };
 function hideOverlay() { document.getElementById('overlay').classList.add('hidden'); }
 
-const pauseOverlayEl2 = pauseOverlayEl;
-
 function pauseGame() {
   if (!state || state.over || paused) return;
   paused = true;
@@ -1305,6 +1307,11 @@ function pauseGame() {
 }
 function resumeGame() {
   if (!paused) return;
+  if (!state || state.over) {
+    paused = false;
+    pauseOverlayEl.classList.add('hidden');
+    return;
+  }
   paused = false;
   pauseOverlayEl.classList.add('hidden');
   lastTime = performance.now();
@@ -1795,6 +1802,9 @@ function updateBoss(e, target, dt, st) {
   const d = Math.hypot(dx, dy) || 1;
   const ux = dx / d, uy = dy / d;
 
+  const hw = st.arena.w / 2 - e.r;
+  const hh = st.arena.h / 2 - e.r;
+
   if (!e._contactCd) e._contactCd = 0;
   e._contactCd -= dt;
   if (d < e.r + 22 && e._contactCd <= 0 && !(e.bossType === 0 && e.chargeState === 'charging')) {
@@ -1883,6 +1893,7 @@ function updateBoss(e, target, dt, st) {
       const dashSpeed = 900;
       e.x += e.chargeDirX * dashSpeed * dt;
       e.y += e.chargeDirY * dashSpeed * dt;
+      e.x = clamp(e.x, -hw, hw); e.y = clamp(e.y, -hh, hh);
       if (dist(e.x, e.y, target.x, target.y) < e.r + 24) {
         if (target.powerups && target.powerups.shield > 0) {
           if (!target.shieldHp) target.shieldHp = 40;
@@ -1904,6 +1915,7 @@ function updateBoss(e, target, dt, st) {
     } else if (e.chargeState === 'recover') {
       e.x += ux * e.speed * 0.3 * dt;
       e.y += uy * e.speed * 0.3 * dt;
+      e.x = clamp(e.x, -hw, hw); e.y = clamp(e.y, -hh, hh);
       if (e.chargeTimer <= 0) {
         e.chargeState = 'idle';
         e.chargeTimer = rand(2, 3.5);
@@ -1917,6 +1929,7 @@ function updateBoss(e, target, dt, st) {
       e.x += -uy * strafe * e.speed * 0.4 * dt;
       e.y += ux * strafe * e.speed * 0.4 * dt;
     }
+    e.x = clamp(e.x, -hw, hw); e.y = clamp(e.y, -hh, hh);
     e.fireTimer -= dt;
     if (e.fireTimer <= 0) {
       e.fireTimer = rand(1.8, 2.8);
@@ -1947,6 +1960,7 @@ function updateBoss(e, target, dt, st) {
   } else if (e.bossType === 2) {
     if (d > 350) { e.x += ux * e.speed * dt; e.y += uy * e.speed * dt; }
     else if (d < 260) { e.x -= ux * e.speed * 0.6 * dt; e.y -= uy * e.speed * 0.6 * dt; }
+    e.x = clamp(e.x, -hw, hw); e.y = clamp(e.y, -hh, hh);
     e.freezeCd -= dt;
     if (e.freezeCd <= 0 && d < 700) {
       e.freezeCd = rand(2.0, 3.0);
@@ -1973,6 +1987,7 @@ function updateBoss(e, target, dt, st) {
     }
   } else if (e.bossType === 3) {
     if (d > 260) { e.x += ux * e.speed * dt; e.y += uy * e.speed * dt; }
+    e.x = clamp(e.x, -hw, hw); e.y = clamp(e.y, -hh, hh);
     e._snipeCd -= dt;
     if (e._snipeCd <= 0 && d < 800) {
       e._snipeCd = rand(1.8, 2.8);
@@ -2024,7 +2039,6 @@ function updateBoss(e, target, dt, st) {
       const a = Math.atan2(-dy, -dx) + rand(-0.8, 0.8);
       e.x = target.x + Math.cos(a) * 400;
       e.y = target.y + Math.sin(a) * 400;
-      const hw = st.arena.w / 2 - 80, hh = st.arena.h / 2 - 80;
       e.x = clamp(e.x, -hw, hw);
       e.y = clamp(e.y, -hh, hh);
       spawnParticles(e.x, e.y, '#ff4d6d', 20, 300);
@@ -2034,6 +2048,7 @@ function updateBoss(e, target, dt, st) {
   } else if (e.bossType === 4) {
     e.x += ux * e.speed * dt;
     e.y += uy * e.speed * dt;
+    e.x = clamp(e.x, -hw, hw); e.y = clamp(e.y, -hh, hh);
     e.atkCd -= dt;
     if (e.atkCd <= 0) {
       e.atkCd = rand(1.4, 2.2);
@@ -2172,6 +2187,7 @@ function gameLoop(now) {
   if (!state || state.over) return;
   if (paused) {
     lastTime = now;
+    requestAnimationFrame(gameLoop);
     return;
   }
   const dt = Math.min((now - lastTime) / 1000, 0.1);
@@ -2332,6 +2348,8 @@ function gameLoop(now) {
         const dashSpeed = 1200;
         p.x += p.chargeDirX * dashSpeed * dt;
         p.y += p.chargeDirY * dashSpeed * dt;
+        const hw = state.arena.w / 2 - p.r, hh = state.arena.h / 2 - p.r;
+        p.x = clamp(p.x, -hw, hw); p.y = clamp(p.y, -hh, hh);
         for (let i = state.enemies.length - 1; i >= 0; i--) {
           const e = state.enemies[i];
           if (e.isAlly) continue;
@@ -2726,6 +2744,8 @@ function gameLoop(now) {
 }
 
 function showOverlay(title, color, p1, p2) {
+  paused = false;
+  pauseOverlayEl.classList.add('hidden');
   const t = document.getElementById('ovTitle');
   t.textContent = title; t.style.color = color;
   document.getElementById('ovP1').innerHTML = p1;
@@ -2744,11 +2764,12 @@ function getDigitFromEvent(e) {
   if (code === 'Digit3' || code === 'Numpad3') return 3;
   if (code === 'Digit4' || code === 'Numpad4') return 4;
   if (code === 'Digit5' || code === 'Numpad5') return 5;
-  const n = parseInt(e.key, 10);
+  const n = parseInt(e.key || '', 10);
   return (n >= 1 && n <= 5) ? n : 0;
 }
 
 addEventListener('keydown', e => {
+  if (!e.key) return;
   keys[e.key.toLowerCase()] = true;
   if (e.repeat) return;
 
@@ -2761,7 +2782,10 @@ addEventListener('keydown', e => {
     }
   }
 });
-addEventListener('keyup', e => { keys[e.key.toLowerCase()] = false; });
+addEventListener('keyup', e => {
+  if (!e.key) return;
+  keys[e.key.toLowerCase()] = false;
+});
 canvasEl.addEventListener('mousemove', e => { mouse.x = e.clientX; mouse.y = e.clientY; });
 canvasEl.addEventListener('mousedown', e => {
   if (e.button !== 0) return;
@@ -3468,7 +3492,7 @@ function drawBotIndicator(st) {
       labelName = 'BOSS ' + BOSS_TYPES[boss.bossType].name;
       const c = boss.color.replace('#','');
       if (c.length >= 6) {
-        const r = parseInt(c.substr(0,2),16), g = parseInt(c.substr(2,2),16), b = parseInt(c.substr(4,2),16);
+        const r = parseInt(c.slice(0,2),16), g = parseInt(c.slice(2,4),16), b = parseInt(c.slice(4,6),16);
         targetRGB = r + ',' + g + ',' + b;
       }
     }
