@@ -432,8 +432,17 @@ function rr(x, y, w, h, r) {
 
 let audioCtx = null;
 function initAudio() {
-  if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-  if (audioCtx.state === 'suspended') audioCtx.resume();
+  try {
+    const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+    if (!AudioContextClass) return;
+    if (!audioCtx) audioCtx = new AudioContextClass();
+    if (audioCtx.state === 'suspended') {
+      const resumeResult = audioCtx.resume();
+      if (resumeResult && typeof resumeResult.catch === 'function') resumeResult.catch(() => {});
+    }
+  } catch (_) {
+    audioCtx = null;
+  }
 }
 function playSound(type) {
   if (!audioCtx || typeof type !== 'string') return;
@@ -1346,6 +1355,9 @@ function hideOverlay() { document.getElementById('overlay').classList.add('hidde
 function pauseGame() {
   if (!state || state.over || paused) return;
   paused = true;
+  mouse.down = false;
+  for (const key in keys) keys[key] = false;
+  resetTouchState();
   pauseOverlayEl.classList.remove('hidden');
 }
 function resumeGame() {
@@ -1992,30 +2004,35 @@ function updateBoss(e, target, dt, st) {
         playSound('roar');
       }
     } else if (e.chargeState === 'dashing') {
+      const prevX = e.x, prevY = e.y;
       const dashSpeed = 900;
       e.x += e.chargeDirX * dashSpeed * dt;
       e.y += e.chargeDirY * dashSpeed * dt;
       e.x = clamp(e.x, -hw, hw); e.y = clamp(e.y, -hh, hh);
 
       if (!e.chargeHitSet) e.chargeHitSet = [];
-      const impactR = e.r + 80;
       for (const pid in st.players) {
         const p = st.players[pid];
         if (p.hp <= 0 || e.chargeHitSet.includes(pid)) continue;
-        const pd = dist(e.x, e.y, p.x, p.y);
+        const segX = e.x - prevX, segY = e.y - prevY;
+        const segLenSq = segX * segX + segY * segY;
+        const t = segLenSq > 0 ? clamp(((p.x - prevX) * segX + (p.y - prevY) * segY) / segLenSq, 0, 1) : 0;
+        const closestX = prevX + segX * t, closestY = prevY + segY * t;
+        const pd = dist(closestX, closestY, p.x, p.y);
+        const impactR = e.r + p.r + 70;
         if (pd < impactR) {
-          let dmg = e.dmg * 1.3;
+          const dmg = e.dmg * 1.3;
           if (p.powerups && p.powerups.shield > 0) {
             if (!p.shieldHp) p.shieldHp = 40;
             p.shieldHp -= dmg;
             if (p.shieldHp <= 0) { p.powerups.shield = 0; p.shieldHp = 0; }
           } else {
-            p.hp -= dmg;
+            p.hp = Math.max(0, p.hp - dmg);
           }
           st.events.push({ type: 'hurt', target: pid });
           spawnParticles(p.x, p.y, '#ff5b6e', 20, 350);
           spawnParticles(p.x, p.y, e.color, 15, 300);
-          knockbackPlayer(p, e.x, e.y, 900);
+          knockbackPlayer(p, closestX, closestY, 1450);
           p.pvpInvuln = Math.max(p.pvpInvuln || 0, 0.4);
           shakeTime = 0.35; shakeIntensity = 22;
           e.chargeHitSet.push(pid);
