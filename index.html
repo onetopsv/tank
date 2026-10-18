@@ -894,13 +894,12 @@ function buildWaveQueue(wave) {
   return { queue, hasBoss };
 }
 
-// ====== MỚI: Scaling quái theo wave (mạnh dần) ======
 function getEnemyScaling(wave) {
   return {
-    hp:    1 + (wave - 1) * 0.20,   // +20% HP / wave
-    dmg:   1 + (wave - 1) * 0.06,   // +6% DMG / wave
-    speed: 1 + (wave - 1) * 0.02,   // +2% SPEED / wave
-    reward:1 + (wave - 1) * 0.10    // +10% SCORE/XP / wave
+    hp:    1 + (wave - 1) * 0.20,
+    dmg:   1 + (wave - 1) * 0.06,
+    speed: 1 + (wave - 1) * 0.02,
+    reward:1 + (wave - 1) * 0.10
   };
 }
 
@@ -962,24 +961,22 @@ function spawnEnemyInArena(typeIdx, wave) {
   });
 }
 
-// ==== BOSS TYPES ==== (đã buff + có level)
 const BOSS_TYPES = [
-  { name: 'BÒ',        color: '#b46bff', stroke: '#6a2f9e', r: 48, hp: 2800, speed: 70, dmg: 55, xp: 30, skillKey: 'charge' },
-  { name: 'LỬA',       color: '#ff8c1a', stroke: '#a04d00', r: 46, hp: 2400, speed: 78, dmg: 38, xp: 30, skillKey: 'flame' },
-  { name: 'BĂNG',      color: '#4dd9ff', stroke: '#1b6a8a', r: 46, hp: 2500, speed: 82, dmg: 35, xp: 30, skillKey: 'freeze' },
-  { name: 'HÚT MÁU',   color: '#ff4d6d', stroke: '#8a1f35', r: 48, hp: 2600, speed: 68, dmg: 30, xp: 30, skillKey: 'drain' },
-  { name: 'PHÂN THÂN', color: '#ff66b2', stroke: '#8a1f4d', r: 52, hp: 3000, speed: 62, dmg: 42, xp: 30, skillKey: 'split' },
-  { name: 'LAZE',      color: '#ffdd00', stroke: '#a08a00', r: 50, hp: 2800, speed: 58, dmg: 48, xp: 30, skillKey: 'laserbeam' },
+  { name: 'BÒ',        color: '#b46bff', stroke: '#6a2f9e', r: 48, hp: 1800, speed: 70, dmg: 28, xp: 30, skillKey: 'charge' },
+  { name: 'LỬA',       color: '#ff8c1a', stroke: '#a04d00', r: 46, hp: 1600, speed: 78, dmg: 22, xp: 30, skillKey: 'flame' },
+  { name: 'BĂNG',      color: '#4dd9ff', stroke: '#1b6a8a', r: 46, hp: 1700, speed: 82, dmg: 20, xp: 30, skillKey: 'freeze' },
+  { name: 'HÚT MÁU',   color: '#ff4d6d', stroke: '#8a1f35', r: 48, hp: 1750, speed: 68, dmg: 18, xp: 30, skillKey: 'drain' },
+  { name: 'PHÂN THÂN', color: '#ff66b2', stroke: '#8a1f4d', r: 52, hp: 2000, speed: 62, dmg: 24, xp: 30, skillKey: 'split' },
+  { name: 'LAZE',      color: '#ffdd00', stroke: '#a08a00', r: 50, hp: 1900, speed: 58, dmg: 26, xp: 30, skillKey: 'laserbeam' },
 ];
 
-// ====== MỚI: Level cho boss (test mode dùng player level, PvE dùng wave) ======
 function getBossLevel() {
   if (!state) return 1;
   if (state.isBossTest) {
     const me = state.players[myId];
-    return Math.max(1, me ? me.level : 1);
+    return Math.max(1, Math.min(20, me ? me.level : 1));
   }
-  return state.wave;
+  return Math.min(30, state.wave);
 }
 
 function spawnBossInArena() {
@@ -990,10 +987,12 @@ function spawnBossInArena() {
   if (!me) return;
 
   const level = getBossLevel();
-  const hpBonus = level * 550;
-  const dmgBonus = level * 5;
-  const speedBonus = 1 + (level - 1) * 0.025;
-  const scoreBonus = 500 + level * 80;
+  const hpBonus = 150 + (level - 1) * 180;
+  const dmgBonus = (level - 1) * 2;
+  const speedBonus = 1 + (level - 1) * 0.015;
+  const scoreBonus = 400 + level * 50;
+  const finalHp = Math.round(s.hp * 0.55 + hpBonus);
+  const finalDmg = Math.round(s.dmg * 0.6 + dmgBonus);
 
   const halfDiag = Math.hypot(W, H) / 2;
   const d = halfDiag + 180;
@@ -1009,10 +1008,10 @@ function spawnBossInArena() {
 
   state.enemies.push({
     x: bx, y: by,
-    hp: s.hp + hpBonus, maxHp: s.hp + hpBonus,
+    hp: finalHp, maxHp: finalHp,
     speed: s.speed * speedBonus,
     r: s.r,
-    dmg: s.dmg + dmgBonus,
+    dmg: finalDmg,
     score: scoreBonus, xp: s.xp,
     color: s.color, stroke: s.stroke, angle: 0, hitFlash: 0, seed: Math.random() * 10,
     isBoss: true, bossType: type, level: level,
@@ -1023,7 +1022,7 @@ function spawnBossInArena() {
     fireTimer: rand(1.5, 2.5),
     freezeCd: rand(1.5, 2.5),
     drainTimer: rand(2.5, 3.5), draining: false,
-    splitLevel: 2,
+    splitLevel: 1,
     laserState: 'idle', laserTimer: 0, laserAim: 0,
     _laserCd: rand(4, 6),
     _contactCd: 0, _burstCd: rand(2.5, 3.5),
@@ -1217,14 +1216,13 @@ function triggerSkill(skillKey) {
     spawnParticles(me.x, me.y, '#ff66b2', 25, 350);
     state.announce = { text: '🧬 PHÂN THÂN!', t: 1.2 };
   } else if (skillKey === 'laserbeam') {
-    // ==== TIA LAZE CỦA PLAYER — beam DoT 1.5s ====
     const beamW = 120;
     state.beams.push({
       x: me.x, y: me.y, angle: aim,
-      life: 1.5, maxLife: 1.5, owner: myId,
+      life: 1.2, maxLife: 1.2, owner: myId,
       wideLaser: true, halfWidth: beamW / 2,
       isPlayerLaser: true,
-      dmgPerSec: me.damage * 20
+      dmgPerSec: me.damage * 8
     });
     playSound('laser');
     spawnParticles(me.x, me.y, '#ffdd00', 40, 450);
@@ -1364,7 +1362,6 @@ document.querySelectorAll('.dvbtn').forEach(btn => {
       me.fireRate = Math.max(60, 180 - (lv - 1) * 8);
       me.maxMana = 100 + (lv - 1) * 6;
       me.mana = Math.min(me.mana, me.maxMana);
-      // Cập nhật lại mode tag để hiển thị level
       if (state.testBossType !== null) {
         const bn = BOSS_TYPES[state.testBossType].name;
         document.getElementById('modeTag').textContent = '🧪 TEST: ' + bn + ' Lv' + me.level;
@@ -1701,12 +1698,13 @@ const TYPES = [
 ];
 function spawnSplitChildren(boss, ownerId) {
   if (!state) return;
-  const level = boss.splitLevel || 2;
+  const level = boss.splitLevel || 1;
   if (level <= 0) return;
 
-  const count = 4;
+  const count = 3;
   const childR = boss.r * 0.55;
-  const childHp = boss.maxHp * 0.12;
+  const childHp = boss.maxHp * 0.08;
+  const childDmg = boss.dmg * 0.35;
 
   for (let i = 0; i < count; i++) {
     const a = (i / count) * TAU + rand(-0.3, 0.3);
@@ -1716,12 +1714,12 @@ function spawnSplitChildren(boss, ownerId) {
     state.enemies.push({
       x: cx, y: cy,
       behavior: 'chase', hp: childHp, maxHp: childHp,
-      speed: boss.speed * 1.4, r: childR, dmg: boss.dmg * 0.5,
+      speed: boss.speed * 1.4, r: childR, dmg: childDmg,
       score: 80, xp: 4, color: boss.color, stroke: boss.stroke,
       angle: 0, hitFlash: 0, seed: Math.random() * 10,
       isBoss: false, isMiniBoss: true,
       bossType: boss.bossType, level: boss.level || 1,
-      splitLevel: level - 1,
+      splitLevel: Math.min(1, level - 1),
       atkCd: 1.5, spawnAnim: 0.3, wobble: Math.random() * 100
     });
   }
@@ -1818,7 +1816,7 @@ function updateBoss(e, target, dt, st) {
   if (!e._contactCd) e._contactCd = 0;
   e._contactCd -= dt;
   if (d < e.r + 22 && e._contactCd <= 0 && !(e.bossType === 0 && e.chargeState === 'charging')) {
-    const contactDmg = e.dmg * 1.0;
+    const contactDmg = e.dmg * 0.6;
     if (target.powerups && target.powerups.shield > 0) {
       if (!target.shieldHp) target.shieldHp = 40;
       target.shieldHp -= contactDmg;
@@ -1907,10 +1905,10 @@ function updateBoss(e, target, dt, st) {
       if (dist(e.x, e.y, target.x, target.y) < e.r + 24) {
         if (target.powerups && target.powerups.shield > 0) {
           if (!target.shieldHp) target.shieldHp = 40;
-          target.shieldHp -= e.dmg * 3;
+          target.shieldHp -= e.dmg * 0.9;
           if (target.shieldHp <= 0) { target.powerups.shield = 0; target.shieldHp = 0; }
         } else {
-          target.hp -= e.dmg * 1.8;
+          target.hp -= e.dmg * 0.9;
         }
         st.events.push({ type: 'hurt', target: target.id });
         spawnParticles(target.x, target.y, '#ff5b6e', 15, 300);
@@ -2022,11 +2020,11 @@ function updateBoss(e, target, dt, st) {
     }
     if (e.draining) {
       e.drainActive -= dt;
-      const drainRange = 400;
+      const drainRange = 320;
       if (d < drainRange) {
-        const drainAmt = 16 * dt;
+        const drainAmt = 10 * dt;
         target.hp -= drainAmt;
-        e.hp = Math.min(e.maxHp, e.hp + drainAmt * 1.5);
+        e.hp = Math.min(e.maxHp, e.hp + drainAmt * 0.8);
         if (Math.random() < 0.5) {
           const ang = Math.atan2(e.y - target.y, e.x - target.x);
           st.particles.push({
@@ -2156,8 +2154,8 @@ function updateBoss(e, target, dt, st) {
         const proj = pdx * Math.cos(e.laserAim) + pdy * Math.sin(e.laserAim);
         if (proj < 0 || proj > bLen) continue;
         const perp = Math.abs(-pdx * Math.sin(e.laserAim) + pdy * Math.cos(e.laserAim));
-        if (perp < e.r + 18) {
-          const dmg = e.dmg * 3.5 * dt;
+        if (perp < e.r + 14) {
+          const dmg = e.dmg * 1.4 * dt;
           if (p.powerups && p.powerups.shield > 0) {
             if (!p.shieldHp) p.shieldHp = 40;
             p.shieldHp -= dmg;
@@ -2882,7 +2880,6 @@ function gameLoop(now) {
   for (let i = state.beams.length - 1; i >= 0; i--) {
     const bm = state.beams[i];
     bm.life -= dt;
-    // DoT cho tia laze player
     if (bm.isPlayerLaser && bm.life > 0) {
       const bLen = 12000;
       for (let j = state.enemies.length - 1; j >= 0; j--) {
@@ -3216,7 +3213,7 @@ function drawBossAura(e, st) {
     ctx.restore();
   }
   if (e.bossType === 3 && e.draining) {
-    const drainRange = 400;
+    const drainRange = 320;
     ctx.save();
     const grad = ctx.createRadialGradient(0, 0, e.r, 0, 0, drainRange);
     grad.addColorStop(0, 'rgba(255,77,109,0.35)');
