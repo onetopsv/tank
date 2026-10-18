@@ -10,6 +10,7 @@
     --knob-size:64px;
     --joy-bottom:30px;
     --joy-edge:30px;
+    --skill-size:64px;
   }
   *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
   html,body{width:100%;height:100%;overflow:hidden;background:#080c11;
@@ -186,11 +187,11 @@
     pointer-events:none;
   }
   .skill-btn{
-    width:64px;height:64px;border-radius:50%;
+    width:var(--skill-size);height:var(--skill-size);border-radius:50%;
     background:rgba(10,20,26,0.9);
     border:3px solid;
     color:#fff;
-    font-size:22px;
+    font-size:calc(var(--skill-size) * 0.35);
     font-weight:900;
     display:flex;align-items:center;justify-content:center;
     pointer-events:auto;
@@ -207,20 +208,19 @@
     position:absolute;inset:0;border-radius:50%;
     display:flex;align-items:center;justify-content:center;
     background:rgba(0,0,0,0.7);
-    font-size:18px;color:#fff;font-weight:900;
+    font-size:calc(var(--skill-size) * 0.28);color:#fff;font-weight:900;
   }
   .skill-btn .hotkey{
     position:absolute;top:-6px;right:-6px;
     background:#0a141a;border:2px solid #fff;border-radius:50%;
-    width:20px;height:20px;font-size:10px;font-weight:900;
+    width:calc(var(--skill-size) * 0.3);height:calc(var(--skill-size) * 0.3);
+    font-size:calc(var(--skill-size) * 0.15);font-weight:900;
     display:flex;align-items:center;justify-content:center;
     color:#fff;
   }
   @media (max-height: 700px) {
     #skillBar { bottom: 180px; gap: 6px; }
-    .skill-btn { width: 48px; height: 48px; font-size: 16px; }
-    .skill-btn .hotkey { width: 15px; height: 15px; font-size: 8px; top: -5px; right: -5px; }
-    .skill-btn .cd-overlay { font-size: 13px; }
+    /* Bỏ kích thước cố định để cho phép người dùng tự chỉnh qua slider */
   }
 
   #enemiesLeftBox{
@@ -265,24 +265,24 @@
   #settingsPanel .st-row.row{flex-direction:row;justify-content:space-between;align-items:center;gap:8px}
   #settingsPanel .st-label{display:flex;justify-content:space-between;font-size:12px;color:#cfe9d8;letter-spacing:.5px}
   #settingsPanel .st-val{color:#9df3c4;font-weight:800;font-size:12px;font-variant-numeric:tabular-nums}
-  #settingsPanel input[type="range"]{
+  #settingsPanel input[type="range"], .layout-slider{
     -webkit-appearance:none;appearance:none;
     width:100%;height:22px;background:transparent;cursor:pointer;margin:0;
   }
-  #settingsPanel input[type="range"]::-webkit-slider-runnable-track{
+  #settingsPanel input[type="range"]::-webkit-slider-runnable-track, .layout-slider::-webkit-slider-runnable-track{
     height:6px;border-radius:3px;background:#0e1a20;border:1px solid #26485a;
   }
-  #settingsPanel input[type="range"]::-webkit-slider-thumb{
+  #settingsPanel input[type="range"]::-webkit-slider-thumb, .layout-slider::-webkit-slider-thumb{
     -webkit-appearance:none;appearance:none;
     width:18px;height:18px;border-radius:50%;
     background:#2ee07a;border:2px solid #04140c;
     margin-top:-7px;box-shadow:0 0 8px #2ee07a;cursor:grab;
   }
-  #settingsPanel input[type="range"]::-webkit-slider-thumb:active{cursor:grabbing}
-  #settingsPanel input[type="range"]::-moz-range-track{
+  #settingsPanel input[type="range"]::-webkit-slider-thumb:active, .layout-slider::-webkit-slider-thumb:active{cursor:grabbing}
+  #settingsPanel input[type="range"]::-moz-range-track, .layout-slider::-moz-range-track{
     height:6px;border-radius:3px;background:#0e1a20;border:1px solid #26485a;
   }
-  #settingsPanel input[type="range"]::-moz-range-thumb{
+  #settingsPanel input[type="range"]::-moz-range-thumb, .layout-slider::-moz-range-thumb{
     width:18px;height:18px;border-radius:50%;
     background:#2ee07a;border:2px solid #04140c;box-shadow:0 0 8px #2ee07a;cursor:grab;
   }
@@ -528,7 +528,7 @@
     </div>
   </div>
 
-  <button id="stLayout" style="padding:12px;background:#0d3a44;border:2px solid #4dd9ff;color:#9df3f4;border-radius:8px;cursor:pointer;font-size:12px;font-weight:800;letter-spacing:1px;margin-top:4px">🎮 CHỈNH VỊ TRÍ KÉO THẢ</button>
+  <button id="stLayout" style="padding:12px;background:#0d3a44;border:2px solid #4dd9ff;color:#9df3f4;border-radius:8px;cursor:pointer;font-size:12px;font-weight:800;letter-spacing:1px;margin-top:4px">🎮 CHỈNH VỊ TRÍ & KÍCH THƯỚC</button>
   <button id="stReset" style="padding:8px;background:#2a1800;border:2px solid #ff8c1a;color:#ffd93d;border-radius:8px;cursor:pointer;font-size:12px;font-weight:800;margin-top:4px">↺ MẶC ĐỊNH</button>
   <button id="stClose" style="padding:10px;background:#1a1a1a;border:2px solid #888;color:#ccc;border-radius:8px;cursor:pointer;font-size:12px;font-weight:800">ĐÓNG</button>
 </div>
@@ -575,6 +575,7 @@ const DEFAULT_UI = {
   enemiesLeft: true,
   screenShake: true,
   sound: true,
+  skillSize: 64,
   customPos: {}
 };
 let uiSettings = Object.assign({}, DEFAULT_UI);
@@ -922,12 +923,11 @@ function syncSliders() {
 }
 
 /* ============================================================
-   ÁP DỤNG VỊ TRÍ TUỲ CHỈNH (khi người chơi đã lưu layout)
+   ÁP DỤNG VỊ TRÍ TUỲ CHỈNH
    ============================================================ */
 function applyCustomPositions() {
   const cp = uiSettings.customPos || {};
 
-  // ----- HP / Mana / XP (hudLeft) -----
   const hudLeft = document.getElementById('hudLeft');
   if (hudLeft) {
     if (cp.hud) {
@@ -943,7 +943,6 @@ function applyCustomPositions() {
     }
   }
 
-  // ----- Minimap -----
   if (cp.mini) {
     minimapEl.style.left  = (cp.mini.x * 100) + 'vw';
     minimapEl.style.top   = (cp.mini.y * 100) + 'vh';
@@ -959,7 +958,6 @@ function applyCustomPositions() {
     }
   }
 
-  // ----- Joysticks -----
   const joyLeft  = document.getElementById('joyLeft');
   const joyRight = document.getElementById('joyRight');
   if (joyLeft) {
@@ -989,20 +987,26 @@ function applyCustomPositions() {
     }
   }
 
-  // ----- Skill bar -----
+  // Cập nhật 7 kỹ năng (nếu có custom pos)
   const skillBar = document.getElementById('skillBar');
   if (skillBar) {
-    if (cp.skill) {
-      skillBar.style.left   = (cp.skill.x * 100) + 'vw';
-      skillBar.style.top    = (cp.skill.y * 100) + 'vh';
-      skillBar.style.right  = 'auto';
-      skillBar.style.bottom = 'auto';
-    } else {
-      skillBar.style.left = '';
-      skillBar.style.top = '';
-      skillBar.style.right = '';
-      skillBar.style.bottom = '';
-    }
+    const btns = skillBar.querySelectorAll('.skill-btn');
+    btns.forEach((btn, i) => {
+      const pos = cp['skill' + i];
+      if (pos) {
+        btn.style.position = 'fixed';
+        btn.style.left = (pos.x * 100) + 'vw';
+        btn.style.top = (pos.y * 100) + 'vh';
+        btn.style.right = 'auto';
+        btn.style.bottom = 'auto';
+      } else {
+        btn.style.position = '';
+        btn.style.left = '';
+        btn.style.top = '';
+        btn.style.right = '';
+        btn.style.bottom = '';
+      }
+    });
   }
 }
 
@@ -1012,6 +1016,7 @@ function applyUI() {
   root.setProperty('--knob-size', Math.round(uiSettings.joySize * 0.46) + 'px');
   root.setProperty('--joy-bottom', uiSettings.joyBottom + 'px');
   root.setProperty('--joy-edge', uiSettings.joyEdge + 'px');
+  root.setProperty('--skill-size', uiSettings.skillSize + 'px');
 
   document.body.classList.toggle('mini-right', !!uiSettings.miniRight);
 
@@ -1032,14 +1037,20 @@ function applyUI() {
 }
 
 /* ============================================================
-   TRÌNH CHỈNH VỊ TRÍ KÉO THẢ
+   TRÌNH CHỈNH VỊ TRÍ KÉO THẢ (VÀ KÍCH THƯỚC)
    ============================================================ */
 const DEFAULT_LAYOUT = {
   hud:      { x: 0.02, y: 0.66 },
   mini:     { x: 0.02, y: 0.02 },
   joyLeft:  { x: 0.02, y: 0.68 },
   joyRight: { x: 0.78, y: 0.68 },
-  skill:    { x: 0.90, y: 0.55 }
+  skill0:   { x: 0.88, y: 0.40 },
+  skill1:   { x: 0.88, y: 0.47 },
+  skill2:   { x: 0.88, y: 0.54 },
+  skill3:   { x: 0.88, y: 0.61 },
+  skill4:   { x: 0.88, y: 0.68 },
+  skill5:   { x: 0.88, y: 0.75 },
+  skill6:   { x: 0.88, y: 0.82 }
 };
 
 let _layoutEditor = null;
@@ -1048,13 +1059,10 @@ function openLayoutEditor() {
   if (_layoutEditor) return;
 
   const cp = uiSettings.customPos || {};
-  const positions = {
-    hud:      cp.hud      ? { ...cp.hud }      : { ...DEFAULT_LAYOUT.hud },
-    mini:     cp.mini     ? { ...cp.mini }     : { ...DEFAULT_LAYOUT.mini },
-    joyLeft:  cp.joyLeft  ? { ...cp.joyLeft }  : { ...DEFAULT_LAYOUT.joyLeft },
-    joyRight: cp.joyRight ? { ...cp.joyRight } : { ...DEFAULT_LAYOUT.joyRight },
-    skill:    cp.skill    ? { ...cp.skill }    : { ...DEFAULT_LAYOUT.skill }
-  };
+  const positions = {};
+  Object.keys(DEFAULT_LAYOUT).forEach(k => {
+    positions[k] = cp[k] ? { ...cp[k] } : { ...DEFAULT_LAYOUT[k] };
+  });
 
   const overlay = document.createElement('div');
   overlay.id = 'layoutEditor';
@@ -1065,7 +1073,6 @@ function openLayoutEditor() {
     font-family:system-ui,sans-serif;
   `;
 
-  // Grid nền giả lập sân đấu
   const grid = document.createElement('div');
   grid.style.cssText = `position:absolute;inset:0;pointer-events:none;
     background-image:linear-gradient(rgba(60,130,100,0.08) 1px,transparent 1px),
@@ -1073,7 +1080,6 @@ function openLayoutEditor() {
     background-size:64px 64px;`;
   overlay.appendChild(grid);
 
-  // Banner hướng dẫn
   const hint = document.createElement('div');
   hint.style.cssText = `
     position:absolute;top:16px;left:50%;transform:translateX(-50%);
@@ -1084,7 +1090,7 @@ function openLayoutEditor() {
     box-shadow:0 0 20px rgba(77,217,255,0.3);max-width:92vw;
   `;
   hint.innerHTML = '🖐️ Kéo các khối đến vị trí mong muốn<br>' +
-                   '<span style="font-size:10px;opacity:0.75">Vị trí sẽ được lưu và áp dụng ngay lập tức</span>';
+                   '<span style="font-size:10px;opacity:0.75">Ấn 📏 KÍCH THƯỚC để chỉnh to nhỏ kỹ năng</span>';
   overlay.appendChild(hint);
 
   const joySize  = uiSettings.joySize;
@@ -1096,7 +1102,7 @@ function openLayoutEditor() {
   function createDraggable(id, innerHTML) {
     const el = document.createElement('div');
     el.dataset.le = id;
-    const pos = positions[id];
+    const pos = positions[id] || { x: 0.5, y: 0.5 };
     el.style.cssText = `
       position:absolute;
       left:${pos.x * 100}vw;
@@ -1163,22 +1169,20 @@ function openLayoutEditor() {
     </div>
   `);
 
-  // ---- Mock Skill bar ----
-  createDraggable('skill', `
-    <div style="display:flex;flex-direction:column;gap:8px;pointer-events:none;">
-      <div style="width:64px;height:64px;border-radius:50%;background:rgba(10,20,26,0.9);
-        border:3px solid #b46bff;color:#b46bff;font-size:22px;font-weight:900;
-        display:flex;align-items:center;justify-content:center;box-shadow:0 0 20px #b46bff;">🐂</div>
-      <div style="width:64px;height:64px;border-radius:50%;background:rgba(10,20,26,0.9);
-        border:3px solid #ff8c1a;color:#ff8c1a;font-size:22px;font-weight:900;
-        display:flex;align-items:center;justify-content:center;box-shadow:0 0 20px #ff8c1a;">🔥</div>
-      <div style="width:64px;height:64px;border-radius:50%;background:rgba(10,20,26,0.9);
-        border:3px solid #ffdd00;color:#ffdd00;font-size:22px;font-weight:900;
-        display:flex;align-items:center;justify-content:center;box-shadow:0 0 20px #ffdd00;">⚡</div>
-    </div>
-  `);
+  // ---- Mock 7 Skills ----
+  const skillIcons = ['🐂', '🔥', '❄', '🩸', '🧬', '⚡', '☢'];
+  const skillColors = ['#b46bff', '#ff8c1a', '#4dd9ff', '#ff4d6d', '#ff66b2', '#ffdd00', '#88ff00'];
+  for (let i = 0; i < 7; i++) {
+    createDraggable('skill' + i, `
+      <div class="mock-skill-btn" style="width:var(--skill-size);height:var(--skill-size);border-radius:50%;
+        background:rgba(10,20,26,0.9);border:3px solid ${skillColors[i]};color:${skillColors[i]};
+        font-size:calc(var(--skill-size) * 0.35);font-weight:900;display:flex;align-items:center;justify-content:center;
+        box-shadow:0 0 20px ${skillColors[i]};position:relative;pointer-events:none;">
+        ${skillIcons[i]}
+      </div>
+    `);
+  }
 
-  // ---- Kéo thả ----
   let dragging = null;
   Object.entries(elements).forEach(([id, info]) => {
     const el = info.el;
@@ -1217,7 +1221,20 @@ function openLayoutEditor() {
     el.addEventListener('pointercancel', endDrag);
   });
 
-  // ---- Toolbar ----
+  // Size panel (ẩn ban đầu)
+  const sizePanel = document.createElement('div');
+  sizePanel.style.cssText = `
+    position:absolute;bottom:90px;left:50%;transform:translateX(-50%);
+    display:none;gap:10px;z-index:30;padding:16px 24px;align-items:center;
+    background:rgba(10,20,26,0.98);border:2px solid #ffd93d;border-radius:12px;
+    box-shadow:0 0 30px rgba(0,0,0,0.8);width:min(320px, 90vw);
+  `;
+  sizePanel.innerHTML = `
+    <span style="font-size:16px;">📏</span>
+    <input type="range" id="leSizeSlider" class="layout-slider" min="40" max="120" step="2" value="${uiSettings.skillSize}">
+  `;
+  overlay.appendChild(sizePanel);
+
   const toolbar = document.createElement('div');
   toolbar.style.cssText = `
     position:absolute;bottom:20px;left:50%;transform:translateX(-50%);
@@ -1226,6 +1243,8 @@ function openLayoutEditor() {
     box-shadow:0 0 30px rgba(0,0,0,0.8);
   `;
   toolbar.innerHTML = `
+    <button id="leSizeBtn" style="padding:10px 16px;background:#0d3a44;border:2px solid #4dd9ff;
+      color:#9df3f4;border-radius:8px;cursor:pointer;font-size:12px;font-weight:800;letter-spacing:1px;">📏 KÍCH THƯỚC</button>
     <button id="leReset" style="padding:10px 16px;background:#2a1800;border:2px solid #ff8c1a;
       color:#ffd93d;border-radius:8px;cursor:pointer;font-size:12px;font-weight:800;letter-spacing:1px;">↺ MẶC ĐỊNH</button>
     <button id="leCancel" style="padding:10px 20px;background:#1a1a1a;border:2px solid #888;
@@ -1237,6 +1256,28 @@ function openLayoutEditor() {
   document.body.appendChild(overlay);
   _layoutEditor = overlay;
 
+  // Xử lý slider kích thước
+  const sizeSlider = document.getElementById('leSizeSlider');
+  document.getElementById('leSizeBtn').onclick = () => {
+    sizePanel.style.display = sizePanel.style.display === 'none' ? 'flex' : 'none';
+  };
+  sizeSlider.addEventListener('input', () => {
+    const newSize = parseInt(sizeSlider.value, 10);
+    uiSettings.skillSize = newSize;
+    document.documentElement.style.setProperty('--skill-size', newSize + 'px');
+    // Cập nhật lại kích thước các mock button
+    Object.keys(elements).forEach(k => {
+      if (k.startsWith('skill')) {
+        const btn = elements[k].el.firstElementChild;
+        if (btn) {
+          btn.style.width = newSize + 'px';
+          btn.style.height = newSize + 'px';
+          btn.style.fontSize = Math.round(newSize * 0.35) + 'px';
+        }
+      }
+    });
+  });
+
   document.getElementById('leReset').onclick = () => {
     Object.entries(DEFAULT_LAYOUT).forEach(([id, pos]) => {
       const info = elements[id];
@@ -1246,10 +1287,25 @@ function openLayoutEditor() {
       info.el.style.top  = (pos.y * 100) + 'vh';
       info.dragged = true;
     });
+    // Reset size về 64
+    uiSettings.skillSize = 64;
+    sizeSlider.value = 64;
+    document.documentElement.style.setProperty('--skill-size', '64px');
+    Object.keys(elements).forEach(k => {
+      if (k.startsWith('skill')) {
+        const btn = elements[k].el.firstElementChild;
+        if (btn) {
+          btn.style.width = '64px';
+          btn.style.height = '64px';
+          btn.style.fontSize = '22px';
+        }
+      }
+    });
   };
 
   document.getElementById('leCancel').onclick = () => {
     if (_layoutEditor) { _layoutEditor.remove(); _layoutEditor = null; }
+    applyUI(); // Khôi phục lại kích thước cũ nếu lỡ kéo slider
   };
 
   document.getElementById('leSave').onclick = () => {
@@ -1261,11 +1317,7 @@ function openLayoutEditor() {
         anySaved = true;
       }
     });
-    if (!anySaved && !uiSettings.customPos) {
-      // Không có gì thay đổi, chỉ đóng
-      if (_layoutEditor) { _layoutEditor.remove(); _layoutEditor = null; }
-      return;
-    }
+    
     uiSettings.customPos = newCustomPos;
     saveUI();
     applyUI();
@@ -1972,6 +2024,9 @@ function updateSkillBarUI() {
 
     skillBarEl.appendChild(btn);
   });
+  
+  // Đảm bảo vị trí được áp dụng ngay khi update
+  applyCustomPositions();
 }
 
 function updateSkillCooldownUI() {
