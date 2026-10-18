@@ -938,13 +938,8 @@ function buildWaveQueue(wave) {
     queue.push(idx);
   }
 
-  // Boss xuất hiện ngẫu nhiên từ màn 3 trở đi
-  let hasBoss = false;
-  if (wave >= 3) {
-    const bossChance = Math.min(0.45, 0.15 + (wave - 2) * 0.03);
-    hasBoss = Math.random() < bossChance;
-    if (wave % 5 === 0) hasBoss = true;
-  }
+  // Boss cố định mỗi 3 màn (màn 3, 6, 9, 12...) — loại boss random trong 7 con
+  const hasBoss = (wave >= 3 && wave % 3 === 0);
   return { queue, hasBoss };
 }
 
@@ -2710,7 +2705,6 @@ function gameLoop(now) {
     const cursePenalty = (p.powerups.curse > 0) ? 0.5 : 1;
     p.mana = Math.min(p.maxMana, p.mana + regen * cursePenalty * dt);
 
-    // === SKILL CHARGE ===
     if (p.chargeState && p.chargeState !== 'idle') {
       p.chargeTimer -= dt;
       const hw = state.arena.w / 2 - p.r, hh = state.arena.h / 2 - p.r;
@@ -3158,7 +3152,6 @@ function gameLoop(now) {
     }
   }
 
-  // ==== NUKE STRIKES UPDATE ====
   if (state.nukeStrikes && state.nukeStrikes.length > 0) {
     for (let i = state.nukeStrikes.length - 1; i >= 0; i--) {
       const ns = state.nukeStrikes[i];
