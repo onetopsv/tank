@@ -376,6 +376,17 @@
 (function(){
 'use strict';
 
+// ============================================================
+// KHAI BÁO BIẾN TOÀN CỤC (ĐẶT LÊN ĐẦU ĐỂ TRÁNH TDZ)
+// ============================================================
+let state = null;
+let lastTime = performance.now();
+let paused = false;
+const myId = 'PLAYER';
+
+// ============================================================
+// HÀM TIỆN ÍCH
+// ============================================================
 function rand(a, b) { return a + Math.random() * (b - a); }
 function clamp(v, a, b) { return Math.max(a, Math.min(b, v)); }
 function dist(x1,y1,x2,y2){ const dx=x2-x1, dy=y2-y1; return Math.sqrt(dx*dx+dy*dy); }
@@ -459,6 +470,9 @@ function triggerHitEffect() {
   if (bar) { bar.classList.add('hurt'); setTimeout(() => bar.classList.remove('hurt'), 200); }
 }
 
+// ============================================================
+// LƯU TRỮ / NGƯỜI DÙNG
+// ============================================================
 const NAME_KEY = 'tankArenaPlayerName';
 const SCORES_KEY = 'tankArenaScores';
 function getScores() { try { return JSON.parse(localStorage.getItem(SCORES_KEY) || '{}'); } catch (e) { return {}; } }
@@ -484,6 +498,9 @@ function recordBotWin() {
 }
 let currentUser = localStorage.getItem(NAME_KEY);
 
+// ============================================================
+// DOM ELEMENTS
+// ============================================================
 const screens = {
   name: document.getElementById('nameScreen'),
   menu: document.getElementById('menuScreen')
@@ -495,6 +512,9 @@ const skillBarEl = document.getElementById('skillBar');
 const pauseOverlayEl = document.getElementById('pauseOverlay');
 const btnResumeEl = document.getElementById('btnResume');
 
+// ============================================================
+// TOUCH STATE
+// ============================================================
 const touch = {
   moveX: 0, moveY: 0,
   aimX: 0, aimY: 0,
@@ -512,6 +532,9 @@ function resetTouchState() {
   if (kr) kr.style.transform = 'translate(-50%,-50%)';
 }
 
+// ============================================================
+// SHOW SCREEN (giờ an toàn vì paused đã khai báo ở trên)
+// ============================================================
 function show(name) {
   Object.values(screens).forEach(s => s.classList.add('hidden'));
   canvasEl.classList.add('hidden');
@@ -558,8 +581,14 @@ function showNameScreen() {
   setTimeout(() => inp.focus(), 100);
 }
 
+// ============================================================
+// KHỞI TẠO SCREEN BAN ĐẦU (giờ an toàn)
+// ============================================================
 if (currentUser) showMenu(); else showNameScreen();
 
+// ============================================================
+// FORM ĐĂNG NHẬP TÊN
+// ============================================================
 const inputName = document.getElementById('inputName');
 const btnEnter = document.getElementById('btnEnterGame');
 const nameMsg = document.getElementById('nameMsg');
@@ -584,6 +613,9 @@ document.getElementById('btnChangeName').onclick = () => {
   showNameScreen();
 };
 
+// ============================================================
+// MENU TEST BOSS
+// ============================================================
 const bossTestMenu = document.getElementById('bossTestMenu');
 document.getElementById('btnTestBoss').onclick = () => {
   bossTestMenu.classList.toggle('hidden');
@@ -599,6 +631,9 @@ bossTestMenu.querySelectorAll('[data-boss]').forEach(btn => {
   };
 });
 
+// ============================================================
+// JOYSTICK
+// ============================================================
 function setupJoystick(el, knob, onMove, onEnd) {
   const maxR = 50;
   let activePointerId = null;
@@ -747,6 +782,9 @@ setupJoystick(
   }
 );
 
+// ============================================================
+// CẤU HÌNH BOT
+// ============================================================
 const BOT_CFG = {
   easy: { speedBonus: 0.60, aimJitter: 0.55, shootRange: 500, dodge: false, dodgeRange: 0, smart: false, lead: 0, fireRate: 550, damage: 5, idealDist: 450, hp: 70, name: 'BOT DỄ', color: '#7bd66b', aimSpeed: 0.15 },
   normal: { speedBonus: 0.80, aimJitter: 0.28, shootRange: 650, dodge: true, dodgeRange: 140, smart: false, lead: 0.2, fireRate: 360, damage: 8, idealDist: 380, hp: 90, name: 'BOT THƯỜNG', color: '#4dd9ff', aimSpeed: 0.22 },
@@ -755,6 +793,9 @@ const BOT_CFG = {
 };
 const DIFF_NAME = { easy: 'DỄ', normal: 'BÌNH THƯỜNG', hard: 'KHÁ', insane: 'SIÊU KHÓ' };
 
+// ============================================================
+// HẰNG SỐ GAMEPLAY
+// ============================================================
 const MANA_MAX = 100;
 const MANA_REGEN = 32;
 const MANA_COST_SHOT = 4;
@@ -778,12 +819,11 @@ const BOSS_SKILLS = [
 ];
 const SKILL_DROP_CHANCE = 0.5;
 
-let state = null, lastTime = performance.now();
-let paused = false;
-const myId = 'PLAYER';
-
 function xpNeeded(lvl) { return 5 + (lvl - 1) * 3; }
 
+// ============================================================
+// TẠO PLAYER / BOT
+// ============================================================
 function makePlayer(id, name) {
   return {
     id, name, x: 0, y: 0, r: 20,
@@ -827,6 +867,9 @@ function makeBot(difficulty) {
   return b;
 }
 
+// ============================================================
+// KHỞI TẠO GAME
+// ============================================================
 function initGame(mode, difficulty) {
   state = {
     mode, difficulty,
@@ -882,6 +925,9 @@ function initGame(mode, difficulty) {
   updateSkillBarUI();
 }
 
+// ============================================================
+// WAVE / ENEMY SPAWN
+// ============================================================
 function buildWaveQueue(wave) {
   const baseCount = 10 + Math.floor(wave * 4);
   const maxCount = 90;
@@ -1037,6 +1083,9 @@ function onWaveCleared() {
   state.events.push('pickup');
 }
 
+// ============================================================
+// START GAME
+// ============================================================
 function startGame(mode, difficulty) {
   initAudio();
   hideOverlay();
@@ -1054,6 +1103,9 @@ document.getElementById('btnNormal').onclick = () => startGame('bot', 'normal');
 document.getElementById('btnHard').onclick = () => startGame('bot', 'hard');
 document.getElementById('btnInsane').onclick = () => startGame('bot', 'insane');
 
+// ============================================================
+// SKILL BAR
+// ============================================================
 function updateSkillBarUI() {
   if (!state) { skillBarEl.innerHTML = ''; return; }
   const me = state.players[myId];
@@ -1111,6 +1163,9 @@ function updateSkillCooldownUI() {
   });
 }
 
+// ============================================================
+// KỸ NĂNG
+// ============================================================
 function triggerSkill(skillKey) {
   if (!state || state.over) return;
   const me = state.players[myId];
@@ -1218,6 +1273,9 @@ function triggerSkill(skillKey) {
   updateSkillCooldownUI();
 }
 
+// ============================================================
+// TEST BOSS
+// ============================================================
 function startBossTest(bossType) {
   initAudio();
   hideOverlay();
@@ -1277,6 +1335,9 @@ function startBossTest(bossType) {
   updateSkillBarUI();
 }
 
+// ============================================================
+// MENU / RESTART
+// ============================================================
 document.getElementById('btnMenu').onclick = () => {
   if (confirm('Thoát về menu? Tiến trình sẽ mất.')) { state = null; showMenu(); }
 };
@@ -1300,6 +1361,9 @@ document.getElementById('btnRestart').onclick = () => {
 };
 function hideOverlay() { document.getElementById('overlay').classList.add('hidden'); }
 
+// ============================================================
+// PAUSE / RESUME
+// ============================================================
 function pauseGame() {
   if (!state || state.over || paused) return;
   paused = true;
@@ -1324,6 +1388,9 @@ document.addEventListener('visibilitychange', () => {
 });
 window.addEventListener('blur', () => pauseGame());
 
+// ============================================================
+// DEV PANEL
+// ============================================================
 function updateDevPanelUI() {
   if (!state || !state.isBossTest) return;
   const me = state.players[myId];
@@ -1431,6 +1498,9 @@ document.getElementById('dvOpen').onclick = () => {
   updateDevPanelUI();
 };
 
+// ============================================================
+// HUD UPDATE
+// ============================================================
 function updateHUD(st) {
   if (!st) return;
   const me = st.players[myId];
@@ -1486,6 +1556,9 @@ function updateHUD(st) {
   }
 }
 
+// ============================================================
+// POWERUP HUD
+// ============================================================
 const PU_LABEL = {
   laser: '⚡ LASER', bomb: '💣 BOM', shield: '🛡️ KHIÊN',
   speed: '👟 TỐC ĐỘ', pierce: '🔱 XUYÊN', tripleshot: '🔥 3 TIA',
@@ -1509,6 +1582,9 @@ function updatePowerupHUD(st) {
   puHudEl.innerHTML = html;
 }
 
+// ============================================================
+// POWERUPS
+// ============================================================
 const POWERUPS = [
   { type: 'health',    color: '#2ee07a', weight: 14, bad: false },
   { type: 'mana',      color: '#4dd9ff', weight: 16, bad: false },
@@ -1602,6 +1678,9 @@ function applyPickup(p, k) {
   if (PU_BAD.includes(k.type)) { p.curseFlash = 1; state.events.push('curse'); }
 }
 
+// ============================================================
+// HIỆU ỨNG / LASER / BOMB
+// ============================================================
 function spawnParticles(x, y, color, count, speed) {
   if (!state) return;
   for (let i = 0; i < count; i++) {
@@ -1679,6 +1758,9 @@ function explodeBomb(x, y, ownerId) {
   playSound('boom');
 }
 
+// ============================================================
+// LOẠI QUÁI
+// ============================================================
 const TYPES = [
   { behavior: 'chase',    hp: 22,  speed: 96, r: 15, dmg: 8,  score: 10, color: '#7bd66b', stroke: '#3d8a35', xp: 1 },
   { behavior: 'chase',    hp: 52,  speed: 72, r: 23, dmg: 15, score: 25, color: '#e8a13a', stroke: '#a86a15', xp: 2 },
@@ -1688,6 +1770,9 @@ const TYPES = [
   { behavior: 'splitter', hp: 80,  speed: 55, r: 26, dmg: 18, score: 45, color: '#ff66b2', stroke: '#8a1f4d', xp: 3 }
 ];
 
+// ============================================================
+// SPLIT CHILDREN / KILL ENEMY
+// ============================================================
 function spawnSplitChildren(boss, ownerId) {
   if (!state) return;
   const level = boss.splitLevel || 2;
@@ -1797,6 +1882,9 @@ function killEnemy(e, ownerId) {
   }
 }
 
+// ============================================================
+// BOSS AI
+// ============================================================
 function updateBoss(e, target, dt, st) {
   const dx = target.x - e.x, dy = target.y - e.y;
   const d = Math.hypot(dx, dy) || 1;
@@ -2081,6 +2169,9 @@ function updateBoss(e, target, dt, st) {
   }
 }
 
+// ============================================================
+// BOT AI
+// ============================================================
 function computeBotInput(bot, player, pvx, pvy) {
   const cfg = BOT_CFG[bot.difficulty];
   if (!cfg || bot.hp <= 0 || player.hp <= 0) {
@@ -2183,6 +2274,9 @@ function computeBotInput(bot, player, pvx, pvy) {
   return { x: mx, y: my, aim, shoot };
 }
 
+// ============================================================
+// GAME LOOP
+// ============================================================
 function gameLoop(now) {
   if (!state || state.over) return;
   if (paused) {
@@ -2743,6 +2837,9 @@ function gameLoop(now) {
   requestAnimationFrame(gameLoop);
 }
 
+// ============================================================
+// OVERLAY
+// ============================================================
 function showOverlay(title, color, p1, p2) {
   paused = false;
   pauseOverlayEl.classList.add('hidden');
@@ -2754,6 +2851,9 @@ function showOverlay(title, color, p1, p2) {
   if (state) { updateHUD(state); drawGame(state); }
 }
 
+// ============================================================
+// INPUT
+// ============================================================
 const keys = Object.create(null);
 const mouse = { x: W / 2, y: H / 2, down: false };
 
@@ -2835,6 +2935,9 @@ function getInputs() {
   return { x: mx, y: my, aim, shoot };
 }
 
+// ============================================================
+// RESIZE
+// ============================================================
 function resize() {
   W = innerWidth; H = innerHeight;
   canvasEl.width = Math.floor(W * DPR); canvasEl.height = Math.floor(H * DPR);
@@ -2846,6 +2949,9 @@ function resize() {
 }
 addEventListener('resize', resize); resize();
 
+// ============================================================
+// DRAW MAP
+// ============================================================
 const CELL = 128;
 function drawMap() {
   const left = cam.x - W / 2, top = cam.y - H / 2;
@@ -2907,6 +3013,9 @@ function drawMap() {
   }
 }
 
+// ============================================================
+// DRAW ARENA
+// ============================================================
 function drawArena(arena) {
   ctx.save();
   ctx.strokeStyle = 'rgba(255,80,80,0.55)';
@@ -2924,6 +3033,9 @@ function drawArena(arena) {
   ctx.restore();
 }
 
+// ============================================================
+// DRAW PICKUP
+// ============================================================
 function drawPickup(k) {
   if (k.type === 'xp') {
     const pulse = 1 + Math.sin(k.bob * 1.5) * 0.15;
@@ -3012,6 +3124,9 @@ function drawPickup(k) {
   ctx.restore();
 }
 
+// ============================================================
+// DRAW BOSS AURA
+// ============================================================
 function drawBossAura(e, st) {
   if (e.bossType === 0 && e.chargeState === 'charging') {
     ctx.save();
@@ -3060,6 +3175,9 @@ function drawBossAura(e, st) {
   }
 }
 
+// ============================================================
+// DRAW ENEMY
+// ============================================================
 function drawEnemy(e, st, targetPlayer) {
   const t = st.time;
   const p = targetPlayer;
@@ -3173,6 +3291,9 @@ function drawEnemy(e, st, targetPlayer) {
   ctx.restore();
 }
 
+// ============================================================
+// DRAW PLAYER
+// ============================================================
 function drawPlayer(p, isMe, st) {
   if (p.hp <= 0) {
     ctx.save();
@@ -3363,6 +3484,9 @@ function drawPlayer(p, isMe, st) {
   ctx.restore();
 }
 
+// ============================================================
+// DRAW BEAMS
+// ============================================================
 function drawBeams(st) {
   for (const bm of st.beams) {
     const a = bm.life / bm.maxLife;
@@ -3395,6 +3519,9 @@ function drawBeams(st) {
   }
 }
 
+// ============================================================
+// DRAW BULLETS
+// ============================================================
 function drawBullets(st) {
   ctx.lineCap = 'round';
   for (const b of st.bullets) {
@@ -3435,6 +3562,9 @@ function drawBullets(st) {
   }
 }
 
+// ============================================================
+// DRAW E-BULLETS
+// ============================================================
 function drawEBullets(st) {
   for (const b of st.ebullets) {
     if (b.isFire && b.trail) {
@@ -3467,6 +3597,9 @@ function drawEBullets(st) {
   }
 }
 
+// ============================================================
+// DRAW PARTICLES
+// ============================================================
 function drawParticles(st) {
   for (const pa of st.particles) {
     ctx.globalAlpha = Math.max(0, pa.life / pa.maxLife);
@@ -3476,6 +3609,9 @@ function drawParticles(st) {
   ctx.globalAlpha = 1;
 }
 
+// ============================================================
+// BOT INDICATOR
+// ============================================================
 function drawBotIndicator(st) {
   let targetObj = null;
   let targetColor = '#ff5b6e';
@@ -3575,6 +3711,9 @@ function drawBotIndicator(st) {
   ctx.restore();
 }
 
+// ============================================================
+// DRAW GAME
+// ============================================================
 function drawGame(st) {
   if (!st) return;
   ctx.clearRect(0, 0, W, H);
