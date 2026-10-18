@@ -220,7 +220,6 @@
   }
   @media (max-height: 700px) {
     #skillBar { bottom: 180px; gap: 6px; }
-    /* Bỏ kích thước cố định để cho phép người dùng tự chỉnh qua slider */
   }
 
   #enemiesLeftBox{
@@ -291,6 +290,11 @@
     color:#9df3c4;border-radius:6px;font-size:11px;font-weight:800;cursor:pointer;transition:.15s}
   .st-btns button.active{background:#2ee07a;color:#04140c;border-color:#2ee07a}
   .st-btns button:hover{border-color:#2ee07a}
+  .le-tsize{padding:7px 10px;background:#0e1a20;border:1.5px solid #26485a;
+    color:#7a9a92;border-radius:7px;font-size:11px;font-weight:800;cursor:pointer;
+    letter-spacing:.5px;font-family:system-ui;transition:.15s}
+  .le-tsize.active{background:#2ee07a;border-color:#2ee07a;color:#04140c}
+  .le-tsize:hover{border-color:#2ee07a}
 </style>
 </head>
 <body>
@@ -843,7 +847,7 @@ function playSound(type) {
   gain.gain.exponentialRampToValueAtTime(0.001, now+m.d);
   osc.start(now); osc.stop(now+m.d);
 }
-let shakeTime = 0, shakeIntensity = 0, hitFlash = 0;
+let shakeTime = 0, shakeIntensity = 0, hitFlash = 0, nukeFlash = 0;
 function triggerHitEffect() {
   shakeTime = 0.3; shakeIntensity = 15; hitFlash = 1;
   const bar = document.getElementById('hpBarP1');
@@ -987,7 +991,6 @@ function applyCustomPositions() {
     }
   }
 
-  // Cập nhật 7 kỹ năng (nếu có custom pos)
   const skillBar = document.getElementById('skillBar');
   if (skillBar) {
     const btns = skillBar.querySelectorAll('.skill-btn');
@@ -1058,6 +1061,14 @@ let _layoutEditor = null;
 function openLayoutEditor() {
   if (_layoutEditor) return;
 
+  // Snapshot để khôi phục khi Cancel
+  const sizeSnapshot = {
+    skillSize: uiSettings.skillSize,
+    miniSize: uiSettings.miniSize,
+    joySize: uiSettings.joySize,
+    hudScale: uiSettings.hudScale
+  };
+
   const cp = uiSettings.customPos || {};
   const positions = {};
   Object.keys(DEFAULT_LAYOUT).forEach(k => {
@@ -1090,7 +1101,7 @@ function openLayoutEditor() {
     box-shadow:0 0 20px rgba(77,217,255,0.3);max-width:92vw;
   `;
   hint.innerHTML = '🖐️ Kéo các khối đến vị trí mong muốn<br>' +
-                   '<span style="font-size:10px;opacity:0.75">Ấn 📏 KÍCH THƯỚC để chỉnh to nhỏ kỹ năng</span>';
+                   '<span style="font-size:10px;opacity:0.75">Ấn 📏 KÍCH THƯỚC để chọn đối tượng cần chỉnh</span>';
   overlay.appendChild(hint);
 
   const joySize  = uiSettings.joySize;
@@ -1116,7 +1127,6 @@ function openLayoutEditor() {
     return el;
   }
 
-  // ---- Mock HP / Mana ----
   createDraggable('hud', `
     <div style="transform:scale(${hudScale});transform-origin:left top;width:min(240px,45vw);pointer-events:none;">
       <div style="height:18px;border-radius:9px;background:#101c24;border:2px solid #26485a;overflow:hidden;position:relative;box-shadow:0 0 18px rgba(0,170,255,0.2);">
@@ -1130,7 +1140,6 @@ function openLayoutEditor() {
     </div>
   `);
 
-  // ---- Mock Minimap ----
   createDraggable('mini', `
     <div style="width:${miniSize}px;height:${miniSize}px;border:2px solid #26485a;border-radius:10px;
       background:rgba(8,16,22,0.92);
@@ -1143,7 +1152,6 @@ function openLayoutEditor() {
     </div>
   `);
 
-  // ---- Mock Joystick trái ----
   createDraggable('joyLeft', `
     <div style="width:${joySize}px;height:${joySize}px;border-radius:50%;
       background:rgba(46,224,122,0.10);border:2px solid rgba(46,224,122,0.55);
@@ -1156,7 +1164,6 @@ function openLayoutEditor() {
     </div>
   `);
 
-  // ---- Mock Joystick phải ----
   createDraggable('joyRight', `
     <div style="width:${joySize}px;height:${joySize}px;border-radius:50%;
       background:rgba(255,91,110,0.10);border:2px solid rgba(255,91,110,0.55);
@@ -1169,7 +1176,6 @@ function openLayoutEditor() {
     </div>
   `);
 
-  // ---- Mock 7 Skills ----
   const skillIcons = ['🐂', '🔥', '❄', '🩸', '🧬', '⚡', '☢'];
   const skillColors = ['#b46bff', '#ff8c1a', '#4dd9ff', '#ff4d6d', '#ff66b2', '#ffdd00', '#88ff00'];
   for (let i = 0; i < 7; i++) {
@@ -1221,19 +1227,114 @@ function openLayoutEditor() {
     el.addEventListener('pointercancel', endDrag);
   });
 
-  // Size panel (ẩn ban đầu)
+  /* ===== SIZE PANEL (có chọn đối tượng) ===== */
+  const SIZE_TARGETS = {
+    skill: { key: 'skillSize', label: 'SKILL',    min: 40, max: 120, step: 2,    unit: 'px', fmt: v => v.toFixed(0) },
+    mini:  { key: 'miniSize',  label: 'MINIMAP',  min: 100, max: 320, step: 5,   unit: 'px', fmt: v => v.toFixed(0) },
+    joy:   { key: 'joySize',   label: 'JOYSTICK', min: 80, max: 240, step: 5,    unit: 'px', fmt: v => v.toFixed(0) },
+    hud:   { key: 'hudScale',  label: 'HUD',      min: 0.6, max: 1.8, step: 0.05, unit: '×',  fmt: v => v.toFixed(2) }
+  };
+  let currentTarget = 'skill';
+
   const sizePanel = document.createElement('div');
   sizePanel.style.cssText = `
     position:absolute;bottom:90px;left:50%;transform:translateX(-50%);
-    display:none;gap:10px;z-index:30;padding:16px 24px;align-items:center;
+    display:none;flex-direction:column;gap:10px;z-index:30;
+    padding:14px 16px;
     background:rgba(10,20,26,0.98);border:2px solid #ffd93d;border-radius:12px;
-    box-shadow:0 0 30px rgba(0,0,0,0.8);width:min(320px, 90vw);
+    box-shadow:0 0 30px rgba(0,0,0,0.8);width:min(340px, 92vw);
   `;
   sizePanel.innerHTML = `
-    <span style="font-size:16px;">📏</span>
-    <input type="range" id="leSizeSlider" class="layout-slider" min="40" max="120" step="2" value="${uiSettings.skillSize}">
+    <div style="display:flex;gap:6px;justify-content:center;flex-wrap:wrap">
+      <button class="le-tsize active" data-t="skill">🎯 SKILL</button>
+      <button class="le-tsize" data-t="mini">🗺️ MINIMAP</button>
+      <button class="le-tsize" data-t="joy">🕹️ JOYSTICK</button>
+      <button class="le-tsize" data-t="hud">📊 HUD</button>
+    </div>
+    <div style="display:flex;align-items:center;gap:10px;padding:0 4px">
+      <input type="range" id="leSizeSlider" class="layout-slider" min="40" max="120" step="2" value="64" style="flex:1">
+      <span id="leSizeVal" style="font-size:12px;font-weight:800;color:#fff;min-width:52px;text-align:right;font-variant-numeric:tabular-nums">64px</span>
+    </div>
   `;
   overlay.appendChild(sizePanel);
+
+  const sizeSlider = sizePanel.querySelector('#leSizeSlider');
+  const sizeVal = sizePanel.querySelector('#leSizeVal');
+  const tsButtons = sizePanel.querySelectorAll('.le-tsize');
+
+  function updateSliderForTarget() {
+    const cfg = SIZE_TARGETS[currentTarget];
+    sizeSlider.min = cfg.min;
+    sizeSlider.max = cfg.max;
+    sizeSlider.step = cfg.step;
+    sizeSlider.value = uiSettings[cfg.key];
+    sizeVal.textContent = cfg.fmt(uiSettings[cfg.key]) + cfg.unit;
+  }
+
+  function applySize(target, val) {
+    const cfg = SIZE_TARGETS[target];
+    uiSettings[cfg.key] = val;
+
+    if (target === 'skill') {
+      document.documentElement.style.setProperty('--skill-size', val + 'px');
+      Object.keys(elements).forEach(k => {
+        if (!k.startsWith('skill')) return;
+        const btn = elements[k].el.firstElementChild;
+        if (btn) {
+          btn.style.width = val + 'px';
+          btn.style.height = val + 'px';
+          btn.style.fontSize = Math.round(val * 0.35) + 'px';
+        }
+      });
+    } else if (target === 'mini') {
+      const mockMini = elements.mini.el.firstElementChild;
+      if (mockMini) {
+        mockMini.style.width = val + 'px';
+        mockMini.style.height = val + 'px';
+      }
+      resizeMinimap(val);
+    } else if (target === 'joy') {
+      const knob = Math.round(val * 0.46);
+      document.documentElement.style.setProperty('--joy-size', val + 'px');
+      document.documentElement.style.setProperty('--knob-size', knob + 'px');
+      ['joyLeft', 'joyRight'].forEach(k => {
+        const outer = elements[k].el.firstElementChild;
+        if (!outer) return;
+        outer.style.width = val + 'px';
+        outer.style.height = val + 'px';
+        const kn = outer.firstElementChild;
+        if (kn) {
+          kn.style.width = knob + 'px';
+          kn.style.height = knob + 'px';
+        }
+      });
+    } else if (target === 'hud') {
+      const mockHud = elements.hud.el.firstElementChild;
+      if (mockHud) mockHud.style.transform = 'scale(' + val + ')';
+      const hudLeft = document.getElementById('hudLeft');
+      if (hudLeft) hudLeft.style.transform = 'scale(' + val + ')';
+    }
+  }
+
+  tsButtons.forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      tsButtons.forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      currentTarget = btn.dataset.t;
+      updateSliderForTarget();
+    });
+  });
+
+  sizeSlider.addEventListener('input', () => {
+    const val = parseFloat(sizeSlider.value);
+    const cfg = SIZE_TARGETS[currentTarget];
+    sizeVal.textContent = cfg.fmt(val) + cfg.unit;
+    applySize(currentTarget, val);
+  });
+
+  updateSliderForTarget();
 
   const toolbar = document.createElement('div');
   toolbar.style.cssText = `
@@ -1256,27 +1357,9 @@ function openLayoutEditor() {
   document.body.appendChild(overlay);
   _layoutEditor = overlay;
 
-  // Xử lý slider kích thước
-  const sizeSlider = document.getElementById('leSizeSlider');
   document.getElementById('leSizeBtn').onclick = () => {
     sizePanel.style.display = sizePanel.style.display === 'none' ? 'flex' : 'none';
   };
-  sizeSlider.addEventListener('input', () => {
-    const newSize = parseInt(sizeSlider.value, 10);
-    uiSettings.skillSize = newSize;
-    document.documentElement.style.setProperty('--skill-size', newSize + 'px');
-    // Cập nhật lại kích thước các mock button
-    Object.keys(elements).forEach(k => {
-      if (k.startsWith('skill')) {
-        const btn = elements[k].el.firstElementChild;
-        if (btn) {
-          btn.style.width = newSize + 'px';
-          btn.style.height = newSize + 'px';
-          btn.style.fontSize = Math.round(newSize * 0.35) + 'px';
-        }
-      }
-    });
-  });
 
   document.getElementById('leReset').onclick = () => {
     Object.entries(DEFAULT_LAYOUT).forEach(([id, pos]) => {
@@ -1287,38 +1370,35 @@ function openLayoutEditor() {
       info.el.style.top  = (pos.y * 100) + 'vh';
       info.dragged = true;
     });
-    // Reset size về 64
-    uiSettings.skillSize = 64;
-    sizeSlider.value = 64;
-    document.documentElement.style.setProperty('--skill-size', '64px');
-    Object.keys(elements).forEach(k => {
-      if (k.startsWith('skill')) {
-        const btn = elements[k].el.firstElementChild;
-        if (btn) {
-          btn.style.width = '64px';
-          btn.style.height = '64px';
-          btn.style.fontSize = '22px';
-        }
-      }
-    });
+    // Reset tất cả kích thước về mặc định
+    applySize('skill', 64);
+    applySize('mini', 170);
+    applySize('joy', 140);
+    applySize('hud', 1);
+    updateSliderForTarget();
   };
 
   document.getElementById('leCancel').onclick = () => {
+    // Khôi phục kích thước ban đầu
+    if (sizeSnapshot) {
+      uiSettings.skillSize = sizeSnapshot.skillSize;
+      uiSettings.miniSize  = sizeSnapshot.miniSize;
+      uiSettings.joySize   = sizeSnapshot.joySize;
+      uiSettings.hudScale  = sizeSnapshot.hudScale;
+    }
     if (_layoutEditor) { _layoutEditor.remove(); _layoutEditor = null; }
-    applyUI(); // Khôi phục lại kích thước cũ nếu lỡ kéo slider
+    applyUI();
   };
 
   document.getElementById('leSave').onclick = () => {
     const newCustomPos = { ...(uiSettings.customPos || {}) };
-    let anySaved = false;
     Object.entries(elements).forEach(([id, info]) => {
       if (info.dragged) {
         newCustomPos[id] = { x: info.pos.x, y: info.pos.y };
-        anySaved = true;
       }
     });
-    
     uiSettings.customPos = newCustomPos;
+    // Kích thước đã được applySize ghi vào uiSettings
     saveUI();
     applyUI();
     if (_layoutEditor) { _layoutEditor.remove(); _layoutEditor = null; }
@@ -1688,6 +1768,7 @@ function makePlayer(id, name) {
     powerups: { laser:0, bomb:0, shield:0, speed:0, pierce:0, tripleshot:0,
                 magnet:0, curse:0, slow:0, burn:0, confuse:0, freeze:0, jam:0 },
     shieldHp: 0, burnTick: 0, lastShoot: 0, lastLaser: 0, lastBomb: 0,
+    nukeBurn: 0, nukeBurnTick: 0,
     levelUpFlash: 0, curseFlash: 0, pvpInvuln: 0,
     frozen: 0, frozenFlash: 0,
     knockbackX: 0, knockbackY: 0,
@@ -1979,7 +2060,7 @@ function onWaveCleared() {
 function startGame(mode, difficulty) {
   initAudio();
   hideOverlay();
-  shakeTime = 0; shakeIntensity = 0; hitFlash = 0;
+  shakeTime = 0; shakeIntensity = 0; hitFlash = 0; nukeFlash = 0;
   state = null;
   resetTouchState();
   initGame(mode, difficulty);
@@ -2024,8 +2105,7 @@ function updateSkillBarUI() {
 
     skillBarEl.appendChild(btn);
   });
-  
-  // Đảm bảo vị trí được áp dụng ngay khi update
+
   applyCustomPositions();
 }
 
@@ -2169,7 +2249,7 @@ function triggerSkill(skillKey) {
 function startBossTest(bossType) {
   initAudio();
   hideOverlay();
-  shakeTime = 0; shakeIntensity = 0; hitFlash = 0;
+  shakeTime = 0; shakeIntensity = 0; hitFlash = 0; nukeFlash = 0;
   state = null;
   resetTouchState();
 
@@ -2242,7 +2322,7 @@ document.getElementById('btnRestart').onclick = () => {
   const mode = state ? state.mode : 'pve';
   const diff = state ? state.difficulty : null;
   state = null;
-  shakeTime = 0; shakeIntensity = 0; hitFlash = 0;
+  shakeTime = 0; shakeIntensity = 0; hitFlash = 0; nukeFlash = 0;
   if (wasTest) {
     startBossTest(testType);
   } else {
@@ -3665,6 +3745,21 @@ function gameLoop(now) {
       }
     } else p.burnTick = 0;
 
+    // === BURN từ bom hạt nhân (DoT phóng xạ) ===
+    if (p.nukeBurn > 0) {
+      p.nukeBurn -= dt;
+      p.nukeBurnTick = (p.nukeBurnTick || 0) + dt;
+      if (p.nukeBurnTick >= 0.5) {
+        p.nukeBurnTick = 0;
+        const burnDmg = (p.maxHp || 100) * 0.02;
+        p.hp -= burnDmg;
+        spawnParticles(p.x + rand(-10,10), p.y + rand(-10,10), '#88ff00', 3, 100);
+        state.events.push({ type: 'hurt', target: p.id });
+        if (p.hp <= 0) p.hp = 0;
+      }
+      if (p.nukeBurn < 0) p.nukeBurn = 0;
+    }
+
     if (p.drainTimer > 0) {
       p.drainTimer -= dt;
       const R = p.drainRadius || 350;
@@ -4070,6 +4165,15 @@ function gameLoop(now) {
               }
               state.events.push({ type: 'hurt', target: pid });
               spawnParticles(p.x, p.y, '#88ff00', 30, 600);
+
+              // === HIỆU ỨNG NHIỄM PHÓNG XẠ ===
+              p.nukeBurn = Math.max(p.nukeBurn || 0, 5);
+              p.nukeBurnTick = 0;
+              if (pid === myId) {
+                nukeFlash = 2.0;
+                shakeTime = 0.8;
+                shakeIntensity = 30;
+              }
             }
           } else if (dd < knockR) {
             const nx = (p.x - ns.x) / (dd || 1);
@@ -4839,6 +4943,17 @@ function drawPlayer(p, isMe, st) {
     ctx.beginPath(); ctx.arc(0, 0, 34, 0, TAU); ctx.stroke();
     ctx.restore();
   }
+  // === Vòng phóng xạ (nuke burn) ===
+  if (p.nukeBurn > 0) {
+    ctx.save();
+    ctx.globalAlpha = 0.5 + 0.3 * Math.sin(performance.now() * 0.025);
+    ctx.strokeStyle = '#88ff00';
+    ctx.lineWidth = 4;
+    ctx.shadowColor = '#88ff00';
+    ctx.shadowBlur = 15;
+    ctx.beginPath(); ctx.arc(0, 0, 38, 0, TAU); ctx.stroke();
+    ctx.restore();
+  }
   if (p.powerups.confuse > 0) {
     ctx.save();
     ctx.globalAlpha = 0.5;
@@ -5307,6 +5422,32 @@ function drawGame(st) {
     hitFlash -= 0.05;
     ctx.fillStyle = 'rgba(255, 30, 30, ' + (hitFlash * 0.4) + ')';
     ctx.fillRect(0, 0, W, H);
+  }
+
+  // === HIỆU ỨNG BOM HẠT NHÂN TRÚNG PLAYER ===
+  if (nukeFlash > 0) {
+    nukeFlash = Math.max(0, nukeFlash - 0.025);
+    const alpha = Math.min(1, nukeFlash);
+    ctx.save();
+    // Nhấp nháy xanh nhạt toàn màn hình
+    const flashAlpha = 0.35 + 0.25 * Math.sin(performance.now() * 0.02);
+    ctx.fillStyle = 'rgba(136, 255, 0, ' + (alpha * flashAlpha) + ')';
+    ctx.fillRect(0, 0, W, H);
+    // Icon ☢ giữa màn hình
+    ctx.globalAlpha = alpha;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.shadowColor = '#88ff00';
+    ctx.shadowBlur = 40;
+    const pulse = 1 + Math.sin(performance.now() * 0.02) * 0.1;
+    ctx.font = 'bold ' + Math.round(120 * pulse) + 'px system-ui';
+    ctx.fillStyle = 'rgba(200, 255, 120, 0.95)';
+    ctx.fillText('☢', W / 2, H / 2);
+    ctx.font = 'bold 22px system-ui';
+    ctx.fillStyle = '#c8ff80';
+    ctx.shadowBlur = 20;
+    ctx.fillText('☢ NHIỄM PHÓNG XẠ ☢', W / 2, H / 2 + 90);
+    ctx.restore();
   }
 
   if (st.announce) {
