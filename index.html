@@ -208,7 +208,7 @@
   <div id="joyRight" class="joystick"><div class="knob" id="knobRight"></div></div>
 </div>
 <div id="skillBar" class="hidden"></div>
-<div id="aimHint" class="hidden">🖱️ Di chuột để ngắm • Giữ chuột trái để bắn • Phím <b>WASD</b> di chuyển • <b>1-7</b> kỹ năng</div>
+<div id="aimHint" class="hidden">🖱️ Di chuột để ngắm • Giữ chuột trái để bắn • Phím <b>WASD</b> di chuyển • <b>1-8</b> kỹ năng</div>
 
 <div id="settingsPanel" class="hidden" style="position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);z-index:75;background:rgba(10,20,26,.98);border:2px solid #2ee07a;border-radius:14px;padding:18px 20px;width:min(380px,94vw);box-shadow:0 0 40px rgba(46,224,122,.5);display:flex;flex-direction:column;gap:10px;max-height:92vh;overflow-y:auto">
   <div style="font-size:15px;font-weight:800;letter-spacing:2px;color:#9df3c4;text-align:center;margin-bottom:4px">⚙️ CÀI ĐẶT GIAO DIỆN</div>
@@ -249,22 +249,9 @@
 <script>
 (function(){
 'use strict';
-
-// ═══════════════ DOM CACHE ═══════════════
 const DOM = {};
-['hpFillP1','hpTextP1','manaFillP1','manaTextP1','shieldFillP1','manaBarP1',
- 'hpBarP1','xpFillP1','xpValP1','xpNeedP1','lvlValP1','scoreVal','waveVal',
- 'enemiesLeftBox','enemiesLeftVal','hpFillP2','hpTextP2','modeTag','p2Hud',
- 'xpBarWrapP1','lvlWrapP1','aimHint','overlay','ovTitle','ovP1','ovP2',
- 'hpBarP2','game','minimap','hud','powerupHud','touchControls','skillBar',
- 'pauseOverlay','btnResume','settingsPanel','btnMenu','btnSettings',
- 'nameScreen','menuScreen','inputName','btnEnterGame','nameMsg',
- 'btnChangeName','btnSettingsMenu','btnRestart','btnToMenu','btnPvE',
- 'btnSpectate','btnEasy','btnNormal','btnHard','btnInsane',
- 'stLayout','stReset','stClose','menuUsername','menuHighScore','menuBotWins'
-].forEach(id => { DOM[id] = document.getElementById(id); });
+['hpFillP1','hpTextP1','manaFillP1','manaTextP1','shieldFillP1','manaBarP1','hpBarP1','xpFillP1','xpValP1','xpNeedP1','lvlValP1','scoreVal','waveVal','enemiesLeftBox','enemiesLeftVal','hpFillP2','hpTextP2','modeTag','p2Hud','xpBarWrapP1','lvlWrapP1','aimHint','overlay','ovTitle','ovP1','ovP2','hpBarP2','game','minimap','hud','powerupHud','touchControls','skillBar','pauseOverlay','btnResume','settingsPanel','btnMenu','btnSettings','nameScreen','menuScreen','inputName','btnEnterGame','nameMsg','btnChangeName','btnSettingsMenu','btnRestart','btnToMenu','btnPvE','btnSpectate','btnEasy','btnNormal','btnHard','btnInsane','stLayout','stReset','stClose','menuUsername','menuHighScore','menuBotWins'].forEach(id => { DOM[id] = document.getElementById(id); });
 
-// ═══════════════ CONSTANTS ═══════════════
 const UI_KEY = 'tankArenaUI';
 const NAME_KEY = 'tankArenaPlayerName';
 const SCORES_KEY = 'tankArenaScores';
@@ -281,9 +268,8 @@ const myId = 'PLAYER';
 let uiSettings = Object.assign({}, DEFAULT_UI);
 try { Object.assign(uiSettings, JSON.parse(localStorage.getItem(UI_KEY) || '{}')); } catch(_) {}
 if (!uiSettings.customPos || typeof uiSettings.customPos !== 'object') uiSettings.customPos = {};
-function saveUI(){ try { localStorage.setItem(UI_KEY, JSON.stringify(uiSettings)); } catch(_){} }
+const saveUI = () => { try { localStorage.setItem(UI_KEY, JSON.stringify(uiSettings)); } catch(_){} };
 
-// ═══════════════ MATH ═══════════════
 const rand = (a,b) => a + Math.random() * (b - a);
 const clamp = (v,a,b) => Math.max(a, Math.min(b, v));
 const dist = (x1,y1,x2,y2) => { const dx=x2-x1, dy=y2-y1; return Math.sqrt(dx*dx+dy*dy); };
@@ -297,7 +283,6 @@ function hexA(hex, a) {
   return 'rgba(' + ((n >> 16) & 255) + ',' + ((n >> 8) & 255) + ',' + (n & 255) + ',' + a + ')';
 }
 
-// ═══════════════ CANVAS ═══════════════
 const canvasEl = DOM.game;
 const ctx = canvasEl.getContext('2d');
 let W = innerWidth, H = innerHeight;
@@ -305,7 +290,6 @@ const DPR = Math.min(devicePixelRatio || 1, (innerWidth > 2000 || innerHeight > 
 let cam = { x: 0, y: 0 };
 const isTouchDevice = ('ontouchstart' in window) || (navigator.maxTouchPoints > 0);
 
-// ═══════════════ MINIMAP ═══════════════
 const minimapEl = DOM.minimap;
 const minimapCtx = minimapEl.getContext('2d');
 let MINI_SIZE = uiSettings.miniSize || 170;
@@ -328,7 +312,6 @@ function drawMinimap(st) {
   const drawW = arena.w*scale, drawH = arena.h*scale;
   const offX = (mw-drawW)/2, offY = (mh-drawH)/2;
   const toMini = (wx, wy) => ({x: offX + (wx+arena.w/2)*scale, y: offY + (wy+arena.h/2)*scale});
-
   mctx.fillStyle = 'rgba(255,50,50,0.05)'; mctx.fillRect(offX, offY, drawW, drawH);
   mctx.strokeStyle = 'rgba(60,130,100,0.18)'; mctx.lineWidth = 0.5;
   for (let gx = -arena.w/2 + 1000; gx < arena.w/2; gx += 1000) {
@@ -347,7 +330,6 @@ function drawMinimap(st) {
   mctx.moveTo(center.x-6, center.y); mctx.lineTo(center.x+6, center.y);
   mctx.moveTo(center.x, center.y-6); mctx.lineTo(center.x, center.y+6);
   mctx.stroke();
-
   for (const k of st.pickups) {
     if (k.type === 'xp') continue;
     const p = toMini(k.x, k.y);
@@ -407,7 +389,6 @@ function rr(x, y, w, h, r) {
   ctx.closePath();
 }
 
-// ═══════════════ AUDIO ═══════════════
 let audioCtx = null;
 const SND_MAP = {
   shoot:{t:'square',f1:400,f2:100,g:0.05,d:0.1}, hit:{t:'sawtooth',f1:200,f2:50,g:0.1,d:0.1},
@@ -449,10 +430,9 @@ function triggerHitEffect() {
   setTimeout(() => DOM.hpBarP1?.classList.remove('hurt'), 200);
 }
 
-// ═══════════════ STORAGE ═══════════════
 function getScores() { try { return JSON.parse(localStorage.getItem(SCORES_KEY) || '{}'); } catch(e) { return {}; } }
-function saveScores(a) { try { localStorage.setItem(SCORES_KEY, JSON.stringify(a)); } catch(e){} }
-function getPlayerData(name) { const s = getScores(); return s[name] || {highScore:0, botWins:0}; }
+const saveScores = (a) => { try { localStorage.setItem(SCORES_KEY, JSON.stringify(a)); } catch(e){} };
+const getPlayerData = (name) => { const s = getScores(); return s[name] || {highScore:0, botWins:0}; };
 function ensurePlayerData(name) { const s = getScores(); if (!s[name]) { s[name] = {highScore:0, botWins:0}; saveScores(s); } }
 function recordPvEScore(score) {
   const s = getScores();
@@ -467,10 +447,8 @@ function recordBotWin() {
 }
 let currentUser = '';
 try { currentUser = localStorage.getItem(NAME_KEY) || ''; } catch(_) {}
-
 const screens = { name: DOM.nameScreen, menu: DOM.menuScreen };
 
-// ═══════════════ TOUCH STATE ═══════════════
 const touch = { moveX:0, moveY:0, aimX:0, aimY:0, shooting:false, moveActive:false, aimActive:false };
 function resetTouchState() {
   touch.moveX = 0; touch.moveY = 0; touch.moveActive = false;
@@ -480,7 +458,6 @@ function resetTouchState() {
   if (kr) kr.style.transform = 'translate(-50%,-50%)';
 }
 
-// ═══════════════ UI SETTINGS ═══════════════
 const SLIDER_DEFS = [
   {id:'rMiniSize', key:'miniSize', label:'vMiniSize', fmt:v=>v+'px'},
   {id:'rMiniX', key:'miniOffsetX', label:'vMiniX', fmt:v=>v+'px'},
@@ -570,7 +547,7 @@ function applyUI() {
 const DEFAULT_LAYOUT = {
   hud:{x:0.02,y:0.66}, mini:{x:0.02,y:0.02}, joyLeft:{x:0.02,y:0.68}, joyRight:{x:0.78,y:0.68},
   skill0:{x:0.88,y:0.40}, skill1:{x:0.88,y:0.47}, skill2:{x:0.88,y:0.54},
-  skill3:{x:0.88,y:0.61}, skill4:{x:0.88,y:0.68}, skill5:{x:0.88,y:0.75}, skill6:{x:0.88,y:0.82}
+  skill3:{x:0.88,y:0.61}, skill4:{x:0.88,y:0.68}, skill5:{x:0.88,y:0.75}, skill6:{x:0.88,y:0.82}, skill7:{x:0.82,y:0.82}
 };
 
 function openLayoutEditor() {
@@ -838,7 +815,6 @@ DOM.settingsPanel.querySelectorAll('[data-set]').forEach(btn => {
   };
 });
 
-// ═══════════════ JOYSTICK ═══════════════
 function setupJoystick(el, knob, onMove, onEnd) {
   let activePointerId = null, usingMouse = false;
   function resetKnob() { knob.style.transform = 'translate(-50%,-50%)'; }
@@ -890,7 +866,6 @@ setupJoystick(document.getElementById('joyRight'), document.getElementById('knob
   (x, y) => { touch.aimX = x; touch.aimY = y; touch.aimActive = true; touch.shooting = Math.hypot(x, y) > 0.15; },
   () => { touch.aimX = 0; touch.aimY = 0; touch.aimActive = false; touch.shooting = false; });
 
-// ═══════════════ GAME CONSTANTS ═══════════════
 const BOT_CFG = {
   easy:{speedBonus:0.6, aimJitter:0.55, shootRange:500, dodge:false, dodgeRange:0, smart:false, lead:0, fireRate:550, damage:5, idealDist:450, hp:70, name:'BOT DỄ', color:'#7bd66b', aimSpeed:0.15},
   normal:{speedBonus:0.8, aimJitter:0.28, shootRange:650, dodge:true, dodgeRange:140, smart:false, lead:0.2, fireRate:360, damage:8, idealDist:380, hp:90, name:'BOT THƯỜNG', color:'#4dd9ff', aimSpeed:0.22},
@@ -938,8 +913,7 @@ const BOSS_TYPES = [
   {name:'DỊCH CHUYỂN', color:'#ff40a0', stroke:'#8a1a50', r:52, hp:2000, speed:70, dmg:28, xp:45, skillKey:'teleport'}
 ];
 
-// ═══════════════ HELPERS ═══════════════
-function xpNeeded(lvl) { return 5 + (lvl - 1) * 3; }
+const xpNeeded = (lvl) => 5 + (lvl - 1) * 3;
 
 function grantRandomSkills(player, count, excludeKeys) {
   let keys = BOSS_SKILLS.map(s => s.key);
@@ -980,14 +954,12 @@ function makeBot(difficulty) {
   b.aimJitter = cfg.aimJitter;
   return b;
 }
-
 function dealDamage(target, dmg) {
   if (!target || target.hp <= 0) return 0;
   let actual = 0;
   if (target.powerups?.shield > 0 && (target.shieldHp || 0) > 0) {
     const absorbed = Math.min(target.shieldHp, dmg);
-    target.shieldHp -= absorbed;
-    dmg -= absorbed;
+    target.shieldHp -= absorbed; dmg -= absorbed;
     if (target.shieldHp <= 0) { target.powerups.shield = 0; target.shieldHp = 0; }
   }
   if (dmg > 0) { target.hp -= dmg; actual = dmg; }
@@ -998,7 +970,6 @@ function applyKnockback(target, nx, ny, force) {
   target.knockbackY = (target.knockbackY || 0) + ny * force;
 }
 
-// ═══════════════ SPAWN / KILL ═══════════════
 function spawnParticles(x, y, color, count, speed) {
   if (!state) return;
   for (let i = 0; i < count && state.particles.length < MAX_PARTICLES; i++) {
@@ -1026,8 +997,7 @@ function killEnemy(e, ownerId) {
       state.pickups.push({type:'xp', x:e.x + rand(-20,20), y:e.y + rand(-20,20), xpValue:xpPerOrb, bob:Math.random()*10, life:30, vx:rand(-80,80), vy:rand(-80,80)});
     }
     if (Math.random() < (e.isBoss ? 0.9 : 0.15)) spawnPowerup(e.x + rand(-30,30), e.y + rand(-30,30));
-    // Boss kills grant player a new random skill
-    if (e.isBoss && state.mode === 'pve' && !state.isSpectate && Math.random() < 0.5) {
+    if (e.isBoss && state.mode === 'pve' && Math.random() < 0.5) {
       const available = BOSS_SKILLS.map(s => s.key).filter(k => !me.skills.includes(k));
       if (available.length > 0) {
         const key = available[Math.floor(Math.random() * available.length)];
@@ -1048,7 +1018,6 @@ function spawnPowerup(x, y) {
   const type = arr[Math.floor(Math.random() * arr.length)];
   state.pickups.push({type, bad:isBad, x, y, bob:Math.random()*10, life:22, vx:0, vy:0});
 }
-
 function applyPickup(p, k) {
   if (!state || !p) return;
   if (k.type === 'xp') {
@@ -1070,7 +1039,6 @@ function applyPickup(p, k) {
   playSound(k.bad ? 'curse' : 'pickup');
   spawnParticles(p.x, p.y, PU_COLOR[k.type] || '#fff', 15, 250);
 }
-
 function updateMagnet(k, me, dt) {
   if (!me || me.hp <= 0) { k.magnetized = false; return; }
   let range, speed;
@@ -1087,7 +1055,6 @@ function updateMagnet(k, me, dt) {
   } else k.magnetized = false;
 }
 
-// ═══════════════ SKILL HANDLERS ═══════════════
 const SKILL_HANDLERS = {
   charge(me, aim) {
     me.chargeState = 'charging'; me.chargeTimer = 1.2;
@@ -1158,14 +1125,12 @@ function triggerSkill(skillKey, casterId) {
   me.mana -= sk.cost;
   me.skillCooldowns[skillKey] = sk.cd * me.skillCdMultiplier;
   state.events.push('skill');
-
   let aim = me.aim || 0;
   if (!me.isBot && isTouchDevice && touch.aimActive) {
     const al = Math.hypot(touch.aimX, touch.aimY);
     if (al > 0.2) aim = Math.atan2(touch.aimY, touch.aimX);
   }
   SKILL_HANDLERS[skillKey]?.(me, aim, state);
-
   const silent = me.isBot && !state.isSpectate;
   if (!silent) {
     const fx = SKILL_FX[skillKey];
@@ -1181,7 +1146,6 @@ function triggerSkill(skillKey, casterId) {
   updateSkillCooldownUI();
 }
 
-// ═══════════════ BOSS HANDLERS ═══════════════
 function bossContact(e, target, dt, st) {
   if (target.hp <= 0 || dist(e.x, e.y, target.x, target.y) >= e.r + 20) return;
   const dmg = e.dmg * dt;
@@ -1342,9 +1306,7 @@ const BOSS_HANDLERS = {
     }
   },
   7(e, target, dt, st, ux, uy) {
-    // TÀNG HÌNH: di chuyển chậm + cast invis định kỳ
-    e.x += ux * e.speed * 0.5 * dt;
-    e.y += uy * e.speed * 0.5 * dt;
+    e.x += ux * e.speed * 0.5 * dt; e.y += uy * e.speed * 0.5 * dt;
     if (e._invisCd === undefined) e._invisCd = rand(4, 6);
     e._invisCd -= dt;
     if (e._invisCd <= 0) {
@@ -1365,10 +1327,8 @@ const BOSS_HANDLERS = {
     }
   },
   8(e, target, dt, st, ux, uy) {
-    // DỊCH CHUYỂN: teleport tới player
     if (e.teleportState === 'warning') {
       e.teleportTimer -= dt;
-      // Shake
       e.x += Math.cos(st.time * 60) * 1.5;
       e.y += Math.sin(st.time * 60) * 1.5;
       if (e.teleportTimer <= 0) {
@@ -1380,7 +1340,6 @@ const BOSS_HANDLERS = {
         spawnParticles(oldX, oldY, e.color, 25, 400);
         spawnParticles(e.x, e.y, e.color, 25, 400);
         playSound('teleport');
-        // AoE damage on arrival
         for (const pid in st.players) {
           const p = st.players[pid];
           if (p.hp <= 0) continue;
@@ -1420,10 +1379,9 @@ function updateBoss(e, target, dt, st) {
   e.x = clamp(e.x, -hw, hw); e.y = clamp(e.y, -hh, hh);
 }
 
-// ═══════════════ GAME INIT ═══════════════
 function initGame(mode, difficulty) {
   state = {
-    mode, difficulty, time:0, wave:1, over:false, bossIndex:0, bossSpawnedWave:0,
+    mode, difficulty, time:0, wave:1, over:false,
     players:{[myId]:makePlayer(myId, currentUser)},
     enemies:[], bullets:[], ebullets:[], pickups:[], particles:[], beams:[], events:[],
     arena: mode === 'bot' ? {w:1400, h:1400} : {w:6700, h:6700},
@@ -1449,8 +1407,6 @@ function initGame(mode, difficulty) {
     DOM.p2Hud.classList.remove('hidden');
   } else {
     state.players[myId].x = 0; state.players[myId].y = 0;
-    // Grant 2 starter skills in PvE (excluding invis which must be earned from boss)
-    grantRandomSkills(state.players[myId], 2, ['invis']);
     state.announce = {text:'MÀN 1', t:2};
     DOM.modeTag.textContent = '🎯 PvE';
     DOM.modeTag.style.color = '#9df3c4';
@@ -1547,7 +1503,6 @@ function spawnBossInArena(bossType) {
     teleportState:'idle', teleportTimer:0, _tpX:0, _tpY:0, _tpCd:rand(3,4.5)
   });
   state.bossAlive = true;
-  state.bossSpawnedWave = state.wave;
   state.events.push('pickup');
   state.announce = {text:'BOSS ' + s.name + ' Lv' + level + ' XUẤT HIỆN!', t:2.5};
   return type;
@@ -1592,7 +1547,6 @@ function startSpectate() {
   me.maxHp = 150; me.hp = 150;
   me.damage = 18; me.fireRate = 140; me.bulletSpeed = 1200;
   me.skills = []; me.skillCooldowns = {};
-  grantRandomSkills(me, 5);
   me.aimSmooth = undefined;
   state.announce = {text:'👁 XEM BOT CHƠI', t:2.5};
   show('game');
@@ -1612,7 +1566,6 @@ DOM.btnNormal.onclick = () => startGame('bot', 'normal');
 DOM.btnHard.onclick = () => startGame('bot', 'hard');
 DOM.btnInsane.onclick = () => startGame('bot', 'insane');
 
-// ═══════════════ SKILL BAR UI ═══════════════
 function updateSkillBarUI() {
   if (!state) { DOM.skillBar.innerHTML = ''; return; }
   const me = state.players[myId];
@@ -1640,8 +1593,7 @@ function updateSkillBarUI() {
 function updateSkillCooldownUI() {
   if (!state) return;
   const me = state.players[myId]; if (!me) return;
-  const btns = DOM.skillBar.querySelectorAll('.skill-btn');
-  btns.forEach(btn => {
+  DOM.skillBar.querySelectorAll('.skill-btn').forEach(btn => {
     const key = btn.dataset.skillKey;
     const cd = me.skillCooldowns[key] || 0;
     const cdEl = btn.querySelector('.cd-overlay');
@@ -1650,18 +1602,14 @@ function updateSkillCooldownUI() {
   });
 }
 
-// ═══════════════ BOT AI ═══════════════
 function autoCastSkills(caster, st) {
   if (!caster.skills?.length || caster.hp <= 0) return;
   if (caster.chargeState && caster.chargeState !== 'idle') return;
-
   const now = st.time;
   if (caster._lastBotSkillTime !== undefined && now - caster._lastBotSkillTime < 1.0) return;
-
   let nearestEnemy = null, nearestDist = Infinity;
   let clusterCount = 0, drainTargets = 0;
   const AGGRO_RANGE = 450, DRAIN_RANGE = 350;
-
   if (st.mode === 'bot') {
     for (const pid in st.players) {
       if (pid === caster.id) continue;
@@ -1679,26 +1627,20 @@ function autoCastSkills(caster, st) {
       if (d < DRAIN_RANGE) drainTargets++;
     }
   }
-
   if (!nearestEnemy) return;
-
   const aimAtNearest = Math.atan2(nearestEnemy.y - caster.y, nearestEnemy.x - caster.x);
   const hpRatio = caster.hp / caster.maxHp;
   const manaRatio = caster.mana / caster.maxMana;
   const shotReserve = 15;
   const hw = st.arena.w / 2 - 60, hh = st.arena.h / 2 - 60;
-
   const candidates = [];
-
   for (const skillKey of caster.skills) {
     if ((caster.skillCooldowns[skillKey] || 0) > 0) continue;
     const sk = BOSS_SKILL_LOOKUP[skillKey];
     if (!sk) continue;
     if (caster.mana < sk.cost + shotReserve) continue;
     if (st.mode === 'bot' && skillKey === 'split') continue;
-
     let score = 0;
-
     if (skillKey === 'charge') {
       if (hpRatio >= 0.5 && nearestDist >= 200 && nearestDist <= 450) {
         const endX = caster.x + Math.cos(aimAtNearest) * 600;
@@ -1734,9 +1676,7 @@ function autoCastSkills(caster, st) {
         else if (drainTargets >= 2 && hpRatio < 0.75) score = 55;
       }
     } else if (skillKey === 'split') {
-      if (clusterCount >= 3 && hpRatio >= 0.5) {
-        score = 55 + Math.min(25, clusterCount * 5);
-      }
+      if (clusterCount >= 3 && hpRatio >= 0.5) score = 55 + Math.min(25, clusterCount * 5);
     } else if (skillKey === 'laserbeam') {
       if (nearestDist <= 700) {
         if (nearestDist < 350) score = 80;
@@ -1752,21 +1692,14 @@ function autoCastSkills(caster, st) {
         if (clusterCount >= 3) score += 25;
       }
     } else if (skillKey === 'invis') {
-      // Dùng khi HP thấp hoặc bị vây
-      if ((hpRatio < 0.4 && clusterCount >= 1) || clusterCount >= 5) {
-        score = hpRatio < 0.25 ? 100 : 75;
-      }
+      if ((hpRatio < 0.4 && clusterCount >= 1) || clusterCount >= 5) score = hpRatio < 0.25 ? 100 : 75;
     }
-
     if (score > 0) candidates.push({ key: skillKey, score, aim: aimAtNearest });
   }
-
   if (candidates.length === 0) return;
   candidates.sort((a, b) => b.score - a.score);
-
   const best = candidates[0];
   if (best.score < 50) return;
-
   caster.aim = best.aim;
   triggerSkill(best.key, caster.id);
   caster._lastBotSkillTime = now;
@@ -1821,7 +1754,6 @@ function computePvEBotInput(bot, st) {
       const l = Math.hypot(dx, dy) || 1;
       mx += dx/l * 1.5; my += dy/l * 1.5;
     } else {
-      // Wander when no target visible
       if (!bot._wanderDir || Math.random() < 0.02) bot._wanderDir = Math.random() * TAU;
       mx = Math.cos(bot._wanderDir) * 0.6;
       my = Math.sin(bot._wanderDir) * 0.6;
@@ -1846,15 +1778,9 @@ function computePvEBotInput(bot, st) {
 function computeBotInput(bot, player, pvx, pvy) {
   const cfg = BOT_CFG[bot.difficulty];
   if (!cfg || bot.hp <= 0 || player.hp <= 0) return {x:0, y:0, aim:bot.aim || 0, shoot:false};
-  // Player invisible → bot wanders confused
   if (player.invisible > 0) {
     if (!bot._wanderDir || Math.random() < 0.03) bot._wanderDir = Math.random() * TAU;
-    return {
-      x: Math.cos(bot._wanderDir) * 0.6,
-      y: Math.sin(bot._wanderDir) * 0.6,
-      aim: bot.aim || 0,
-      shoot: false
-    };
+    return {x: Math.cos(bot._wanderDir) * 0.6, y: Math.sin(bot._wanderDir) * 0.6, aim: bot.aim || 0, shoot: false};
   }
   const dx = player.x - bot.x, dy = player.y - bot.y;
   const d = Math.hypot(dx, dy) || 1;
@@ -1932,7 +1858,6 @@ function computeBotInput(bot, player, pvx, pvy) {
   return {x:mx, y:my, aim, shoot:d < cfg.shootRange};
 }
 
-// ═══════════════ GAME LOOP ═══════════════
 let _lastLoopTs = 0;
 function gameLoop(now) {
   if (!state || state.over) return;
@@ -1944,7 +1869,6 @@ function gameLoop(now) {
   state.time += dt;
   if (state.announce) { state.announce.t -= dt; if (state.announce.t <= 0) state.announce = null; }
   const isPvE = state.mode === 'pve';
-
   if (state.isSpectate) {
     const me = state.players[myId];
     me.input = computePvEBotInput(me, state);
@@ -1961,10 +1885,8 @@ function gameLoop(now) {
       } else bot.input = {x:0, y:0, aim:bot.aim || 0, shoot:false};
     }
   }
-
   let aliveCount = 0, aliveId = null;
   for (const id in state.players) if (state.players[id].hp > 0) { aliveCount++; aliveId = id; }
-
   if (isPvE) {
     if (aliveCount === 0) {
       state.over = true;
@@ -1988,7 +1910,6 @@ function gameLoop(now) {
     }
     return;
   }
-
   if (isPvE) {
     if (state.waveActive) updateWaveSpawning(dt);
     else if (state.waveClearDelay > 0) {
@@ -1996,13 +1917,11 @@ function gameLoop(now) {
       if (state.waveClearDelay <= 0) { state.wave++; startNewWave(); }
     }
   }
-
   const me = state.players[myId];
   if (me) {
     for (const k in me.skillCooldowns) if (me.skillCooldowns[k] > 0) me.skillCooldowns[k] = Math.max(0, me.skillCooldowns[k] - dt);
     updateSkillCooldownUI();
   }
-
   for (const id in state.players) updatePlayer(state.players[id], id, dt, isPvE);
   updateBullets(dt, isPvE);
   if (isPvE) { updateEnemies(dt); updateEBullets(dt); }
@@ -2055,12 +1974,7 @@ function updatePlayer(p, id, dt, isPvE) {
   const regen = p.isBot ? MANA_REGEN_BOT : MANA_REGEN;
   const cursePenalty = (p.powerups.curse > 0) ? 0.5 : 1;
   p.mana = Math.min(p.maxMana, p.mana + regen*cursePenalty*dt);
-
-  if (p.chargeState && p.chargeState !== 'idle') {
-    updateCharge(p, id, dt);
-    return;
-  }
-
+  if (p.chargeState && p.chargeState !== 'idle') { updateCharge(p, id, dt); return; }
   if (p.powerups.burn > 0) {
     p.burnTick = (p.burnTick || 0) + dt;
     if (p.burnTick >= 0.5) {
@@ -2070,7 +1984,6 @@ function updatePlayer(p, id, dt, isPvE) {
       if (p.hp <= 0) p.hp = 0;
     }
   } else p.burnTick = 0;
-
   if (p.nukeBurn > 0) {
     p.nukeBurn -= dt;
     p.nukeBurnTick = (p.nukeBurnTick || 0) + dt;
@@ -2084,7 +1997,6 @@ function updatePlayer(p, id, dt, isPvE) {
     }
     if (p.nukeBurn < 0) p.nukeBurn = 0;
   }
-
   if (p.drainTimer > 0) {
     p.drainTimer -= dt;
     const R = p.drainRadius || 350;
@@ -2107,7 +2019,6 @@ function updatePlayer(p, id, dt, isPvE) {
     if (totalDrain > 0) p.hp = Math.min(p.maxHp, p.hp + totalDrain*0.6);
     if (p.drainTimer <= 0) p.drainTimer = 0;
   }
-
   let inX = p.input.x, inY = p.input.y;
   if (isFrozen) { inX = 0; inY = 0; }
   if (p.powerups.confuse > 0) { inX = -inX; inY = -inY; }
@@ -2124,7 +2035,6 @@ function updatePlayer(p, id, dt, isPvE) {
     p.angle = Math.atan2(inY, inX);
   }
   p.aim = p.input.aim;
-
   if (p.knockbackX || p.knockbackY) {
     p.x += p.knockbackX*dt; p.y += p.knockbackY*dt;
     const decay = Math.exp(-6*dt);
@@ -2317,7 +2227,6 @@ function updateEnemies(dt) {
     if (e.spawnAnim > 0) { e.spawnAnim -= dt; e.wobble += dt*8; continue; }
     e.wobble += dt*4;
     if (e.hitFlash > 0) e.hitFlash = Math.max(0, e.hitFlash - dt);
-    // Invisibility countdown
     if (e.invisible > 0) {
       e.invisibleTimer -= dt;
       if (e.invisibleTimer <= 0) { e.invisible = 0; e.invisibleTimer = 0; }
@@ -2347,7 +2256,6 @@ function updateEnemies(dt) {
       if (d < minD) { minD = d; target = al; }
     }
     if (!target) {
-      // Wander when no target
       if (!e._wanderDir || Math.random() < 0.02) e._wanderDir = Math.random() * TAU;
       e.x += Math.cos(e._wanderDir) * e.speed * 0.3 * dt;
       e.y += Math.sin(e._wanderDir) * e.speed * 0.3 * dt;
@@ -2587,7 +2495,6 @@ function processEvents() {
   state.events = [];
 }
 
-// ═══════════════ HUD ═══════════════
 function updateHUD(st) {
   if (!st) return;
   const me = st.players[myId]; if (!me) return;
@@ -2649,7 +2556,6 @@ function showOverlay(title, color, p1, p2) {
   if (state) { updateHUD(state); drawGame(state); }
 }
 
-// ═══════════════ INPUT ═══════════════
 const keys = Object.create(null);
 const mouse = {x:W/2, y:H/2, down:false};
 function getDigitFromEvent(e) {
@@ -2714,7 +2620,6 @@ addEventListener('resize', () => { resize(); applyCustomPositions(); });
 addEventListener('orientationchange', () => setTimeout(() => { resize(); applyCustomPositions(); }, 120));
 resize();
 
-// ═══════════════ RENDERING ═══════════════
 const CELL = 128;
 function drawMap() {
   const left = cam.x - W/2, top = cam.y - H/2;
@@ -2938,7 +2843,7 @@ function drawEnemyShape(e, t, targetPlayer) {
 }
 
 function drawEnemy(e, st, targetPlayer) {
-  if (e.invisible > 0) return; // Ẩn hoàn toàn khi tàng hình
+  if (e.invisible > 0) return;
   const t = st.time;
   ctx.save();
   ctx.translate(e.x, e.y);
@@ -3029,10 +2934,7 @@ function drawPlayer(p, isMe, st) {
   const bodyCol = isSpectateBot ? '#b46bff' : (isMe ? '#5fbf7d' : '#6ba8ff');
   const stroke = isSpectateBot ? '#6a2f9e' : (isMe ? '#1e5233' : '#1e3a8a');
   ctx.save(); ctx.translate(p.x, p.y);
-  // Invisible rendering
-  if (p.invisible > 0) {
-    ctx.globalAlpha = isMe ? 0.55 : 0.3;
-  }
+  if (p.invisible > 0) ctx.globalAlpha = isMe ? 0.55 : 0.3;
   if (p.chargeState === 'charging') {
     ctx.save();
     ctx.globalAlpha = 0.5 + 0.4*Math.sin(performance.now()*0.03);
@@ -3473,7 +3375,6 @@ function drawBossHealthBars(st) {
   }
 }
 
-// ═══════════════ BUTTON HANDLERS ═══════════════
 DOM.btnRestart.onclick = () => {
   if (!state) { startGame('pve', null); return; }
   const mode = state.mode, diff = state.difficulty;
