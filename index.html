@@ -3,245 +3,347 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
-<title>Tank Arena</title>
+<title>Tank Arena - Sci-Fi HUD</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;900&family=Rajdhani:wght@500;600;700&display=swap" rel="stylesheet">
 <style>
-  :root{--joy-size:140px;--knob-size:64px;--joy-bottom:30px;--joy-edge:30px;--skill-size:64px}
+  :root{
+    --joy-size:140px; --knob-size:64px; --joy-bottom:30px; --joy-edge:30px; --skill-size:64px;
+    --c-neon: #00f3ff; --c-green: #00ff66; --c-red: #ff0055; --c-gold: #ffcc00; --c-purple: #b46bff;
+    --bg-dark: #05080c; --panel-bg: rgba(10, 20, 30, 0.7);
+  }
   *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
-  html,body{width:100%;height:100%;overflow:hidden;background:#080c11;font-family:system-ui,"Segoe UI",Arial,sans-serif;user-select:none;color:#dff5e8;overscroll-behavior:none;touch-action:none}
+  
+  html,body{
+    width:100%;height:100%;overflow:hidden;background:var(--bg-dark);
+    font-family:'Rajdhani',system-ui,sans-serif;user-select:none;color:#dff5e8;
+    overscroll-behavior:none;touch-action:none;
+  }
+
+  /* Nền lưới không gian */
+  body::before {
+    content:''; position:fixed; inset:0; z-index:-1;
+    background-image: 
+      linear-gradient(rgba(0, 243, 255, 0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(0, 243, 255, 0.03) 1px, transparent 1px);
+    background-size: 50px 50px;
+    background-position: center center;
+    pointer-events: none;
+  }
+
   canvas{display:block;position:fixed;inset:0;cursor:crosshair;touch-action:none}
   .hidden{display:none !important}
-  .screen{position:fixed;inset:0;z-index:50;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;padding:24px;background:radial-gradient(circle at 50% 40%,#0e1e26,#05080c 70%);overflow-y:auto;text-align:center}
-  .screen h1{font-size:clamp(30px,6vw,52px);letter-spacing:6px;color:#9df3c4;text-shadow:0 0 40px #2ee07a66;margin-bottom:6px}
-  .panel{background:#0a141a;border:2px solid #1e3a30;border-radius:14px;padding:20px;display:flex;flex-direction:column;gap:12px;width:min(360px,92vw)}
-  .panel input{padding:12px 14px;border-radius:10px;background:#0e1a20;border:2px solid #26485a;color:#dff5e8;font-size:16px;outline:none;font-family:inherit;text-align:center;letter-spacing:2px}
-  .panel input:focus{border-color:#2ee07a}
-  .panel button{padding:13px;border-radius:10px;background:#12463a;color:#9df3c4;border:2px solid #2ee07a;font-size:14px;font-weight:800;letter-spacing:2px;cursor:pointer;transition:.15s}
-  .panel button:hover{background:#2ee07a;color:#04140c;transform:scale(1.02)}
-  #nameMsg{font-size:13px;text-align:center;min-height:20px;letter-spacing:1px;color:#ff8a9a}
-  .menu-stats{display:flex;flex-direction:column;gap:5px;padding:14px 22px;border-radius:12px;background:#0a141a;border:2px solid #1e3a30;font-size:13px;letter-spacing:1px;min-width:min(340px,92vw);text-align:center}
-  .menu-stats b{color:#9df3c4;font-size:16px}
-  .hint{font-size:12px;color:#6ea8a0;letter-spacing:1px;line-height:1.7;max-width:400px}
-  .btn-pve{padding:16px 24px;border-radius:12px;background:#0e2a1e;color:#9df3c4;border:2px solid #2ee07a;font-size:15px;font-weight:800;letter-spacing:2px;cursor:pointer;transition:.15s;width:min(340px,92vw);box-shadow:0 0 20px #2ee07a22}
-  .btn-pve:hover{background:#2ee07a;color:#04140c;transform:scale(1.03);box-shadow:0 0 30px #2ee07a88}
-  .mode-divider{font-size:13px;color:#ff8a9a;font-weight:800;letter-spacing:2px;margin-top:8px;margin-bottom:2px}
-  .diff-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;width:min(340px,92vw)}
-  .btn-diff{padding:14px 8px;border-radius:10px;font-size:13px;font-weight:800;letter-spacing:1px;cursor:pointer;transition:.15s;border:2px solid}
-  .btn-diff:hover{transform:scale(1.04);color:#04140c}
-  .btn-diff.easy{background:#12463a;border-color:#2ee07a;color:#9df3c4}
-  .btn-diff.easy:hover{background:#2ee07a}
-  .btn-diff.normal{background:#0d3a44;border-color:#4dd9ff;color:#9df3f4}
-  .btn-diff.normal:hover{background:#4dd9ff;color:#04141a}
-  .btn-diff.hard{background:#3a2a10;border-color:#ff8c1a;color:#ffd93d}
-  .btn-diff.hard:hover{background:#ff8c1a;color:#1a0e00}
-  .btn-diff.insane{background:#3a1020;border-color:#ff5b6e;color:#ff8a9a}
-  .btn-diff.insane:hover{background:#ff5b6e;color:#1a0410}
-  .btn-change-name{padding:8px 16px;border-radius:8px;background:#0e1a20;color:#7a9a92;border:2px solid #26485a;font-size:11px;font-weight:800;letter-spacing:2px;cursor:pointer;transition:.15s;margin-top:6px}
-  .btn-change-name:hover{background:#12463a;color:#9df3c4;border-color:#2ee07a}
-  #hud{position:fixed;inset:0;pointer-events:none;padding:18px;display:flex;justify-content:flex-end;align-items:flex-start;text-shadow:0 2px 8px #000;font-weight:700}
-  #hudLeft{position:fixed;left:20px;bottom:20px;display:flex;flex-direction:column;gap:6px;pointer-events:none;transform-origin:left bottom}
-  @media (pointer:coarse),(max-width:768px){#hudLeft{bottom:auto;top:200px;transform-origin:left top}}
-  .hpbar{width:min(240px,45vw);height:18px;border-radius:9px;background:#101c24;border:2px solid #26485a;overflow:hidden;position:relative;transition:border-color .2s;box-shadow:0 0 18px #0af3}
-  .hpbar.hurt{border-color:#ff5b6e;box-shadow:0 0 15px #ff5b6e88}
-  .hpFill{height:100%;width:100%;border-radius:7px;position:absolute;top:0;left:0;background:linear-gradient(90deg,#2ee07a,#9df3c4);transition:width .1s;z-index:2}
-  .hpFill.p2{background:linear-gradient(90deg,#3a8fe0,#9dd8ff)}
-  .shieldFill{position:absolute;top:0;left:0;height:100%;width:0%;background:linear-gradient(90deg,#ffd93d,#fff2a8);border-radius:7px;transition:width .15s;z-index:3;opacity:.85;box-shadow:0 0 10px #ffd93d}
-  .hpText{font-size:12px;margin-top:3px;opacity:.85}
-  .manabar{width:min(240px,45vw);height:12px;border-radius:6px;background:#101c24;border:2px solid #26485a;overflow:hidden;position:relative;transition:border-color .2s,box-shadow .2s;box-shadow:0 0 14px #4dd9ff22}
-  .manabar.low{border-color:#ff5b6e;box-shadow:0 0 18px #ff5b6e66;animation:manaPulse .6s infinite}
-  @keyframes manaPulse{0%,100%{opacity:1}50%{opacity:.55}}
-  .manaFill{height:100%;width:100%;border-radius:4px;position:absolute;top:0;left:0;background:linear-gradient(90deg,#3a8fe0,#4dd9ff,#9df3f4);transition:width .12s;z-index:2;box-shadow:0 0 10px #4dd9ff}
-  .manaText{font-size:11px;margin-top:2px;color:#4dd9ff;letter-spacing:1px}
-  .xpbar{width:min(240px,45vw);height:8px;border-radius:4px;background:#101c24;border:1px solid #26485a;overflow:hidden;margin-top:4px}
-  .xpFill{height:100%;width:0%;background:linear-gradient(90deg,#ffd93d,#ff8c1a);transition:width .2s}
-  .lvlText{font-size:11px;margin-top:2px;color:#ffd93d;letter-spacing:1px}
-  #scoreBox{text-align:right;font-size:12px;letter-spacing:2px;line-height:1.8;opacity:.9;margin-top:78px}
-  #scoreBox b{font-size:22px;color:#9df3c4;display:block}
-  #modeTag{color:#ff8a9a;font-size:14px;letter-spacing:2px;display:block;margin-bottom:8px;font-weight:800}
-  #btnMenu,#btnSettings{pointer-events:auto;cursor:pointer;padding:8px 16px;border-radius:8px;background:#0e1a20;color:#cfe9d8;border:2px solid #26485a;font-size:11px;font-weight:800;letter-spacing:2px;margin-top:10px}
-  #btnSettings{padding:8px 12px;color:#9df3c4;border-color:#2ee07a;margin-left:6px;margin-top:6px}
-  #btnMenu:hover,#btnSettings:hover{background:#12463a;border-color:#2ee07a;color:#9df3c4}
-  #powerupHud{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);display:flex;gap:8px;flex-wrap:wrap;justify-content:center;pointer-events:none;z-index:30;max-width:60vw}
-  .pu-badge{padding:7px 12px;border-radius:10px;background:#0a141a;border:2px solid #ffd93d;font-size:11px;font-weight:800;letter-spacing:1px;color:#ffd93d;text-shadow:0 0 10px #ffd93d;animation:pulse 1s infinite}
-  .pu-badge.bad{border-color:#ff5b6e;color:#ff5b6e;text-shadow:0 0 10px #ff5b6e}
-  @keyframes pulse{0%,100%{opacity:1}50%{opacity:.6}}
-  #overlay{position:fixed;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;background:radial-gradient(circle,#0d1a20cc,#000000f2);backdrop-filter:blur(4px);z-index:40}
-  #overlay h1{font-size:clamp(36px,9vw,72px);letter-spacing:6px;color:#ff5b6e;text-shadow:0 0 30px #ff5b6e88}
-  #overlay p{font-size:18px;letter-spacing:2px;opacity:.85;text-align:center}
-  #overlay p b{color:#9df3c4;font-size:26px}
-  .ov-btns{display:flex;gap:12px;flex-wrap:wrap;justify-content:center;margin-top:10px}
-  .ov-btns button{padding:14px 30px;border-radius:12px;font-size:15px;font-weight:800;letter-spacing:2px;transition:.15s;cursor:pointer;border:2px solid}
-  #btnRestart{border-color:#2ee07a;background:#0e2a1e;color:#9df3c4}
-  #btnRestart:hover{background:#2ee07a;color:#04140c;transform:scale(1.03)}
-  #btnToMenu{border-color:#26485a;background:#0e1a20;color:#cfe9d8}
-  #btnToMenu:hover{background:#12463a;border-color:#2ee07a;color:#9df3c4}
-  #touchControls{position:fixed;inset:0;pointer-events:none;z-index:25}
-  .joystick{position:absolute;width:var(--joy-size);height:var(--joy-size);border-radius:50%;background:rgba(46,224,122,.10);border:2px solid rgba(46,224,122,.55);bottom:var(--joy-bottom);pointer-events:auto;touch-action:none;box-shadow:inset 0 0 30px rgba(46,224,122,.15),0 0 20px rgba(46,224,122,.2);cursor:grab}
-  .joystick:active{cursor:grabbing}
-  #joyLeft{left:var(--joy-edge)}
-  #joyRight{right:var(--joy-edge);background:rgba(255,91,110,.10);border-color:rgba(255,91,110,.55);box-shadow:inset 0 0 30px rgba(255,91,110,.15),0 0 20px rgba(255,91,110,.2)}
-  .knob{position:absolute;width:var(--knob-size);height:var(--knob-size);border-radius:50%;background:rgba(46,224,122,.75);border:2px solid #2ee07a;top:50%;left:50%;transform:translate(-50%,-50%);pointer-events:none;box-shadow:0 0 25px #2ee07a88;will-change:transform;touch-action:none}
-  #joyRight .knob{background:rgba(255,91,110,.75);border-color:#ff5b6e;box-shadow:0 0 25px #ff5b6e88}
-  #skillBar{position:fixed;bottom:200px;right:20px;z-index:26;display:flex;flex-direction:column;gap:10px;pointer-events:none}
-  .skill-btn{width:var(--skill-size);height:var(--skill-size);border-radius:50%;background:rgba(10,20,26,.9);border:3px solid;color:#fff;font-size:calc(var(--skill-size) * 0.35);font-weight:900;display:flex;align-items:center;justify-content:center;pointer-events:auto;cursor:pointer;position:relative;touch-action:none;box-shadow:0 0 20px currentColor;transition:transform .1s;font-family:system-ui}
-  .skill-btn:active{transform:scale(.9)}
-  .skill-btn.cd{opacity:.4;filter:grayscale(1)}
-  .skill-btn .cd-overlay{position:absolute;inset:0;border-radius:50%;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,.7);font-size:calc(var(--skill-size) * 0.28);color:#fff;font-weight:900}
-  .skill-btn .hotkey{position:absolute;top:-6px;right:-6px;background:#0a141a;border:2px solid #fff;border-radius:50%;width:calc(var(--skill-size) * 0.3);height:calc(var(--skill-size) * 0.3);font-size:calc(var(--skill-size) * 0.15);font-weight:900;display:flex;align-items:center;justify-content:center;color:#fff}
-  @media (max-height:700px){#skillBar{bottom:180px;gap:6px}}
-  #enemiesLeftBox{position:fixed;top:16px;right:16px;z-index:10;pointer-events:none;padding:6px 14px 5px;border-radius:12px;background:rgba(10,20,26,.92);border:2px solid #ff5b6e;box-shadow:0 0 22px rgba(255,91,110,.4);text-align:center;font-size:9px;letter-spacing:1.5px;color:#ffb0b8;font-weight:800;min-width:88px;transition:border-color .2s,background .2s,box-shadow .2s}
-  #enemiesLeftBox b{display:block;font-size:24px;line-height:1;color:#ff5b6e;font-weight:900;text-shadow:0 0 12px #ff5b6e;margin-top:2px}
-  #enemiesLeftBox.clear{border-color:#2ee07a;background:rgba(10,30,20,.92);box-shadow:0 0 22px rgba(46,224,122,.45);color:#9df3c4}
-  #enemiesLeftBox.clear b{color:#2ee07a;text-shadow:0 0 12px #2ee07a}
-  #enemiesLeftBox.urgent{animation:enemiesUrgent .8s infinite}
-  @keyframes enemiesUrgent{0%,100%{box-shadow:0 0 22px rgba(255,91,110,.4)}50%{box-shadow:0 0 36px rgba(255,91,110,.95)}}
-  #aimHint{position:fixed;bottom:100px;left:50%;transform:translateX(-50%);padding:6px 12px;border-radius:8px;background:rgba(10,20,26,.85);border:1px solid #26485a;color:#7a9a92;font-size:10px;font-weight:700;letter-spacing:1px;pointer-events:none;z-index:5}
-  #minimap{position:fixed;top:20px;left:20px;z-index:15;pointer-events:none;border:2px solid #26485a;border-radius:10px;background:rgba(8,16,22,.92);box-shadow:0 0 20px rgba(46,224,122,.35),inset 0 0 20px rgba(46,224,122,.08)}
-  /* ✅ FIX #8: Khi minimap phải, scoreBox dịch sang trái để không đè */
-  body.mini-right #enemiesLeftBox{right:auto;left:16px}
-  body.mini-right #scoreBox{text-align:left;margin-right:200px}
-  #settingsPanel .st-row{display:flex;flex-direction:column;gap:2px;font-size:12px;color:#cfe9d8;letter-spacing:.5px}
-  #settingsPanel .st-row.row{flex-direction:row;justify-content:space-between;align-items:center;gap:8px}
-  #settingsPanel .st-label{display:flex;justify-content:space-between;font-size:12px;color:#cfe9d8;letter-spacing:.5px}
-  #settingsPanel .st-val{color:#9df3c4;font-weight:800;font-size:12px;font-variant-numeric:tabular-nums}
-  #settingsPanel input[type="range"],.layout-slider{-webkit-appearance:none;appearance:none;width:100%;height:22px;background:transparent;cursor:pointer;margin:0}
-  #settingsPanel input[type="range"]::-webkit-slider-runnable-track,.layout-slider::-webkit-slider-runnable-track{height:6px;border-radius:3px;background:#0e1a20;border:1px solid #26485a}
-  #settingsPanel input[type="range"]::-webkit-slider-thumb,.layout-slider::-webkit-slider-thumb{-webkit-appearance:none;appearance:none;width:18px;height:18px;border-radius:50%;background:#2ee07a;border:2px solid #04140c;margin-top:-7px;box-shadow:0 0 8px #2ee07a;cursor:grab}
-  #settingsPanel input[type="range"]::-webkit-slider-thumb:active,.layout-slider::-webkit-slider-thumb:active{cursor:grabbing}
-  #settingsPanel input[type="range"]::-moz-range-track,.layout-slider::-moz-range-track{height:6px;border-radius:3px;background:#0e1a20;border:1px solid #26485a}
-  #settingsPanel input[type="range"]::-moz-range-thumb,.layout-slider::-moz-range-thumb{width:18px;height:18px;border-radius:50%;background:#2ee07a;border:2px solid #04140c;box-shadow:0 0 8px #2ee07a;cursor:grab}
-  .st-btns{display:flex;gap:4px}
-  .st-btns button{padding:6px 10px;background:#0e1a20;border:1px solid #26485a;color:#9df3c4;border-radius:6px;font-size:11px;font-weight:800;cursor:pointer;transition:.15s}
-  .st-btns button.active{background:#2ee07a;color:#04140c;border-color:#2ee07a}
-  .st-btns button:hover{border-color:#2ee07a}
-  .le-tsize{padding:7px 10px;background:#0e1a20;border:1.5px solid #26485a;color:#7a9a92;border-radius:7px;font-size:11px;font-weight:800;cursor:pointer;letter-spacing:.5px;font-family:system-ui;transition:.15s}
-  .le-tsize.active{background:#2ee07a;border-color:#2ee07a;color:#04140c}
-  .le-tsize:hover{border-color:#2ee07a}
-  @media (pointer:coarse) and (max-height:520px),(orientation:landscape) and (max-height:520px){
-    :root{--skill-size:40px !important;--joy-size:96px !important;--knob-size:44px !important;--joy-bottom:10px !important;--joy-edge:10px !important}
-    #skillBar{flex-direction:row !important;flex-wrap:wrap !important;justify-content:center !important;bottom:114px !important;right:auto !important;left:50% !important;transform:translateX(-50%) !important;gap:4px !important;max-width:calc(100vw - 240px) !important}
-    .skill-btn{box-shadow:0 0 12px currentColor !important}
-    .skill-btn .hotkey{width:15px !important;height:15px !important;font-size:8px !important;top:-4px !important;right:-4px !important;border-width:1.5px !important}
-    .skill-btn .cd-overlay{font-size:12px !important}
-    #minimap{transform:scale(.6) !important;transform-origin:top left !important;top:8px !important;left:8px !important;right:auto !important;border-radius:6px !important}
-    #hudLeft{top:120px !important;bottom:auto !important;left:8px !important;transform:scale(.55) !important;transform-origin:left top !important;gap:3px !important}
-    .hpbar{width:220px !important;height:14px !important}
-    .manabar{width:220px !important;height:9px !important}
-    .xpbar{width:220px !important;height:5px !important}
-    .hpText{font-size:10px !important;margin-top:1px !important}
-    .manaText{font-size:9px !important;margin-top:1px !important;letter-spacing:0 !important}
-    .lvlText{font-size:9px !important;margin-top:1px !important}
-    #scoreBox{margin-top:0 !important;font-size:9px !important;line-height:1.5 !important;letter-spacing:1px !important}
-    #scoreBox b{font-size:15px !important}
-    #modeTag{font-size:10px !important;margin-bottom:4px !important;letter-spacing:1px !important}
-    #btnMenu,#btnSettings{padding:4px 8px !important;font-size:9px !important;margin-top:4px !important;letter-spacing:1px !important}
-    #enemiesLeftBox{top:8px !important;right:8px !important;padding:3px 8px !important;font-size:8px !important;min-width:60px !important;letter-spacing:.5px !important;border-radius:8px !important}
-    #enemiesLeftBox b{font-size:16px !important;margin-top:0 !important}
-    #aimHint{display:none !important}
-    #powerupHud{bottom:8px !important;max-width:55vw !important;gap:4px !important}
-    .pu-badge{padding:3px 7px !important;font-size:9px !important;letter-spacing:0 !important;animation:none !important}
+
+  /* ================= SCREENS ================= */
+  .screen{position:fixed;inset:0;z-index:50;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:20px;padding:24px;background:radial-gradient(circle at 50% 40%,#0e1e26 0%,#05080c 100%);overflow-y:auto;text-align:center}
+  
+  h1 {
+    font-family:'Orbitron', sans-serif; font-size:clamp(32px,7vw,64px); font-weight:900;
+    letter-spacing:8px; color:#fff; text-transform:uppercase;
+    text-shadow: 0 0 15px var(--c-neon), 0 0 40px var(--c-neon);
+    background: linear-gradient(to bottom, #ffffff, #88f3ff);
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    filter: drop-shadow(0 0 20px rgba(0, 243, 255, 0.4));
+    margin-bottom: 10px;
   }
-  @media (pointer:coarse) and (max-width:560px) and (max-height:520px){
-    :root{--skill-size:34px !important;--joy-size:84px !important;--knob-size:38px !important}
-    #skillBar{bottom:100px !important;max-width:calc(100vw - 200px) !important}
-    #hudLeft{top:105px !important;transform:scale(.48) !important}
+
+  /* Panel kính mờ */
+  .panel, .menu-stats {
+    background: var(--panel-bg); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(0, 243, 255, 0.3);
+    box-shadow: 0 10px 30px rgba(0,0,0,0.8), inset 0 0 20px rgba(0, 243, 255, 0.05);
+    border-radius: 4px;
+    clip-path: polygon(15px 0, 100% 0, 100% calc(100% - 15px), calc(100% - 15px) 100%, 0 100%, 0 15px);
+    display:flex; flex-direction:column; gap:12px; padding:24px; width:min(380px,92vw);
+  }
+  .menu-stats { padding: 20px 24px; gap: 8px; font-size: 16px; }
+  .menu-stats div { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px dashed rgba(0, 243, 255, 0.1); padding-bottom: 4px; }
+  .menu-stats div:last-child { border-bottom: none; }
+  .menu-stats b { color: var(--c-neon); font-family:'Orbitron', sans-serif; font-size: 18px; }
+
+  .panel input{padding:14px;border-radius:4px;background:rgba(0,0,0,0.5);border:1px solid rgba(0, 243, 255, 0.4);color:#fff;font-size:18px;outline:none;font-family:inherit;text-align:center;letter-spacing:2px;transition:0.2s}
+  .panel input:focus{border-color:var(--c-neon); box-shadow: 0 0 15px rgba(0, 243, 255, 0.3);}
+  
+  /* Nút bấm chung */
+  button {
+    font-family:'Orbitron', sans-serif; font-weight:700; letter-spacing:1px; cursor:pointer; transition:all 0.2s;
+    border-radius: 4px; text-transform: uppercase; border: 1px solid transparent;
+  }
+  button:active { transform: scale(0.97); }
+
+  /* Nút Menu Chính */
+  .btn-pve {
+    padding:16px 24px; background:rgba(0, 243, 255, 0.1); color:var(--c-neon); border-color:var(--c-neon);
+    font-size:16px; width:100%; clip-path: polygon(10px 0, 100% 0, 100% calc(100% - 10px), calc(100% - 10px) 100%, 0 100%, 0 10px);
+  }
+  .btn-pve:hover { background:var(--c-neon); color:#000; box-shadow:0 0 20px var(--c-neon); }
+  #btnSpectate { background:rgba(180,107,255,0.1); color:var(--c-purple); border-color:var(--c-purple); }
+  #btnSpectate:hover { background:var(--c-purple); color:#000; box-shadow:0 0 20px var(--c-purple); }
+  
+  /* Nút Độ Khó */
+  .mode-divider { display: flex; align-items: center; justify-content: center; gap: 15px; font-family:'Orbitron', sans-serif; font-size: 12px; color: #5a7a8a; margin: 10px 0; }
+  .mode-divider::before, .mode-divider::after { content: ''; height: 1px; width: 40px; background: #26485a; }
+  
+  .diff-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;width:min(380px,92vw)}
+  .btn-diff{padding:12px 8px; font-size:13px; background:rgba(10,20,26,0.8); border:1px solid #26485a; color:#cfe9d8;}
+  .btn-diff:hover { transform: translateY(-2px); }
+  .btn-diff.easy:hover { border-color:var(--c-green); color:var(--c-green); box-shadow:0 0 15px rgba(0,255,102,0.3); }
+  .btn-diff.normal:hover { border-color:var(--c-neon); color:var(--c-neon); box-shadow:0 0 15px rgba(0,243,255,0.3); }
+  .btn-diff.hard:hover { border-color:var(--c-gold); color:var(--c-gold); box-shadow:0 0 15px rgba(255,204,0,0.3); }
+  .btn-diff.insane:hover { border-color:var(--c-red); color:var(--c-red); box-shadow:0 0 15px rgba(255,0,85,0.3); }
+
+  .btn-change-name { padding:10px 20px; background:transparent; border:1px solid #26485a; color:#7a9a92; font-size:12px; }
+  .btn-change-name:hover { color:#fff; border-color:#fff; }
+
+  /* ================= IN-GAME HUD ================= */
+  #hud{position:fixed;inset:0;pointer-events:none;font-family:'Orbitron', sans-serif;}
+  #hudLeft{position:fixed;left:20px;bottom:20px;display:flex;flex-direction:column;gap:8px;transform-origin:left bottom;}
+  @media (pointer:coarse),(max-width:768px){#hudLeft{bottom:auto;top:100px;transform-origin:left top;}}
+
+  /* Thanh Máu / Mana */
+  .hpbar, .manabar, .xpbar {
+    position: relative; background: rgba(0,0,0,0.6); border: 1px solid rgba(0,243,255,0.3);
+    border-radius: 2px; overflow: hidden; box-shadow: 0 0 10px rgba(0,0,0,0.8);
+  }
+  .hpbar { width: 260px; height: 22px; border-color: rgba(255, 0, 85, 0.4); }
+  .manabar { width: 220px; height: 14px; margin-top: 2px; border-color: rgba(0, 243, 255, 0.4); }
+  .xpbar { width: 220px; height: 8px; margin-top: 4px; border-color: rgba(255, 204, 0, 0.4); }
+  
+  /* Hiệu ứng vát góc cho thanh bar */
+  .hpbar::before, .manabar::before { content: ''; position:absolute; inset:0; border: 1px solid #fff; opacity: 0.1; pointer-events: none; }
+
+  .hpFill { height: 100%; background: linear-gradient(90deg, #ff0055, #ff5b6e); box-shadow: 0 0 15px #ff0055; transition: width 0.1s; }
+  .manaFill { height: 100%; background: linear-gradient(90deg, #00f3ff, #88f3ff); box-shadow: 0 0 10px #00f3ff; transition: width 0.1s; }
+  .xpFill { height: 100%; background: linear-gradient(90deg, #ffcc00, #ffeeaa); box-shadow: 0 0 10px #ffcc00; transition: width 0.2s; }
+  .shieldFill { position: absolute; top: 0; left: 0; height: 100%; background: rgba(255, 255, 255, 0.4); z-index: 3; transition: width 0.15s; }
+
+  .hpText, .manaText, .lvlText { font-size: 12px; letter-spacing: 1px; text-shadow: 0 1px 3px #000; font-weight: 700; }
+  .hpText { color: #ff8a9a; }
+  .manaText { color: #88f3ff; font-size: 11px; }
+  .lvlText { color: #ffd93d; font-size: 11px; margin-top: 2px; }
+
+  /* Góc phải trên (Score / Wave / Menu) */
+  #scoreBox {
+    position: fixed; top: 20px; right: 20px; text-align: right;
+    background: var(--panel-bg); backdrop-filter: blur(10px);
+    padding: 15px; border: 1px solid rgba(0,243,255,0.3); border-radius: 4px;
+    clip-path: polygon(0 0, 100% 0, 100% calc(100% - 15px), calc(100% - 15px) 100%, 0 100%);
+    display: flex; flex-direction: column; gap: 5px; pointer-events: auto;
+  }
+  #scoreBox #modeTag { font-size: 12px; color: var(--c-neon); font-weight: 800; letter-spacing: 2px; margin-bottom: 5px; }
+  #scoreBox .stat-row { display: flex; justify-content: space-between; gap: 20px; font-size: 14px; color: #88a; }
+  #scoreBox b { font-family: 'Orbitron', sans-serif; font-size: 20px; color: #fff; text-shadow: 0 0 10px var(--c-neon); }
+  #btnMenu, #btnSettings {
+    background: transparent; border: 1px solid #26485a; color: #fff;
+    padding: 8px; font-size: 11px; margin-top: 10px; width: 100%; border-radius: 2px;
+  }
+  #btnMenu:hover, #btnSettings:hover { background: #26485a; border-color: var(--c-neon); color: var(--c-neon); }
+
+  /* Hộp Quái Còn Lại */
+  #enemiesLeftBox {
+    position: fixed; top: 20px; left: 50%; transform: translateX(-50%);
+    background: rgba(10, 20, 30, 0.85); backdrop-filter: blur(8px);
+    border: 1px solid var(--c-red); border-radius: 4px; padding: 8px 20px;
+    text-align: center; font-family: 'Orbitron', sans-serif; color: var(--c-red);
+    clip-path: polygon(10px 0, calc(100% - 10px) 0, 100% 100%, 0 100%);
+    box-shadow: 0 0 20px rgba(255,0,85,0.3);
+  }
+  #enemiesLeftBox b { display: block; font-size: 26px; font-weight: 900; line-height: 1; }
+  #enemiesLeftBox.clear { border-color: var(--c-green); color: var(--c-green); box-shadow: 0 0 20px rgba(0,255,102,0.3); }
+
+  /* Powerups (Vật phẩm) */
+  #powerupHud { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); display: flex; gap: 8px; pointer-events: none; z-index: 30; }
+  .pu-badge { padding: 6px 12px; border-radius: 2px; background: rgba(0,0,0,0.7); border: 1px solid var(--c-gold); color: var(--c-gold); font-size: 11px; font-family: 'Orbitron', sans-serif; font-weight: 700; animation: pulse 1.5s infinite; }
+  .pu-badge.bad { border-color: var(--c-red); color: var(--c-red); }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.6} }
+
+  /* ================= TOUCH CONTROLS & SKILLS ================= */
+  .joystick { position: absolute; width: var(--joy-size); height: var(--joy-size); border-radius: 50%; background: rgba(0, 243, 255, 0.05); border: 2px solid rgba(0, 243, 255, 0.3); bottom: var(--joy-bottom); pointer-events: auto; touch-action: none; cursor: grab; box-shadow: 0 0 20px rgba(0,243,255,0.1) inset; }
+  #joyLeft { left: var(--joy-edge); }
+  #joyRight { right: var(--joy-edge); background: rgba(255, 0, 85, 0.05); border-color: rgba(255, 0, 85, 0.3); }
+  .knob { position: absolute; width: var(--knob-size); height: var(--knob-size); border-radius: 50%; background: rgba(0, 243, 255, 0.6); border: 2px solid #fff; top: 50%; left: 50%; transform: translate(-50%,-50%); pointer-events: none; box-shadow: 0 0 20px var(--c-neon); }
+  #joyRight .knob { background: rgba(255, 0, 85, 0.6); box-shadow: 0 0 20px var(--c-red); }
+
+  #skillBar { position: fixed; bottom: 30px; right: 20px; display: flex; flex-direction: row; flex-wrap: wrap-reverse; justify-content: flex-end; gap: 12px; width: 180px; z-index: 26; pointer-events: none; }
+  .skill-btn { width: var(--skill-size); height: var(--skill-size); background: rgba(10, 20, 30, 0.85); border: 2px solid currentColor; display: flex; align-items: center; justify-content: center; pointer-events: auto; cursor: pointer; position: relative; font-size: calc(var(--skill-size) * 0.4); clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%); transition: 0.15s; }
+  .skill-btn:hover { background: rgba(255,255,255,0.1); transform: scale(1.1); filter: drop-shadow(0 0 10px currentColor); }
+  .skill-btn:active { transform: scale(0.95); }
+  .skill-btn.cd { filter: grayscale(1); opacity: 0.5; }
+  .cd-overlay { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; background: rgba(0,0,0,0.8); color: #fff; font-family: 'Orbitron', sans-serif; font-size: 20px; font-weight: 900; }
+  .hotkey { position: absolute; bottom: -5px; right: 5px; background: #000; border: 1px solid #fff; color: #fff; font-size: 10px; padding: 1px 4px; font-family: 'Orbitron', sans-serif; border-radius: 2px; }
+
+  /* Minimap */
+  #minimap { position: fixed; top: 20px; left: 20px; z-index: 15; border: 2px solid rgba(0, 243, 255, 0.5); border-radius: 50%; background: rgba(5, 10, 15, 0.9); box-shadow: 0 0 25px rgba(0, 243, 255, 0.2), inset 0 0 20px rgba(0, 243, 255, 0.1); pointer-events: none; }
+  #minimap::after { content:''; position:absolute; inset:0; border-radius:50%; background: conic-gradient(from 0deg, transparent 0deg, rgba(0,243,255,0.1) 90deg, transparent 90deg); animation: sweep 3s linear infinite; pointer-events:none; }
+  @keyframes sweep { 100% { transform: rotate(360deg); } }
+
+  /* ================= OVERLAYS & MODALS ================= */
+  #settingsPanel {
+    position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: 75;
+    background: rgba(10, 20, 30, 0.95); backdrop-filter: blur(15px);
+    border: 1px solid var(--c-neon); width: min(400px, 94vw); max-height: 90vh; overflow-y: auto;
+    padding: 24px; display: flex; flex-direction: column; gap: 12px;
+    clip-path: polygon(20px 0, 100% 0, 100% calc(100% - 20px), calc(100% - 20px) 100%, 0 100%, 0 20px);
+    box-shadow: 0 0 40px rgba(0, 243, 255, 0.2);
+  }
+  #settingsPanel .st-row { display: flex; flex-direction: column; gap: 5px; font-size: 13px; color: #cfe9d8; }
+  #settingsPanel .st-row.row { flex-direction: row; justify-content: space-between; align-items: center; }
+  #settingsPanel input[type="range"] { -webkit-appearance: none; width: 100%; height: 20px; background: transparent; cursor: pointer; }
+  #settingsPanel input[type="range"]::-webkit-slider-runnable-track { height: 4px; background: #0e1a20; border: 1px solid #26485a; }
+  #settingsPanel input[type="range"]::-webkit-slider-thumb { -webkit-appearance: none; width: 16px; height: 16px; background: var(--c-neon); margin-top: -6px; border: 2px solid #000; box-shadow: 0 0 10px var(--c-neon); }
+  .st-btns button { padding: 5px 10px; background: #0e1a20; border: 1px solid #26485a; color: #7a9a92; font-size: 11px; }
+  .st-btns button.active { background: var(--c-neon); color: #000; border-color: var(--c-neon); }
+
+  #pauseOverlay, #overlay {
+    position: fixed; inset: 0; z-index: 70; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 20px;
+    background: rgba(5, 8, 12, 0.85); backdrop-filter: blur(8px); text-align: center; padding: 24px;
+  }
+  #overlay h1 { font-size: 80px; margin: 0; }
+  #overlay p { font-size: 20px; color: #cfe9d8; letter-spacing: 1px; }
+  #overlay p b { font-family: 'Orbitron', sans-serif; font-size: 32px; color: var(--c-neon); }
+  .ov-btns { display: flex; gap: 15px; margin-top: 20px; }
+  .ov-btns button { padding: 15px 40px; font-size: 16px; background: transparent; border: 1px solid #fff; color: #fff; clip-path: polygon(10px 0, 100% 0, 100% calc(100% - 10px), calc(100% - 10px) 100%, 0 100%, 0 10px); }
+  #btnRestart { border-color: var(--c-green); color: var(--c-green); }
+  #btnRestart:hover { background: var(--c-green); color: #000; box-shadow: 0 0 20px var(--c-green); }
+  #btnToMenu { border-color: #fff; }
+  #btnToMenu:hover { background: #fff; color: #000; }
+
+  /* Responsive Mobile */
+  @media (max-height:700px) {
+    :root { --skill-size: 48px; --joy-size: 110px; --knob-size: 50px; }
+    #skillBar { width: 150px; gap: 8px; bottom: 20px; }
+    #hudLeft { transform: scale(0.8); }
   }
 </style>
 </head>
 <body>
 
+<!-- MÀN HÌNH NHẬP TÊN -->
 <div id="nameScreen" class="screen">
-  <h1>TANK ARENA</h1>
-  <div class="panel">
-    <input id="inputName" placeholder="Nhập tên của bạn" maxlength="20">
-    <button id="btnEnterGame">VÀO GAME</button>
-    <div id="nameMsg"></div>
+  <h1 style="font-size: 50px; letter-spacing: 4px;">TANK ARENA</h1>
+  <div class="panel" style="border-color:var(--c-neon); padding: 30px;">
+    <div style="font-family:'Orbitron', sans-serif; color:var(--c-neon); margin-bottom: 10px; font-size: 14px;">NHẬP TÊN CHIẾN BINH</div>
+    <input id="inputName" placeholder="TÊN CỦA BẠN..." maxlength="20">
+    <button id="btnEnterGame" class="btn-pve" style="margin-top: 10px;">VÀO GAME</button>
+    <div id="nameMsg" style="font-size:13px; text-align:center; min-height:20px; color:var(--c-red); margin-top: 10px;"></div>
   </div>
-  <div class="hint">Tên được lưu lại cho lần chơi sau. Không cần tài khoản.</div>
 </div>
 
+<!-- MÀN HÌNH MENU -->
 <div id="menuScreen" class="screen hidden">
   <h1>TANK ARENA</h1>
+  
   <div class="menu-stats">
-    <div>Xin chào, <b id="menuUsername">Player</b></div>
-    <div>🏆 Kỷ lục PvE: <b id="menuHighScore">0</b></div>
-    <div>⚔️ Thắng bot: <b id="menuBotWins">0</b></div>
+    <div><span>CHIẾN BINH</span> <b id="menuUsername">Player</b></div>
+    <div><span>KỶ LỤC PVE</span> <b id="menuHighScore">0</b></div>
+    <div><span>THẮNG BOT</span> <b id="menuBotWins">0</b></div>
   </div>
-  <button id="btnPvE" class="btn-pve">🎯 CÀY CẤP - ĐÁNH QUÁI</button>
-  <button id="btnSpectate" class="btn-pve" style="background:#1a0e2e;border-color:#b46bff;color:#e0c6ff;box-shadow:0 0 20px #b46bff22">👁 XEM BOT CHƠI (TỰ ĐỘNG)</button>
-  <div class="mode-divider">— HOẶC —</div>
-  <div class="mode-divider" style="color:#9df3c4">🤖 ĐẤU BOT (SKILL NGẪU NHIÊN)</div>
+
+  <button id="btnPvE" class="btn-pve" style="margin-top: 10px;">▶ CHIẾN DỊCH (PVE)</button>
+  <button id="btnSpectate" class="btn-pve">👁 XEM BOT TỰ ĐỘNG</button>
+  
+  <div class="mode-divider">ĐẤU VỚI BOT</div>
+  
   <div class="diff-grid">
-    <button id="btnEasy" class="btn-diff easy">😊 DỄ</button>
-    <button id="btnNormal" class="btn-diff normal">😐 BÌNH THƯỜNG</button>
-    <button id="btnHard" class="btn-diff hard">😠 KHÁ</button>
-    <button id="btnInsane" class="btn-diff insane">💀 SIÊU KHÓ</button>
+    <button id="btnEasy" class="btn-diff easy">DỄ</button>
+    <button id="btnNormal" class="btn-diff normal">BÌNH THƯỜNG</button>
+    <button id="btnHard" class="btn-diff hard">KHÁ</button>
+    <button id="btnInsane" class="btn-diff insane">SIÊU KHÓ</button>
   </div>
-  <button id="btnChangeName" class="btn-change-name">✏️ ĐỔI TÊN</button>
-  <button id="btnSettingsMenu" class="btn-change-name" style="background:#0e2a1e;border-color:#2ee07a;color:#9df3c4">⚙ CÀI ĐẶT GIAO DIỆN</button>
+
+  <div style="display:flex; gap:10px; margin-top: 15px;">
+    <button id="btnChangeName" class="btn-change-name">ĐỔI TÊN</button>
+    <button id="btnSettingsMenu" class="btn-change-name">CÀI ĐẶT</button>
+  </div>
 </div>
 
+<!-- GAME CANVAS & HUD -->
 <canvas id="game" class="hidden"></canvas>
+
 <div id="hud" class="hidden">
   <div id="hudLeft">
-    <div class="hpbar" id="hpBarP1"><div class="hpFill" id="hpFillP1"></div><div class="shieldFill" id="shieldFillP1"></div></div>
-    <div class="hpText" id="hpTextP1">100 / 100</div>
-    <div class="manabar" id="manaBarP1"><div class="manaFill" id="manaFillP1"></div></div>
-    <div class="manaText" id="manaTextP1">MANA 100 / 100</div>
-    <div class="xpbar" id="xpBarWrapP1"><div class="xpFill" id="xpFillP1"></div></div>
-    <div class="lvlText" id="lvlWrapP1">LV <span id="lvlValP1">1</span> • XP <span id="xpValP1">0</span>/<span id="xpNeedP1">5</span></div>
-    <div id="p2Hud" class="hidden">
-      <div class="hpbar" id="hpBarP2" style="margin-top:10px;border-color:#3a8fe0"><div class="hpFill p2" id="hpFillP2"></div></div>
-      <div class="hpText" id="hpTextP2">BOT · 100 / 100</div>
+    <div class="hpbar" id="hpBarP1">
+      <div class="hpFill" id="hpFillP1"></div>
+      <div class="shieldFill" id="shieldFillP1"></div>
+    </div>
+    <div class="hpText" id="hpTextP1" style="text-align:right;">100 / 100</div>
+    
+    <div class="manabar" id="manaBarP1">
+      <div class="manaFill" id="manaFillP1"></div>
+    </div>
+    <div class="manaText" id="manaTextP1" style="text-align:right;">MANA 100 / 100</div>
+    
+    <div class="xpbar" id="xpBarWrapP1">
+      <div class="xpFill" id="xpFillP1"></div>
+    </div>
+    <div class="lvlText" id="lvlWrapP1" style="text-align:right;">LV <span id="lvlValP1">1</span> • XP <span id="xpValP1">0</span>/<span id="xpNeedP1">5</span></div>
+    
+    <!-- P2 HUD (Dành cho chế độ đấu Bot) -->
+    <div id="p2Hud" class="hidden" style="margin-top: 10px;">
+      <div class="hpbar" id="hpBarP2" style="border-color:var(--c-neon);">
+        <div class="hpFill p2" id="hpFillP2" style="background:linear-gradient(90deg, #00f3ff, #88f3ff); box-shadow:0 0 15px #00f3ff;"></div>
+      </div>
+      <div class="hpText" id="hpTextP2" style="color:var(--c-neon); text-align:right;">BOT · 100 / 100</div>
     </div>
   </div>
+
   <div id="scoreBox">
-    <span id="modeTag"></span>
-    ĐIỂM<b id="scoreVal">0</b>
-    MÀN<b id="waveVal">1</b>
-    <button id="btnMenu">☰ MENU</button>
-    <button id="btnSettings">⚙</button>
+    <span id="modeTag">CHIẾN DỊCH</span>
+    <div class="stat-row"><span>ĐIỂM</span> <b id="scoreVal">0</b></div>
+    <div class="stat-row"><span>MÀN</span> <b id="waveVal">1</b></div>
+    <div style="display:flex; gap:5px;">
+      <button id="btnMenu">☰ MENU</button>
+      <button id="btnSettings">⚙</button>
+    </div>
   </div>
 </div>
+
+<div id="enemiesLeftBox" class="hidden">MỤC TIÊU CÒN<b id="enemiesLeftVal">0</b></div>
 <div id="powerupHud" class="hidden"></div>
 <canvas id="minimap" class="hidden"></canvas>
-<div id="enemiesLeftBox" class="hidden">QUÁI CÒN<b id="enemiesLeftVal">0</b></div>
+
 <div id="touchControls" class="hidden">
   <div id="joyLeft" class="joystick"><div class="knob" id="knobLeft"></div></div>
   <div id="joyRight" class="joystick"><div class="knob" id="knobRight"></div></div>
 </div>
 <div id="skillBar" class="hidden"></div>
-<div id="aimHint" class="hidden">🖱️ Di chuột để ngắm • Giữ chuột trái để bắn • Phím <b>WASD</b> di chuyển • <b>1-8</b> kỹ năng</div>
+<div id="aimHint" class="hidden" style="position:fixed;bottom:100px;left:50%;transform:translateX(-50%);padding:6px 12px;border-radius:4px;background:rgba(10,20,26,.85);border:1px solid var(--c-neon);color:#88f3ff;font-size:10px;font-weight:700;letter-spacing:1px;pointer-events:none;z-index:5;font-family:'Orbitron',sans-serif;">🖱️ Di chuột để ngắm • Giữ chuột trái để bắn • Phím <b>WASD</b> di chuyển • <b>1-8</b> kỹ năng</div>
 
-<div id="settingsPanel" class="hidden" style="position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);z-index:75;background:rgba(10,20,26,.98);border:2px solid #2ee07a;border-radius:14px;padding:18px 20px;width:min(380px,94vw);box-shadow:0 0 40px rgba(46,224,122,.5);display:flex;flex-direction:column;gap:10px;max-height:92vh;overflow-y:auto">
-  <div style="font-size:15px;font-weight:800;letter-spacing:2px;color:#9df3c4;text-align:center;margin-bottom:4px">⚙️ CÀI ĐẶT GIAO DIỆN</div>
-  <div class="st-row"><div class="st-label"><span>Kích thước minimap</span><span class="st-val" id="vMiniSize">170px</span></div><input type="range" id="rMiniSize" min="100" max="320" step="1" value="170"></div>
-  <div class="st-row"><div class="st-label"><span>Minimap — khoảng cách ngang</span><span class="st-val" id="vMiniX">20px</span></div><input type="range" id="rMiniX" min="0" max="500" step="1" value="20"></div>
-  <div class="st-row"><div class="st-label"><span>Minimap — khoảng cách dọc</span><span class="st-val" id="vMiniY">20px</span></div><input type="range" id="rMiniY" min="0" max="500" step="1" value="20"></div>
-  <div class="st-row row"><span>Minimap nằm bên</span><div class="st-btns"><button data-set="miniCorner" data-val="left">TRÁI</button><button data-set="miniCorner" data-val="right">PHẢI</button></div></div>
-  <div class="st-row"><div class="st-label"><span>Kích thước joystick</span><span class="st-val" id="vJoySize">140px</span></div><input type="range" id="rJoySize" min="80" max="240" step="1" value="140"></div>
-  <div class="st-row"><div class="st-label"><span>Joystick — cách đáy</span><span class="st-val" id="vJoyBottom">30px</span></div><input type="range" id="rJoyBottom" min="5" max="300" step="1" value="30"></div>
-  <div class="st-row"><div class="st-label"><span>Joystick — cách cạnh</span><span class="st-val" id="vJoyEdge">30px</span></div><input type="range" id="rJoyEdge" min="5" max="300" step="1" value="30"></div>
-  <div class="st-row"><div class="st-label"><span>Scale HUD</span><span class="st-val" id="vHudScale">1.00</span></div><input type="range" id="rHudScale" min="0.6" max="1.8" step="0.05" value="1"></div>
+<!-- CÀI ĐẶT -->
+<div id="settingsPanel" class="hidden">
+  <div style="font-family:'Orbitron', sans-serif; font-size:16px; font-weight:900; letter-spacing:2px; color:var(--c-neon); text-align:center; margin-bottom:10px;">HỆ THỐNG</div>
+  <div class="st-row"><div class="st-label"><span>Minimap Size</span><span class="st-val" id="vMiniSize">170px</span></div><input type="range" id="rMiniSize" min="100" max="320" step="1" value="170"></div>
+  <div class="st-row"><div class="st-label"><span>Minimap X</span><span class="st-val" id="vMiniX">20px</span></div><input type="range" id="rMiniX" min="0" max="500" step="1" value="20"></div>
+  <div class="st-row"><div class="st-label"><span>Minimap Y</span><span class="st-val" id="vMiniY">20px</span></div><input type="range" id="rMiniY" min="0" max="500" step="1" value="20"></div>
+  <div class="st-row row"><span>Minimap Vị Trí</span><div class="st-btns"><button data-set="miniCorner" data-val="left">TRÁI</button><button data-set="miniCorner" data-val="right">PHẢI</button></div></div>
+  
+  <div class="st-row"><div class="st-label"><span>Joystick Size</span><span class="st-val" id="vJoySize">140px</span></div><input type="range" id="rJoySize" min="80" max="240" step="1" value="140"></div>
+  <div class="st-row"><div class="st-label"><span>HUD Scale</span><span class="st-val" id="vHudScale">1.00</span></div><input type="range" id="rHudScale" min="0.6" max="1.8" step="0.05" value="1"></div>
+  
   <div class="st-row row"><span>Gợi ý ngắm</span><div class="st-btns"><button data-set="aimHint" data-val="on">BẬT</button><button data-set="aimHint" data-val="off">TẮT</button></div></div>
-  <div class="st-row row"><span>Hộp quái còn</span><div class="st-btns"><button data-set="enemiesLeft" data-val="on">BẬT</button><button data-set="enemiesLeft" data-val="off">TẮT</button></div></div>
+  <div class="st-row row"><span>Hộp quái</span><div class="st-btns"><button data-set="enemiesLeft" data-val="on">BẬT</button><button data-set="enemiesLeft" data-val="off">TẮT</button></div></div>
   <div class="st-row row"><span>Rung màn hình</span><div class="st-btns"><button data-set="screenShake" data-val="on">BẬT</button><button data-set="screenShake" data-val="off">TẮT</button></div></div>
   <div class="st-row row"><span>Âm thanh</span><div class="st-btns"><button data-set="sound" data-val="on">BẬT</button><button data-set="sound" data-val="off">TẮT</button></div></div>
-  <button id="stLayout" style="padding:12px;background:#0d3a44;border:2px solid #4dd9ff;color:#9df3f4;border-radius:8px;cursor:pointer;font-size:12px;font-weight:800;letter-spacing:1px;margin-top:4px">🎮 CHỈNH VỊ TRÍ & KÍCH THƯỚC</button>
-  <button id="stReset" style="padding:8px;background:#2a1800;border:2px solid #ff8c1a;color:#ffd93d;border-radius:8px;cursor:pointer;font-size:12px;font-weight:800;margin-top:4px">↺ MẶC ĐỊNH</button>
-  <button id="stClose" style="padding:10px;background:#1a1a1a;border:2px solid #888;color:#ccc;border-radius:8px;cursor:pointer;font-size:12px;font-weight:800">ĐÓNG</button>
+  
+  <button id="stLayout" style="padding:12px;background:rgba(0,243,255,0.1);border:1px solid var(--c-neon);color:var(--c-neon);margin-top:10px;">TÙY CHỈNH VỊ TRÍ</button>
+  <button id="stReset" style="padding:10px;background:rgba(255,0,85,0.1);border:1px solid var(--c-red);color:var(--c-red);">MẶC ĐỊNH</button>
+  <button id="stClose" style="padding:12px;background:#1a1a1a;border:1px solid #555;color:#ccc;">ĐÓNG</button>
 </div>
 
-<div id="pauseOverlay" class="hidden" style="position:fixed;inset:0;z-index:70;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;background:radial-gradient(circle,#0d1a20ee,#000000fa);backdrop-filter:blur(6px);text-align:center;padding:24px">
-  <div style="font-size:64px">⏸️</div>
-  <h1 style="font-size:clamp(28px,6vw,48px);letter-spacing:6px;color:#9df3c4;text-shadow:0 0 30px #2ee07a88">TẠM DỪNG</h1>
-  <p style="font-size:14px;letter-spacing:1px;opacity:.8;max-width:360px;line-height:1.7;color:#cfe9d8">Bạn vừa chuyển tab hoặc rời ứng dụng.<br>Game đã tạm dừng để bạn không bị chết oan.</p>
-  <button id="btnResume" style="padding:16px 40px;border-radius:12px;font-size:15px;font-weight:800;letter-spacing:2px;cursor:pointer;border:2px solid #2ee07a;background:#0e2a1e;color:#9df3c4;transition:.15s">▶ TIẾP TỤC</button>
+<!-- TẠM DỪNG -->
+<div id="pauseOverlay" class="hidden">
+  <div style="font-size:60px; filter: drop-shadow(0 0 20px var(--c-neon));">⏸</div>
+  <h1 style="font-size: 40px; letter-spacing: 5px;">TẠM DỪNG</h1>
+  <p style="font-size:16px; opacity:.8; color:#88a;">HỆ THỐNG ĐANG CHỜ LỆNH...</p>
+  <button id="btnResume" class="ov-btns" style="padding:15px 40px; border:1px solid var(--c-neon); background:transparent; color:var(--c-neon); font-size:16px; clip-path: polygon(10px 0, 100% 0, 100% calc(100% - 10px), calc(100% - 10px) 100%, 0 100%, 0 10px);">TIẾP TỤC</button>
 </div>
 
+<!-- KẾT THÚC -->
 <div id="overlay" class="hidden">
   <h1 id="ovTitle">GAME OVER</h1>
   <p id="ovP1"></p>
-  <p id="ovP2" style="font-size:14px;opacity:.75"></p>
+  <p id="ovP2" style="font-size:16px; opacity:.7; color:#88a;"></p>
   <div class="ov-btns">
     <button id="btnRestart">CHƠI LẠI</button>
     <button id="btnToMenu">VỀ MENU</button>
@@ -264,9 +366,10 @@ const MANA_COST_BOT_SHOT = 3, MANA_REGEN_BOT = 18;
 const XP_ORB_RADIUS = 34, XP_ORB_MAGNET_RANGE = 90, XP_ORB_MAGNET_SPEED = 400, MAGNET_POWERUP_RANGE = 600;
 const MAX_XP_ORBS = 300, MAX_PARTICLES = 120, MAX_BULLETS = 220, MAX_EBULLETS = 180, MAX_ENEMIES = 150;
 const INVIS_DURATION = 4;
+const ALLY_LIFE = 7;
 
 let state = null, lastTime = performance.now(), paused = false, wasPausedBySettings = false;
-let _frameDt = 0.016; /* ✅ FIX #9: dt toàn cục cho flash/shake */
+let _frameDt = 0.016;
 const myId = 'PLAYER';
 let uiSettings = Object.assign({}, DEFAULT_UI);
 try { Object.assign(uiSettings, JSON.parse(localStorage.getItem(UI_KEY) || '{}')); } catch(_) {}
@@ -342,13 +445,17 @@ function drawMinimap(st) {
   for (const e of st.enemies) {
     if (e.invisible > 0) continue;
     const p = toMini(e.x, e.y);
-    if (e.isAlly) { mctx.fillStyle = '#ff66b2'; mctx.beginPath(); mctx.arc(p.x, p.y, 1.6, 0, TAU); mctx.fill(); }
+    if (e.isAlly) {
+      mctx.save(); mctx.shadowColor = '#2ee07a'; mctx.shadowBlur = 6; mctx.fillStyle = '#2ee07a';
+      mctx.beginPath(); mctx.arc(p.x, p.y, 2.2, 0, TAU); mctx.fill();
+      mctx.shadowBlur = 0; mctx.strokeStyle = '#9df3c4'; mctx.lineWidth = 0.8;
+      mctx.beginPath(); mctx.arc(p.x, p.y, 2.9, 0, TAU); mctx.stroke(); mctx.restore();
+    }
     else if (e.isBoss) {
-      mctx.save(); mctx.shadowColor = e.color; mctx.shadowBlur = 8;
-      mctx.fillStyle = e.color; mctx.beginPath(); mctx.arc(p.x, p.y, 4.5, 0, TAU); mctx.fill();
+      mctx.save(); mctx.shadowColor = e.color; mctx.shadowBlur = 8; mctx.fillStyle = e.color;
+      mctx.beginPath(); mctx.arc(p.x, p.y, 4.5, 0, TAU); mctx.fill();
       mctx.shadowBlur = 0; mctx.strokeStyle = '#fff'; mctx.lineWidth = 1.2;
-      mctx.beginPath(); mctx.arc(p.x, p.y, 5.8, 0, TAU); mctx.stroke();
-      mctx.restore();
+      mctx.beginPath(); mctx.arc(p.x, p.y, 5.8, 0, TAU); mctx.stroke(); mctx.restore();
     } else {
       mctx.fillStyle = '#ff5b6e'; mctx.beginPath(); mctx.arc(p.x, p.y, 1.6, 0, TAU); mctx.fill();
     }
@@ -363,14 +470,12 @@ function drawMinimap(st) {
       mctx.lineTo(pos.x + Math.cos(p.aim)*14, pos.y + Math.sin(p.aim)*14); mctx.stroke();
       mctx.fillStyle = '#2ee07a'; mctx.beginPath(); mctx.arc(pos.x, pos.y, 3.6, 0, TAU); mctx.fill();
       mctx.shadowBlur = 0; mctx.strokeStyle = '#fff'; mctx.lineWidth = 1.2;
-      mctx.beginPath(); mctx.arc(pos.x, pos.y, 4.6, 0, TAU); mctx.stroke();
-      mctx.restore();
+      mctx.beginPath(); mctx.arc(pos.x, pos.y, 4.6, 0, TAU); mctx.stroke(); mctx.restore();
     } else if (p.invisible <= 0) {
       mctx.save(); mctx.shadowColor = '#6ba8ff'; mctx.shadowBlur = 6;
       mctx.fillStyle = '#6ba8ff'; mctx.beginPath(); mctx.arc(pos.x, pos.y, 3.2, 0, TAU); mctx.fill();
       mctx.shadowBlur = 0; mctx.strokeStyle = '#fff'; mctx.lineWidth = 1;
-      mctx.beginPath(); mctx.arc(pos.x, pos.y, 4.2, 0, TAU); mctx.stroke();
-      mctx.restore();
+      mctx.beginPath(); mctx.arc(pos.x, pos.y, 4.2, 0, TAU); mctx.stroke(); mctx.restore();
     }
   }
   const viewW = W * scale, viewH = H * scale;
@@ -541,8 +646,8 @@ function applyUI() {
   const hudLeft = document.getElementById('hudLeft');
   if (hudLeft) hudLeft.style.transform = 'scale(' + uiSettings.hudScale + ')';
   if (state && !state.over && !state.isSpectate) {
-    if (uiSettings.aimHint && !isTouchDevice) DOM.aimHint.classList.remove('hidden');
-    else DOM.aimHint.classList.add('hidden');
+    if (uiSettings.aimHint && !isTouchDevice) DOM.aimHint?.classList.remove('hidden');
+    else DOM.aimHint?.classList.add('hidden');
   }
   refreshSettingsButtons(); syncSliders();
 }
@@ -755,7 +860,7 @@ function show(name) {
   canvasEl.classList.add('hidden'); DOM.hud.classList.add('hidden'); DOM.powerupHud.classList.add('hidden');
   DOM.touchControls.classList.add('hidden'); DOM.skillBar.classList.add('hidden'); minimapEl.classList.add('hidden');
   DOM.enemiesLeftBox.classList.add('hidden');
-  DOM.aimHint.classList.add('hidden');
+  DOM.aimHint?.classList.add('hidden');
   DOM.settingsPanel.classList.add('hidden'); DOM.pauseOverlay.classList.add('hidden');
   paused = false;
   if (name !== 'game') resetTouchState();
@@ -764,7 +869,6 @@ function show(name) {
     DOM.powerupHud.classList.remove('hidden'); minimapEl.classList.remove('hidden');
     if (isTouchDevice) {
       DOM.touchControls.classList.remove('hidden');
-      /* ✅ FIX #7: reset display để joystick không bị ẩn vĩnh viễn */
       document.getElementById('joyLeft').style.display = '';
       document.getElementById('joyRight').style.display = '';
     } else {
@@ -772,7 +876,7 @@ function show(name) {
       document.getElementById('joyRight').style.display = 'none';
     }
     DOM.skillBar.classList.remove('hidden');
-    if (uiSettings.aimHint && !isTouchDevice && !(state && state.isSpectate)) DOM.aimHint.classList.remove('hidden');
+    if (uiSettings.aimHint && !isTouchDevice && !(state && state.isSpectate)) DOM.aimHint?.classList.remove('hidden');
   } else if (screens[name]) screens[name].classList.remove('hidden');
 }
 function showMenu() {
@@ -780,8 +884,8 @@ function showMenu() {
   show('menu');
   DOM.menuUsername.textContent = currentUser;
   const data = getPlayerData(currentUser);
-  DOM.menuHighScore.textContent = (data.highScore || 0) + ' điểm';
-  DOM.menuBotWins.textContent = (data.botWins || 0) + ' trận';
+  DOM.menuHighScore.textContent = (data.highScore || 0);
+  DOM.menuBotWins.textContent = (data.botWins || 0);
 }
 function showNameScreen() {
   show('name');
@@ -794,9 +898,9 @@ if (currentUser) showMenu(); else showNameScreen();
 function submitName() {
   initAudio();
   const u = DOM.inputName.value.trim();
-  DOM.nameMsg.style.color = '#ff8a9a';
-  if (u.length < 1) { DOM.nameMsg.textContent = 'Vui lòng nhập tên'; return; }
-  if (u.length > 20) { DOM.nameMsg.textContent = 'Tên tối đa 20 ký tự'; return; }
+  DOM.nameMsg.style.color = '#ff0055';
+  if (u.length < 1) { DOM.nameMsg.textContent = 'VUI LÒNG NHẬP TÊN'; return; }
+  if (u.length > 20) { DOM.nameMsg.textContent = 'TỐI ĐA 20 KÝ TỰ'; return; }
   currentUser = u;
   try { localStorage.setItem(NAME_KEY, u); } catch(_){}
   ensurePlayerData(u);
@@ -874,10 +978,10 @@ setupJoystick(document.getElementById('joyRight'), document.getElementById('knob
   () => { touch.aimX = 0; touch.aimY = 0; touch.aimActive = false; touch.shooting = false; });
 
 const BOT_CFG = {
-  easy:{speedBonus:0.6, aimJitter:0.55, shootRange:500, dodge:false, dodgeRange:0, smart:false, lead:0, fireRate:550, damage:5, idealDist:450, hp:70, name:'BOT DỄ', color:'#7bd66b', aimSpeed:0.15},
-  normal:{speedBonus:0.8, aimJitter:0.28, shootRange:650, dodge:true, dodgeRange:140, smart:false, lead:0.2, fireRate:360, damage:8, idealDist:380, hp:90, name:'BOT THƯỜNG', color:'#4dd9ff', aimSpeed:0.22},
-  hard:{speedBonus:0.95, aimJitter:0.16, shootRange:800, dodge:true, dodgeRange:220, smart:true, lead:0.5, fireRate:260, damage:12, idealDist:330, hp:110, name:'BOT KHÁ', color:'#ff8c1a', aimSpeed:0.3},
-  insane:{speedBonus:1.1, aimJitter:0.08, shootRange:900, dodge:true, dodgeRange:280, smart:true, lead:0.7, fireRate:200, damage:14, idealDist:320, hp:130, name:'BOT SIÊU KHÓ', color:'#ff5b6e', aimSpeed:0.42},
+  easy:{speedBonus:0.6, aimJitter:0.55, shootRange:500, dodge:false, dodgeRange:0, smart:false, lead:0, fireRate:550, damage:5, idealDist:450, hp:70, name:'BOT DỄ', color:'#00ff66', aimSpeed:0.15},
+  normal:{speedBonus:0.8, aimJitter:0.28, shootRange:650, dodge:true, dodgeRange:140, smart:false, lead:0.2, fireRate:360, damage:8, idealDist:380, hp:90, name:'BOT THƯỜNG', color:'#00f3ff', aimSpeed:0.22},
+  hard:{speedBonus:0.95, aimJitter:0.16, shootRange:800, dodge:true, dodgeRange:220, smart:true, lead:0.5, fireRate:260, damage:12, idealDist:330, hp:110, name:'BOT KHÁ', color:'#ffcc00', aimSpeed:0.3},
+  insane:{speedBonus:1.1, aimJitter:0.08, shootRange:900, dodge:true, dodgeRange:280, smart:true, lead:0.7, fireRate:200, damage:14, idealDist:320, hp:130, name:'BOT SIÊU KHÓ', color:'#ff0055', aimSpeed:0.42},
   spectator:{speedBonus:1.05, aimJitter:0.05, shootRange:900, dodge:true, dodgeRange:280, smart:true, lead:0.5, fireRate:140, damage:18, idealDist:380, hp:150, name:'BOT AI', color:'#b46bff', aimSpeed:0.4}
 };
 const DIFF_NAME = {easy:'DỄ', normal:'BÌNH THƯỜNG', hard:'KHÁ', insane:'SIÊU KHÓ'};
@@ -885,10 +989,10 @@ const DIFF_NAME = {easy:'DỄ', normal:'BÌNH THƯỜNG', hard:'KHÁ', insane:'S
 const BOSS_SKILLS = [
   {key:'charge',    name:'LAO TỚI',       color:'#b46bff', icon:'🐂', cd:10, cost:15},
   {key:'flame',     name:'PHUN LỬA',      color:'#ff8c1a', icon:'🔥', cd:8,  cost:20},
-  {key:'freeze',    name:'BĂNG GIÁ',      color:'#4dd9ff', icon:'❄', cd:9,  cost:18},
-  {key:'drain',     name:'HÚT MÁU',       color:'#ff4d6d', icon:'🩸', cd:14, cost:25},
-  {key:'split',     name:'PHÂN THÂN',     color:'#ff66b2', icon:'🧬', cd:18, cost:30},
-  {key:'laserbeam', name:'TIA LAZE',      color:'#ffdd00', icon:'⚡', cd:14, cost:30},
+  {key:'freeze',    name:'BĂNG GIÁ',      color:'#00f3ff', icon:'❄', cd:9,  cost:18},
+  {key:'drain',     name:'HÚT MÁU',       color:'#ff0055', icon:'🩸', cd:14, cost:25},
+  {key:'split',     name:'PHÂN THÂN',     color:'#00ff66', icon:'🧬', cd:18, cost:30},
+  {key:'laserbeam', name:'TIA LAZE',      color:'#ffcc00', icon:'⚡', cd:14, cost:30},
   {key:'nuke',      name:'BOM HẠT NHÂN',  color:'#88ff00', icon:'☢', cd:20, cost:40},
   {key:'invis',     name:'TÀNG HÌNH',     color:'#9a7aff', icon:'👻', cd:14, cost:28},
   {key:'teleport',  name:'DỊCH CHUYỂN',   color:'#ff40a0', icon:'💫', cd:10, cost:22}
@@ -898,24 +1002,24 @@ const BOSS_SKILL_LOOKUP = Object.fromEntries(BOSS_SKILLS.map(s => [s.key, s]));
 const TYPES = [
   {behavior:'chase', hp:30, speed:80, r:14, dmg:10, score:10, xp:1, color:'#ff5b6e', stroke:'#8a1f35'},
   {behavior:'zigzag', hp:24, speed:110, r:12, dmg:8, score:12, xp:1, color:'#ff8c1a', stroke:'#a04d00'},
-  {behavior:'chase', hp:90, speed:55, r:26, dmg:20, score:30, xp:3, color:'#ff4d6d', stroke:'#8a1f35'},
+  {behavior:'chase', hp:90, speed:55, r:26, dmg:20, score:30, xp:3, color:'#ff0055', stroke:'#8a1f35'},
   {behavior:'shoot', hp:40, speed:70, r:16, dmg:8, score:20, xp:2, color:'#b46bff', stroke:'#6a2f9e'},
   {behavior:'splitter', hp:45, speed:75, r:18, dmg:12, score:25, xp:2, color:'#ff66b2', stroke:'#8a1f4d'},
-  {behavior:'zigzag', hp:35, speed:130, r:13, dmg:10, score:18, xp:2, color:'#4dd9ff', stroke:'#1b6a8a'}
+  {behavior:'zigzag', hp:35, speed:130, r:13, dmg:10, score:18, xp:2, color:'#00f3ff', stroke:'#1b6a8a'}
 ];
 
 const PU_BAD = ['curse','slow','burn','confuse','freeze','jam'];
 const PU_GOOD = ['laser','bomb','shield','speed','pierce','tripleshot','magnet'];
-const PU_COLOR = {laser:'#ffdd00',bomb:'#ff8c1a',shield:'#ffd93d',speed:'#2ee07a',pierce:'#b46bff',tripleshot:'#ff66b2',magnet:'#4dd9ff',curse:'#ff5b6e',slow:'#4dd9ff',burn:'#ff8c1a',confuse:'#b46bff',freeze:'#4dd9ff',jam:'#ff5b6e'};
+const PU_COLOR = {laser:'#ffcc00',bomb:'#ff8c1a',shield:'#ffcc00',speed:'#00ff66',pierce:'#b46bff',tripleshot:'#ff66b2',magnet:'#00f3ff',curse:'#ff0055',slow:'#00f3ff',burn:'#ff8c1a',confuse:'#b46bff',freeze:'#00f3ff',jam:'#ff0055'};
 const PU_ICON = {laser:'⚡',bomb:'💣',shield:'🛡',speed:'⚡',pierce:'➤',tripleshot:'⋔',magnet:'🧲',curse:'☠',slow:'🐌',burn:'🔥',confuse:'🌀',freeze:'❄',jam:'✖'};
 
 const BOSS_TYPES = [
   {name:'BULL',   color:'#b46bff', stroke:'#6a2f9e', r:50, hp:2400, speed:95, dmg:32, xp:40, skillKey:'charge'},
   {name:'FLAME',  color:'#ff8c1a', stroke:'#a04d00', r:48, hp:2100, speed:88, dmg:26, xp:40, skillKey:'flame'},
-  {name:'FROST',  color:'#4dd9ff', stroke:'#1b6a8a', r:48, hp:2250, speed:92, dmg:24, xp:40, skillKey:'freeze'},
-  {name:'DRAIN',  color:'#ff4d6d', stroke:'#8a1f35', r:50, hp:2300, speed:88, dmg:22, xp:40, skillKey:'drain'},
+  {name:'FROST',  color:'#00f3ff', stroke:'#1b6a8a', r:48, hp:2250, speed:92, dmg:24, xp:40, skillKey:'freeze'},
+  {name:'DRAIN',  color:'#ff0055', stroke:'#8a1f35', r:50, hp:2300, speed:88, dmg:22, xp:40, skillKey:'drain'},
   {name:'CLONE',  color:'#ff66b2', stroke:'#8a1f4d', r:54, hp:2550, speed:82, dmg:28, xp:40, skillKey:'split'},
-  {name:'LASER',  color:'#ffdd00', stroke:'#a08a00', r:52, hp:2400, speed:78, dmg:30, xp:40, skillKey:'laserbeam'},
+  {name:'LASER',  color:'#ffcc00', stroke:'#a08a00', r:52, hp:2400, speed:78, dmg:30, xp:40, skillKey:'laserbeam'},
   {name:'NUKE',   color:'#88ff00', stroke:'#446600', r:54, hp:2700, speed:72, dmg:36, xp:50, skillKey:'nuke'},
   {name:'GHOST',  color:'#9a7aff', stroke:'#4a3a8a', r:50, hp:2200, speed:85, dmg:25, xp:45, skillKey:'invis'},
   {name:'WARP',   color:'#ff40a0', stroke:'#8a1a50', r:52, hp:2000, speed:70, dmg:28, xp:45, skillKey:'teleport'}
@@ -992,7 +1096,7 @@ function killEnemy(e, ownerId) {
   if (idx === -1) return;
   state.enemies.splice(idx, 1);
   const me = state.players[myId];
-  spawnParticles(e.x, e.y, e.color || '#fff', e.isBoss ? 40 : 10, e.isBoss ? 500 : 200);
+  spawnParticles(e.x, e.y, e.color || '#fff', e.isBoss ? 40 : (e.isAlly ? 14 : 10), e.isBoss ? 500 : 200);
   playSound(e.isBoss ? 'boom' : 'hit');
   if (e.isBoss) { shakeTime = 0.5; shakeIntensity = 20; state.bossAlive = false; }
   if (state.waveActive && !e.isAlly) state.waveKilled++;
@@ -1005,7 +1109,6 @@ function killEnemy(e, ownerId) {
       state.pickups.push({type:'xp', x:e.x + rand(-20,20), y:e.y + rand(-20,20), xpValue:xpPerOrb, bob:Math.random()*10, life:30, vx:rand(-80,80), vy:rand(-80,80)});
     }
     if (Math.random() < (e.isBoss ? 0.9 : 0.15)) spawnPowerup(e.x + rand(-30,30), e.y + rand(-30,30));
-    /* ✅ FIX #10: Boss drop skill 75% (đúng spec) */
     if (e.isBoss && state.mode === 'pve' && Math.random() < 0.75) {
       const bossSkillKey = BOSS_TYPES[e.bossType]?.skillKey;
       if (bossSkillKey && BOSS_SKILL_LOOKUP[bossSkillKey] && !me.skills.includes(bossSkillKey)) {
@@ -1083,11 +1186,20 @@ const SKILL_HANDLERS = {
   },
   drain(me) { me.drainTimer = 1.5; me.drainRadius = 350; },
   split(me, aim, st) {
-    const allyHp = 100 + me.level*20;
+    const allyHp = 100 + me.level * 20;
     for (let k = 0; k < 2; k++) {
       const a = Math.random() * TAU;
-      st.enemies.push({x:me.x+Math.cos(a)*60, y:me.y+Math.sin(a)*60, behavior:'chase', hp:allyHp, maxHp:allyHp, speed:150, r:18, dmg:me.damage*1.5, score:0, xp:0, color:'#ff66b2', stroke:'#8a1f4d', angle:0, hitFlash:0, seed:Math.random()*10, isBoss:false, isAlly:true, atkCd:1, spawnAnim:0.3, wobble:Math.random()*100, allyLife:15, id:'ALLY_' + Math.floor(Math.random()*1e6), powerups:{shield:0}, shieldHp:0});
+      st.enemies.push({
+        x: me.x + Math.cos(a) * 60, y: me.y + Math.sin(a) * 60,
+        behavior: 'chase', hp: allyHp, maxHp: allyHp, speed: 200, r: 18,
+        dmg: me.damage * 0.7, score: 0, xp: 0, color: '#2ee07a', stroke: '#0a5a2e',
+        angle: 0, aim: 0, hitFlash: 0, seed: Math.random() * 10, isBoss: false, isAlly: true,
+        atkCd: 1, spawnAnim: 0.3, wobble: Math.random() * 100,
+        allyLife: ALLY_LIFE, allyMaxLife: ALLY_LIFE, id: 'ALLY_' + Math.floor(Math.random() * 1e6),
+        powerups: {shield: 0}, shieldHp: 0, fireRate: 280, bulletSpeed: 1000, _shootCd: 0.3
+      });
     }
+    spawnParticles(me.x, me.y, '#2ee07a', 25, 350);
   },
   laserbeam(me, aim, st) {
     st.beams.push({x:me.x, y:me.y, angle:aim, life:1.2, maxLife:1.2, owner:me.id, wideLaser:true, halfWidth:60, isPlayerLaser:true, dmgPerSec:me.damage*8});
@@ -1096,15 +1208,13 @@ const SKILL_HANDLERS = {
     st.nukeStrikes.push({x:me.x+Math.cos(aim)*350, y:me.y+Math.sin(aim)*350, radius:250, timer:3, maxTimer:3, owner:me.id, isPlayer:true});
   },
   invis(me, aim, st) {
-    me.invisible = INVIS_DURATION;
-    me.invisibleTimer = INVIS_DURATION;
+    me.invisible = INVIS_DURATION; me.invisibleTimer = INVIS_DURATION;
     if (me.isBot && me.isBoss && me.bossType === 7) {
       const RADIUS = 500;
       for (const e of st.enemies) {
         if (e === me || e.isAlly) continue;
         if (dist(me.x, me.y, e.x, e.y) < RADIUS) {
-          e.invisible = INVIS_DURATION;
-          e.invisibleTimer = INVIS_DURATION;
+          e.invisible = INVIS_DURATION; e.invisibleTimer = INVIS_DURATION;
         }
       }
       spawnParticles(me.x, me.y, '#9a7aff', 30, 400);
@@ -1124,8 +1234,7 @@ const SKILL_HANDLERS = {
       const hitOld = dist(e.x, e.y, oldX, oldY) < R + e.r;
       const hitNew = dist(e.x, e.y, newX, newY) < R + e.r;
       if (hitOld || hitNew) {
-        e.hp -= me.damage * 3;
-        e.hitFlash = 0.2;
+        e.hp -= me.damage * 3; e.hitFlash = 0.2;
         if (e.hp <= 0) killEnemy(e, me.id);
       }
     }
@@ -1140,7 +1249,7 @@ const SKILL_FX = {
   flame:{snd:'fire', msg:'', p:['#ff8c1a',20,300]},
   freeze:{snd:'freeze', msg:'', p:['#4dd9ff',25,300]},
   drain:{snd:'drain', msg:'🩸 HÚT MÁU!', p:['#ff4d6d',20,300]},
-  split:{snd:'split', msg:'🧬 PHÂN THÂN!', p:['#ff66b2',25,350]},
+  split:{snd:'split', msg:'🧬 PHÂN THÂN!', p:['#2ee07a',25,350]},
   laserbeam:{snd:'laser', msg:'⚡ TIA LAZE!', p:['#ffdd00',40,450], shake:[0.4,18]},
   nuke:{snd:'charge', msg:'☢ BOM HẠT NHÂN ĐÃ ĐẶT!', p:['#88ff00',15,250], atAim:true},
   invis:{snd:'invis', msg:'👻 TÀNG HÌNH!', p:['#9a7aff',30,400]},
@@ -1157,7 +1266,6 @@ function triggerSkill(skillKey, casterId) {
   if (me.mana < sk.cost) { me.manaFlash = 1; state.events.push('nomana'); return; }
   me.mana -= sk.cost;
   me.skillCooldowns[skillKey] = sk.cd * me.skillCdMultiplier;
-  /* ✅ FIX #5: bỏ state.events.push('skill') ở đây — chỉ push khi !silent */
   let aim = me.aim || 0;
   if (!me.isBot && isTouchDevice && touch.aimActive) {
     const al = Math.hypot(touch.aimX, touch.aimY);
@@ -1205,7 +1313,6 @@ const BOSS_HANDLERS = {
       }
     } else if (e.chargeState === 'charging') {
       e.chargeDirX = ux; e.chargeDirY = uy;
-      /* ✅ FIX #3: nhân dt để wobble không phụ thuộc FPS */
       e.x += Math.cos(st.time*40) * dt * 60;
       e.y += Math.sin(st.time*40) * dt * 60;
       if ((e.chargeTimer -= dt) <= 0) { e.chargeState = 'dashing'; e.chargeTimer = 0.5; playSound('roar'); }
@@ -1271,22 +1378,36 @@ const BOSS_HANDLERS = {
       if (!al.isAlly || al.hp <= 0 || dist(al.x, al.y, e.x, e.y) >= R) continue;
       al.hp -= e.dmg * dt;
       e.hp = Math.min(e.maxHp, e.hp + e.dmg * dt * 0.5);
-      if (al.hp <= 0) {
-        spawnParticles(al.x, al.y, '#ff4d6d', 10, 200);
-        st.enemies.splice(i, 1);
-      }
+      if (al.hp <= 0) { spawnParticles(al.x, al.y, '#ff4d6d', 10, 200); st.enemies.splice(i, 1); }
     }
   },
-  4(e, target, dt, st, ux, uy) {
+  4(e, target, dt, st, ux, uy, d) {
     e.x += ux * e.speed * 0.6 * dt; e.y += uy * e.speed * 0.6 * dt;
-    if ((e._spawnCd -= dt) > 0 || st.enemies.length >= MAX_ENEMIES - 2) return;
-    e._spawnCd = rand(6, 9);
-    for (let k = 0; k < 2; k++) {
-      const a = Math.random() * TAU;
-      const tt = TYPES[Math.floor(Math.random()*3)];
-      st.enemies.push({x:e.x+Math.cos(a)*70, y:e.y+Math.sin(a)*70, behavior:tt.behavior, hp:tt.hp*1.5, maxHp:tt.hp*1.5, speed:tt.speed*1.2, r:tt.r, dmg:tt.dmg, score:tt.score, xp:tt.xp, color:'#ff66b2', stroke:'#8a1f4d', level:e.level||1, angle:0, hitFlash:0, seed:Math.random()*10, isBoss:false, isMiniBoss:true, atkCd:1.5, spawnAnim:0.4, wobble:Math.random()*100});
+    e._shootCd = (e._shootCd || 0) - dt;
+    if (e._shootCd <= 0 && d < 700 && st.ebullets.length < MAX_EBULLETS) {
+      e._shootCd = 1.5;
+      const base = Math.atan2(uy, ux);
+      for (let k = -1; k <= 1; k++) {
+        const a = base + k * 0.18;
+        st.ebullets.push({x: e.x + Math.cos(a) * 40, y: e.y + Math.sin(a) * 40, vx: Math.cos(a) * 450, vy: Math.sin(a) * 450, r: 8, dmg: e.dmg * 0.35, life: 2.5, color: '#ff66b2'});
+      }
+      playSound('fire');
     }
-    playSound('split'); spawnParticles(e.x, e.y, '#ff66b2', 20, 300);
+    if ((e._spawnCd -= dt) > 0 || st.enemies.length >= MAX_ENEMIES - 3) return;
+    e._spawnCd = rand(4.5, 6);
+    for (let k = 0; k < 3; k++) {
+      const a = (k / 3) * TAU + Math.random() * 0.4;
+      const tt = TYPES[0];
+      const hpVal = tt.hp * 2 * (e.level || 1);
+      st.enemies.push({
+        x: e.x + Math.cos(a) * 80, y: e.y + Math.sin(a) * 80,
+        behavior: 'chase', hp: hpVal, maxHp: hpVal, speed: tt.speed * 1.4, r: tt.r + 2, dmg: tt.dmg * 1.3,
+        score: tt.score, xp: tt.xp, color: '#ff66b2', stroke: '#8a1f4d',
+        level: e.level || 1, angle: 0, hitFlash: 0, seed: Math.random() * 10,
+        isBoss: false, isMiniBoss: true, atkCd: 1.5, spawnAnim: 0.4, wobble: Math.random() * 100
+      });
+    }
+    playSound('split'); spawnParticles(e.x, e.y, '#ff66b2', 25, 350);
   },
   5(e, target, dt, st, ux, uy) {
     if (e.laserState === 'idle') {
@@ -1350,31 +1471,26 @@ const BOSS_HANDLERS = {
     if (e._invisCd <= 0) {
       e._invisCd = rand(12, 16);
       const RADIUS = 500;
-      e.invisible = INVIS_DURATION;
-      e.invisibleTimer = INVIS_DURATION;
+      e.invisible = INVIS_DURATION; e.invisibleTimer = INVIS_DURATION;
       for (const other of st.enemies) {
         if (other === e || other.isAlly) continue;
         if (dist(e.x, e.y, other.x, other.y) < RADIUS) {
-          other.invisible = INVIS_DURATION;
-          other.invisibleTimer = INVIS_DURATION;
+          other.invisible = INVIS_DURATION; other.invisibleTimer = INVIS_DURATION;
         }
       }
-      playSound('invis');
-      spawnParticles(e.x, e.y, '#9a7aff', 30, 400);
+      playSound('invis'); spawnParticles(e.x, e.y, '#9a7aff', 30, 400);
       st.announce = {text: '👻 BOSS TÀNG HÌNH!', t: 2};
     }
   },
   8(e, target, dt, st, ux, uy) {
     if (e.teleportState === 'warning') {
       e.teleportTimer -= dt;
-      /* ✅ FIX #3: nhân dt */
       e.x += Math.cos(st.time * 60) * 1.5 * dt * 60;
       e.y += Math.sin(st.time * 60) * 1.5 * dt * 60;
       if (e.teleportTimer <= 0) {
         const hw = st.arena.w/2 - e.r, hh = st.arena.h/2 - e.r;
         const oldX = e.x, oldY = e.y;
-        e.x = clamp(e._tpX, -hw, hw);
-        e.y = clamp(e._tpY, -hh, hh);
+        e.x = clamp(e._tpX, -hw, hw); e.y = clamp(e._tpY, -hh, hh);
         e.teleportState = 'idle';
         spawnParticles(oldX, oldY, e.color, 25, 400);
         spawnParticles(e.x, e.y, e.color, 25, 400);
@@ -1391,14 +1507,11 @@ const BOSS_HANDLERS = {
         }
       }
     } else {
-      e.x += ux * e.speed * 0.3 * dt;
-      e.y += uy * e.speed * 0.3 * dt;
+      e.x += ux * e.speed * 0.3 * dt; e.y += uy * e.speed * 0.3 * dt;
       if ((e._tpCd -= dt) <= 0) {
         e._tpCd = rand(3, 4.5);
-        e.teleportState = 'warning';
-        e.teleportTimer = 0.8;
-        e._tpX = target.x + rand(-30, 30);
-        e._tpY = target.y + rand(-30, 30);
+        e.teleportState = 'warning'; e.teleportTimer = 0.8;
+        e._tpX = target.x + rand(-30, 30); e._tpY = target.y + rand(-30, 30);
         playSound('charge');
         st.beams.push({x:e._tpX, y:e._tpY, angle:0, life:0.8, maxLife:0.8, teleportWarning:true, radius:100});
       }
@@ -1427,31 +1540,24 @@ function initGame(mode, difficulty) {
     pickupTimer:2.5, announce:null, winner:null,
     waveTotal:0, waveKilled:0, waveSpawned:0,
     waveSpawnQueue:[], waveSpawnTimer:0, waveClearDelay:0, waveActive:false,
-    bossAlive:false,
-    nukeStrikes:[], lastBossType:-1, isSpectate:false
+    bossAlive:false, nukeStrikes:[], lastBossType:-1, isSpectate:false
   };
   if (mode === 'bot') {
     state.players['BOT'] = makeBot(difficulty);
-    state.players[myId].fireRate = 130;
-    state.players[myId].bulletSpeed = 1300;
-    state.players[myId].x = -350;
-    state.players['BOT'].x = 350;
-    /* ✅ FIX #6: Loại split khỏi pool player PvP (ally không hoạt động trong PvP) */
+    state.players[myId].fireRate = 130; state.players[myId].bulletSpeed = 1300;
+    state.players[myId].x = -350; state.players['BOT'].x = 350;
     grantRandomSkills(state.players[myId], 3, ['split']);
     grantRandomSkills(state.players['BOT'], 3, ['split']);
-    state.announce = {text:'VS ' + BOT_CFG[difficulty].name + ' (SKILL NGẪU NHIÊN)', t:2.5};
-    DOM.modeTag.textContent = '⚔️ ' + DIFF_NAME[difficulty].toUpperCase();
+    state.announce = {text:'VS ' + BOT_CFG[difficulty].name, t:2.5};
+    DOM.modeTag.textContent = '⚔️ ' + DIFF_NAME[difficulty];
     DOM.modeTag.style.color = BOT_CFG[difficulty].color;
-    DOM.xpBarWrapP1.style.display = 'none';
-    DOM.lvlWrapP1.style.display = 'none';
+    DOM.xpBarWrapP1.style.display = 'none'; DOM.lvlWrapP1.style.display = 'none';
     DOM.p2Hud.classList.remove('hidden');
   } else {
     state.players[myId].x = 0; state.players[myId].y = 0;
     state.announce = {text:'MÀN 1', t:2};
-    DOM.modeTag.textContent = '🎯 PvE';
-    DOM.modeTag.style.color = '#9df3c4';
-    DOM.xpBarWrapP1.style.display = '';
-    DOM.lvlWrapP1.style.display = '';
+    DOM.modeTag.textContent = '🎯 CHIẾN DỊCH'; DOM.modeTag.style.color = 'var(--c-neon)';
+    DOM.xpBarWrapP1.style.display = ''; DOM.lvlWrapP1.style.display = '';
     DOM.p2Hud.classList.add('hidden');
     startNewWave();
   }
@@ -1459,8 +1565,7 @@ function initGame(mode, difficulty) {
 }
 function buildWaveQueue(wave) {
   const total = Math.min(90, 10 + Math.floor(wave * 4));
-  const queue = [];
-  const available = [0];
+  const queue = []; const available = [0];
   if (wave >= 2) available.push(4);
   if (wave >= 3) available.push(1);
   if (wave >= 4) available.push(3);
@@ -1474,9 +1579,7 @@ function buildWaveQueue(wave) {
   const hasBoss = (wave >= 3 && wave % 3 === 0);
   return {queue, hasBoss};
 }
-function getEnemyScaling(wave) {
-  return {hp:1 + (wave-1)*0.20, dmg:1 + (wave-1)*0.06, speed:1 + (wave-1)*0.02, reward:1 + (wave-1)*0.10};
-}
+function getEnemyScaling(wave) { return {hp:1 + (wave-1)*0.20, dmg:1 + (wave-1)*0.06, speed:1 + (wave-1)*0.02, reward:1 + (wave-1)*0.10}; }
 function spawnEnemyInArena(typeIdx, wave) {
   if (!state || state.enemies.length >= MAX_ENEMIES) return;
   const me = state.players[myId]; if (!me) return;
@@ -1544,7 +1647,7 @@ function spawnBossInArena(bossType) {
   });
   state.bossAlive = true;
   state.events.push('pickup');
-  state.announce = {text:'BOSS ' + s.name + ' Lv' + level + ' XUẤT HIỆN!', t:2.5};
+  state.announce = {text:'BOSS ' + s.name + ' XUẤT HIỆN!', t:2.5};
   return type;
 }
 function startNewWave() {
@@ -1561,8 +1664,7 @@ function startNewWave() {
 }
 function onWaveCleared() {
   if (!state) return;
-  state.waveActive = false;
-  state.waveClearDelay = 2;
+  state.waveActive = false; state.waveClearDelay = 2;
   state.announce = {text:'MÀN ' + state.wave + ' HOÀN THÀNH!', t:2};
   state.events.push('pickup');
 }
@@ -1586,14 +1688,12 @@ function startSpectate() {
   me.isBot = true; me.name = 'BOT AI'; me.difficulty = 'spectator';
   me.maxHp = 150; me.hp = 150;
   me.damage = 18; me.fireRate = 140; me.bulletSpeed = 1200;
-  me.skills = []; me.skillCooldowns = {};
-  me.aimSmooth = undefined;
+  me.skills = []; me.skillCooldowns = {}; me.aimSmooth = undefined;
   state.announce = {text:'👁 XEM BOT CHƠI', t:2.5};
   show('game');
-  DOM.aimHint.classList.add('hidden');
+  DOM.aimHint?.classList.add('hidden');
   DOM.touchControls.classList.add('hidden');
-  DOM.modeTag.textContent = '👁 XEM BOT CHƠI';
-  DOM.modeTag.style.color = '#b46bff';
+  DOM.modeTag.textContent = '👁 XEM BOT'; DOM.modeTag.style.color = 'var(--c-purple)';
   updateSkillBarUI();
   lastTime = performance.now();
   requestAnimationFrame(gameLoop);
@@ -1618,15 +1718,13 @@ function updateSkillBarUI() {
     const sk = BOSS_SKILL_LOOKUP[skillKey]; if (!sk) return;
     const btn = document.createElement('button');
     btn.className = 'skill-btn';
-    btn.style.borderColor = sk.color; btn.style.color = sk.color;
-    btn.style.boxShadow = `0 0 20px ${sk.color}`;
+    btn.style.color = sk.color;
     btn.innerHTML = `${sk.icon}<span class="hotkey">${i+1}</span>`;
     btn.dataset.skillKey = skillKey;
     const cdEl = document.createElement('div');
     cdEl.className = 'cd-overlay hidden';
     btn.appendChild(cdEl);
-    btn._cdEl = cdEl;
-    btn._lastCdText = '';
+    btn._cdEl = cdEl; btn._lastCdText = '';
     if (!isSpectate) btn.addEventListener('click', e => { e?.preventDefault(); e?.stopPropagation(); triggerSkill(skillKey); });
     else { btn.style.pointerEvents = 'none'; btn.style.opacity = '0.9'; }
     btn.addEventListener('contextmenu', e => e.preventDefault());
@@ -1808,8 +1906,7 @@ function computePvEBotInput(bot, st) {
       mx += dx/l * 1.5; my += dy/l * 1.5;
     } else {
       if (!bot._wanderDir || Math.random() < 0.02) bot._wanderDir = Math.random() * TAU;
-      mx = Math.cos(bot._wanderDir) * 0.6;
-      my = Math.sin(bot._wanderDir) * 0.6;
+      mx = Math.cos(bot._wanderDir) * 0.6; my = Math.sin(bot._wanderDir) * 0.6;
     }
   }
   const ml = Math.hypot(mx, my);
@@ -1919,7 +2016,7 @@ function gameLoop(now) {
   _lastLoopTs = now;
   const dt = Math.min((now - lastTime)/1000, 0.1);
   lastTime = now;
-  _frameDt = dt; /* ✅ FIX #9 */
+  _frameDt = dt;
   state.time += dt;
   if (state.announce) { state.announce.t -= dt; if (state.announce.t <= 0) state.announce = null; }
   const isPvE = state.mode === 'pve';
@@ -1945,10 +2042,10 @@ function gameLoop(now) {
     if (aliveCount === 0) {
       state.over = true;
       const me = state.players[myId];
-      if (state.isSpectate) showOverlay('💀 BOT ĐÃ CHẾT', '#ff5b6e', 'Điểm: <b>' + me.score + '</b>', 'Cấp: <b>' + me.level + ' · Màn ' + state.wave + '</b>');
+      if (state.isSpectate) showOverlay('BOT ĐÃ CHẾT', 'var(--c-red)', 'Điểm: <b>' + me.score + '</b>', 'Cấp: ' + me.level + ' · Màn ' + state.wave);
       else {
         recordPvEScore(me.score);
-        showOverlay('GAME OVER', '#ff5b6e', 'Điểm: <b>' + me.score + '</b>', 'Cấp đạt được: <b>' + me.level + ' · Màn ' + state.wave + '</b>');
+        showOverlay('GAME OVER', 'var(--c-red)', 'Điểm: <b>' + me.score + '</b>', 'Cấp: ' + me.level + ' · Màn ' + state.wave);
       }
       return;
     }
@@ -1957,10 +2054,10 @@ function gameLoop(now) {
     const diffTxt = 'Độ khó: ' + DIFF_NAME[state.difficulty];
     if (state.winner === myId) {
       playSound('win'); recordBotWin();
-      showOverlay('🏆 BẠN THẮNG!', '#2ee07a', 'Đã hạ gục <b>' + BOT_CFG[state.difficulty].name + '</b>', diffTxt);
+      showOverlay('CHIẾN THẮNG', 'var(--c-green)', 'Đã hạ gục <b>' + BOT_CFG[state.difficulty].name + '</b>', diffTxt);
     } else {
       playSound('lose');
-      showOverlay('💀 BẠN THUA!', '#ff5b6e', '<b>' + BOT_CFG[state.difficulty].name + '</b> đã hạ gục bạn', diffTxt);
+      showOverlay('THẤT BẠI', 'var(--c-red)', '<b>' + BOT_CFG[state.difficulty].name + '</b> đã hạ gục bạn', diffTxt);
     }
     return;
   }
@@ -1971,7 +2068,6 @@ function gameLoop(now) {
       if (state.waveClearDelay <= 0) { state.wave++; startNewWave(); }
     }
   }
-  /* ✅ FIX #1: giảm CD skill cho TẤT CẢ players (kể cả bot PvP) */
   for (const pid in state.players) {
     const p = state.players[pid];
     if (p.hp <= 0) continue;
@@ -2033,7 +2129,6 @@ function updatePlayer(p, id, dt, isPvE) {
   const cursePenalty = (p.powerups.curse > 0) ? 0.5 : 1;
   p.mana = Math.min(p.maxMana, p.mana + regen*cursePenalty*dt);
 
-  /* ✅ FIX #4: DoT (burn/nukeBurn/drain) chạy TRƯỚC charge-check */
   if (p.powerups.burn > 0) {
     p.burnTick = (p.burnTick || 0) + dt;
     if (p.burnTick >= 0.5) {
@@ -2079,7 +2174,6 @@ function updatePlayer(p, id, dt, isPvE) {
     if (p.drainTimer <= 0) p.drainTimer = 0;
   }
 
-  /* Chỉ sau DoT mới check charge */
   if (p.hp <= 0) return;
   if (p.chargeState && p.chargeState !== 'idle') { updateCharge(p, id, dt); return; }
 
@@ -2154,7 +2248,6 @@ function updateCharge(p, id, dt) {
       if (al > 0.2) chargeAim = Math.atan2(touch.aimY, touch.aimX);
     }
     p.chargeDirX = Math.cos(chargeAim); p.chargeDirY = Math.sin(chargeAim);
-    /* ✅ FIX #3: nhân dt cho wobble charging */
     p.x += Math.cos(state.time*40) * 1.5 * dt * 60;
     p.y += Math.sin(state.time*40) * 1.5 * dt * 60;
     if (!p._chargeShootCd) p._chargeShootCd = 0.6;
@@ -2285,7 +2378,6 @@ function updateBullets(dt, isPvE) {
   }
 }
 
-/* ✅ FIX #2: snapshot array để tránh double-process khi splice */
 function updateEnemies(dt) {
   const snapshot = state.enemies.slice();
   for (let si = snapshot.length - 1; si >= 0; si--) {
@@ -2339,25 +2431,54 @@ function updateEnemies(dt) {
 function updateAlly(e, dt) {
   e.allyLife -= dt;
   if (e.allyLife <= 0 || e.hp <= 0) {
-    spawnParticles(e.x, e.y, e.color, 12, 200);
+    spawnParticles(e.x, e.y, e.color, 14, 220);
     const i = state.enemies.indexOf(e);
     if (i !== -1) state.enemies.splice(i, 1);
     return;
   }
   let nearest = null, minD = Infinity;
   for (const en of state.enemies) {
-    if (en.isAlly || en.invisible > 0) continue;
+    if (en === e || en.isAlly || en.invisible > 0) continue;
     const dd = dist(e.x, e.y, en.x, en.y);
     if (dd < minD) { minD = dd; nearest = en; }
   }
   if (!nearest) return;
   const dx = nearest.x - e.x, dy = nearest.y - e.y;
   const d = Math.hypot(dx, dy) || 1;
-  if (d > 30) { e.x += (dx/d)*e.speed*dt; e.y += (dy/d)*e.speed*dt; }
+  const nx = dx / d, ny = dy / d;
+  e.aim = Math.atan2(dy, dx);
+  e.angle = e.aim;
+  const idealDist = 260;
+  if (d > idealDist + 100) {
+    e.x += nx * e.speed * dt; e.y += ny * e.speed * dt;
+  } else if (d < idealDist - 80) {
+    e.x -= nx * e.speed * dt; e.y -= ny * e.speed * dt;
+  } else {
+    const px = -ny, py = nx;
+    const side = Math.sin(state.time * 2.5 + (e.seed || 0)) > 0 ? 1 : -1;
+    e.x += px * side * e.speed * 0.8 * dt;
+    e.y += py * side * e.speed * 0.8 * dt;
+  }
+  const hw = state.arena.w/2 - e.r, hh = state.arena.h/2 - e.r;
+  e.x = clamp(e.x, -hw, hw);
+  e.y = clamp(e.y, -hh, hh);
+  e._shootCd = (e._shootCd || 0) - dt;
+  if (e._shootCd <= 0 && d < 750 && state.bullets.length < MAX_BULLETS) {
+    e._shootCd = e.fireRate / 1000;
+    const jit = (Math.random() - 0.5) * 0.06;
+    const a = e.aim + jit;
+    state.bullets.push({
+      x: e.x + Math.cos(a) * 25, y: e.y + Math.sin(a) * 25,
+      vx: Math.cos(a) * e.bulletSpeed, vy: Math.sin(a) * e.bulletSpeed,
+      life: 1.2, owner: myId, dmg: e.dmg, pierce: false, hitSet: []
+    });
+  }
   e.atkCd -= dt;
-  if (e.atkCd <= 0 && d < 100) {
-    e.atkCd = 0.6; nearest.hp -= e.dmg; nearest.hitFlash = 0.1;
-    spawnParticles(nearest.x, nearest.y, '#ff66b2', 4, 150);
+  if (e.atkCd <= 0 && d < e.r + nearest.r + 5) {
+    e.atkCd = 0.5;
+    nearest.hp -= e.dmg * 2;
+    nearest.hitFlash = 0.12;
+    spawnParticles(nearest.x, nearest.y, '#2ee07a', 5, 160);
     if (nearest.hp <= 0) killEnemy(nearest, myId);
   }
 }
@@ -2429,7 +2550,7 @@ function updateEBullets(dt) {
         if (!al.isAlly || al.hp <= 0) continue;
         if (dist(al.x, al.y, b.x, b.y) < al.r + b.r) {
           al.hp -= b.dmg; al.hitFlash = 0.12;
-          spawnParticles(al.x, al.y, '#ff66b2', 4, 150);
+          spawnParticles(al.x, al.y, '#2ee07a', 4, 150);
           hit = true; break;
         }
       }
@@ -2563,7 +2684,6 @@ function processEvents() {
   state.events = [];
 }
 
-/* ✅ FIX #11: cache text để tránh set DOM mỗi frame */
 const _hudCache = {};
 function setHudText(el, key, val) {
   if (!el) return;
@@ -2576,9 +2696,9 @@ function updateHUD(st) {
   if (!st) return;
   const me = st.players[myId]; if (!me) return;
   DOM.hpFillP1.style.width = (Math.max(0, me.hp/me.maxHp)*100) + '%';
-  setHudText(DOM.hpTextP1, 'hp', Math.max(0, Math.ceil(me.hp)) + ' / ' + Math.ceil(me.maxHp));
+  setHudText(DOM.hpTextP1, 'hp', 'HP: ' + Math.max(0, Math.ceil(me.hp)) + ' / ' + Math.ceil(me.maxHp));
   DOM.manaFillP1.style.width = (Math.max(0, me.mana/me.maxMana)*100) + '%';
-  setHudText(DOM.manaTextP1, 'mana', 'MANA ' + Math.floor(me.mana) + ' / ' + me.maxMana);
+  setHudText(DOM.manaTextP1, 'mana', 'MP: ' + Math.floor(me.mana) + ' / ' + me.maxMana);
   if (me.powerups.shield > 0 && me.shieldHp > 0) DOM.shieldFillP1.style.width = Math.min(100, (me.shieldHp/me.maxHp)*100) + '%';
   else DOM.shieldFillP1.style.width = '0%';
   if (me.manaFlash > 0 || me.mana < 20) DOM.manaBarP1.classList.add('low');
@@ -2587,8 +2707,9 @@ function updateHUD(st) {
   setHudText(DOM.xpValP1, 'xpVal', me.xp || 0);
   setHudText(DOM.xpNeedP1, 'xpNeed', xpNeeded(me.level));
   setHudText(DOM.lvlValP1, 'lvl', me.level);
-  setHudText(DOM.scoreVal, 'score', me.score || 0);
-  setHudText(DOM.waveVal, 'wave', st.wave || 1);
+  setHudText(DOM.scoreVal, 'score', (me.score || 0).toString().padStart(6, '0'));
+  setHudText(DOM.waveVal, 'wave', (st.wave || 1).toString().padStart(2, '0'));
+  
   const showEnemies = uiSettings.enemiesLeft && st.mode === 'pve' && !st.isSpectate;
   if (showEnemies) {
     DOM.enemiesLeftBox.classList.remove('hidden');
@@ -2602,7 +2723,7 @@ function updateHUD(st) {
   const p2 = st.players['BOT'];
   if (p2) {
     DOM.hpFillP2.style.width = (Math.max(0, p2.hp/p2.maxHp)*100) + '%';
-    setHudText(DOM.hpTextP2, 'hpP2', p2.name + ' · ' + Math.max(0, Math.ceil(p2.hp)) + ' / ' + Math.ceil(p2.maxHp));
+    setHudText(DOM.hpTextP2, 'hpP2', p2.name + ' · ' + Math.max(0, Math.ceil(p2.hp)));
   }
 }
 function updatePowerupHUD(st) {
@@ -2700,11 +2821,11 @@ resize();
 const CELL = 128;
 function drawMap() {
   const left = cam.x - W/2, top = cam.y - H/2;
-  ctx.fillStyle = '#0b1017'; ctx.fillRect(left - 60, top - 60, W + 120, H + 120);
+  ctx.fillStyle = '#05080c'; ctx.fillRect(left - 60, top - 60, W + 120, H + 120);
   const g = 64;
   const gx0 = Math.floor(left/g)*g, gx1 = left + W;
   const gy0 = Math.floor(top/g)*g, gy1 = top + H;
-  ctx.strokeStyle = 'rgba(60,130,100,0.10)'; ctx.lineWidth = 1;
+  ctx.strokeStyle = 'rgba(0, 243, 255, 0.05)'; ctx.lineWidth = 1;
   ctx.beginPath();
   for (let x = gx0; x <= gx1; x += g) { ctx.moveTo(x, gy0); ctx.lineTo(x, gy1); }
   for (let y = gy0; y <= gy1; y += g) { ctx.moveTo(gx0, y); ctx.lineTo(gx1, y); }
@@ -2723,10 +2844,10 @@ function drawMap() {
           const r = 6 + hash(cx, cy, 40 + kk*7)*10;
           ctx.beginPath();
           ctx.ellipse(px, py, r, r*0.72, hash(cx, cy, 50 + kk*7)*TAU, 0, TAU);
-          ctx.fillStyle = 'rgba(45,62,72,0.85)'; ctx.fill();
-          ctx.strokeStyle = 'rgba(90,120,120,0.28)'; ctx.lineWidth = 1.5; ctx.stroke();
+          ctx.fillStyle = 'rgba(10, 20, 30, 0.85)'; ctx.fill();
+          ctx.strokeStyle = 'rgba(0, 243, 255, 0.1)'; ctx.lineWidth = 1.5; ctx.stroke();
         } else if (type < 0.8) {
-          ctx.strokeStyle = 'rgba(60,130,90,0.35)'; ctx.lineWidth = 2;
+          ctx.strokeStyle = 'rgba(0, 243, 255, 0.15)'; ctx.lineWidth = 2;
           ctx.beginPath();
           for (let b = 0; b < 4; b++) {
             const a = -Math.PI/2 + (hash(cx, cy, 60 + kk*7 + b) - 0.5)*1.3;
@@ -2738,7 +2859,7 @@ function drawMap() {
         } else {
           const r = 14 + hash(cx, cy, 80 + kk*7)*22;
           ctx.beginPath(); ctx.arc(px, py, r, 0, TAU);
-          ctx.fillStyle = 'rgba(20,30,38,0.55)'; ctx.fill();
+          ctx.fillStyle = 'rgba(0, 0, 0, 0.55)'; ctx.fill();
         }
       }
     }
@@ -2746,13 +2867,13 @@ function drawMap() {
 }
 function drawArena(arena) {
   ctx.save();
-  ctx.strokeStyle = 'rgba(255,80,80,0.55)'; ctx.lineWidth = 4;
+  ctx.strokeStyle = 'rgba(255, 0, 85, 0.55)'; ctx.lineWidth = 4;
   ctx.setLineDash([20, 12]); ctx.lineDashOffset = -performance.now()*0.05;
   const hw = arena.w/2, hh = arena.h/2;
   ctx.strokeRect(-hw, -hh, arena.w, arena.h);
   ctx.setLineDash([]);
-  ctx.fillStyle = 'rgba(255,50,50,0.03)'; ctx.fillRect(-hw, -hh, arena.w, arena.h);
-  ctx.strokeStyle = 'rgba(255,80,80,0.18)'; ctx.lineWidth = 1;
+  ctx.fillStyle = 'rgba(255,0,85,0.03)'; ctx.fillRect(-hw, -hh, arena.w, arena.h);
+  ctx.strokeStyle = 'rgba(255,0,85,0.18)'; ctx.lineWidth = 1;
   ctx.strokeRect(-hw + 20, -hh + 20, arena.w - 40, arena.h - 40);
   ctx.restore();
 }
@@ -2768,10 +2889,10 @@ function drawPickup(k) {
     const grad = ctx.createRadialGradient(0, 0, 0, 0, 0, 10*pulse);
     grad.addColorStop(0, '#e0c6ff'); grad.addColorStop(0.6, '#b46bff'); grad.addColorStop(1, 'rgba(180,107,255,0.3)');
     ctx.fillStyle = grad; ctx.beginPath(); ctx.arc(0, 0, 10*pulse, 0, TAU); ctx.fill();
-    ctx.font = 'bold 12px system-ui'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.font = 'bold 12px "Orbitron"'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
     ctx.fillStyle = '#fff'; ctx.fillText('✦', 0, 0);
     if (k.xpValue > 1) {
-      ctx.font = 'bold 9px system-ui'; ctx.fillStyle = '#ffd93d';
+      ctx.font = 'bold 9px "Orbitron"'; ctx.fillStyle = '#ffd93d';
       ctx.strokeStyle = 'rgba(0,0,0,0.9)'; ctx.lineWidth = 2;
       ctx.strokeText('+'+k.xpValue, 0, -18); ctx.fillText('+'+k.xpValue, 0, -18);
     }
@@ -2780,7 +2901,7 @@ function drawPickup(k) {
   }
   const pulse = 1 + Math.sin(k.bob)*0.12;
   const isBad = k.bad;
-  const ringColor = isBad ? '#ff5b6e' : '#2ee07a';
+  const ringColor = isBad ? '#ff0055' : '#00ff66';
   const iconCol = PU_COLOR[k.type] || '#fff';
   ctx.save(); ctx.translate(k.x, k.y);
   ctx.globalAlpha = k.life < 3 ? (Math.floor(performance.now()*0.01) % 2 ? 0.3 : 1) : 1;
@@ -2801,7 +2922,7 @@ function drawPickup(k) {
   ctx.beginPath(); ctx.arc(0, 0, 15*pulse, 0, TAU);
   ctx.fillStyle = '#0e1a22'; ctx.fill();
   ctx.strokeStyle = hexA(iconCol, 0.7); ctx.lineWidth = 1.5; ctx.stroke();
-  ctx.font = 'bold 16px system-ui'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.font = 'bold 16px "Orbitron"'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
   ctx.fillStyle = '#fff'; ctx.fillText(PU_ICON[k.type] || '?', 0, 1);
   ctx.restore();
 }
@@ -2935,7 +3056,7 @@ function drawEnemy(e, st, targetPlayer) {
     ctx.beginPath(); ctx.arc(0, 0, e.r + 12, 0, TAU); ctx.stroke();
     ctx.globalAlpha = 0.25; ctx.fillStyle = '#00fff0';
     ctx.beginPath(); ctx.arc(0, 0, e.r + 12, 0, TAU); ctx.fill();
-    ctx.font = 'bold 20px system-ui,sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.font = 'bold 20px "Orbitron"'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
     ctx.fillStyle = '#00fff0'; ctx.fillText('🛡', 0, 0);
     ctx.restore();
   }
@@ -2943,23 +3064,37 @@ function drawEnemy(e, st, targetPlayer) {
   ctx.beginPath(); ctx.arc(0, 0, e.r*(e.isBoss ? 1.9 : 1.7), 0, TAU);
   ctx.fillStyle = e.color; ctx.fill();
   ctx.globalAlpha = 1;
+
   if (e.isAlly) {
-    ctx.save(); ctx.rotate(t*2);
+    ctx.fillStyle = '#0a3a20';
+    ctx.fillRect(-e.r*0.85, -e.r*0.85, e.r*1.7, e.r*0.35);
+    ctx.fillRect(-e.r*0.85, e.r*0.5, e.r*1.7, e.r*0.35);
     ctx.fillStyle = flash ? '#fff' : e.color;
-    ctx.fillRect(-e.r*0.7, -e.r*0.7, e.r*1.4, e.r*1.4);
-    ctx.strokeStyle = '#fff'; ctx.lineWidth = 2;
-    ctx.strokeRect(-e.r*0.7, -e.r*0.7, e.r*1.4, e.r*1.4);
+    ctx.strokeStyle = e.stroke; ctx.lineWidth = 2;
+    ctx.fillRect(-e.r*0.7, -e.r*0.55, e.r*1.4, e.r*1.1);
+    ctx.strokeRect(-e.r*0.7, -e.r*0.55, e.r*1.4, e.r*1.1);
+    ctx.save();
+    ctx.rotate(e.aim || 0);
+    ctx.fillStyle = e.stroke;
+    ctx.fillRect(0, -e.r*0.15, e.r*1.0, e.r*0.3);
+    ctx.fillStyle = flash ? '#fff' : e.color;
+    ctx.beginPath(); ctx.arc(0, 0, e.r*0.45, 0, TAU); ctx.fill();
+    ctx.strokeStyle = e.stroke; ctx.lineWidth = 1.5; ctx.stroke();
     ctx.restore();
-    ctx.fillStyle = 'rgba(0,0,0,0.65)'; ctx.fillRect(-e.r, -e.r-14, e.r*2, 4);
+    ctx.fillStyle = 'rgba(0,0,0,0.65)';
+    ctx.fillRect(-e.r, -e.r-14, e.r*2, 4);
     const hpPct = Math.max(0, e.hp/e.maxHp);
     ctx.fillStyle = hpPct > 0.4 ? '#2ee07a' : '#ff5b6e';
     ctx.fillRect(-e.r, -e.r-14, e.r*2*hpPct, 4);
-    ctx.fillStyle = 'rgba(0,0,0,0.5)'; ctx.fillRect(-e.r, -e.r-8, e.r*2, 2);
-    ctx.fillStyle = '#ff66b2';
-    ctx.fillRect(-e.r, -e.r-8, e.r*2*(e.allyLife/15), 2);
+    ctx.fillStyle = 'rgba(0,0,0,0.5)';
+    ctx.fillRect(-e.r, -e.r-8, e.r*2, 2);
+    ctx.fillStyle = '#9df3c4';
+    const lifePct = Math.max(0, e.allyLife / (e.allyMaxLife || ALLY_LIFE));
+    ctx.fillRect(-e.r, -e.r-8, e.r*2*lifePct, 2);
   } else {
     drawEnemyShape(e, t, targetPlayer);
   }
+
   if (!e.isAlly && e.frozen > 0) {
     ctx.save(); ctx.globalAlpha = 0.55;
     ctx.fillStyle = 'rgba(77,217,255,0.25)';
@@ -2990,7 +3125,7 @@ function drawEnemy(e, st, targetPlayer) {
     ctx.fillRect(-w/2, -e.r-15, w*Math.max(0, e.hp/e.maxHp), 5);
   }
   if (e.isBoss) {
-    ctx.font = 'bold 11px system-ui,sans-serif'; ctx.textAlign = 'center';
+    ctx.font = 'bold 11px "Orbitron"'; ctx.textAlign = 'center';
     const txt = 'BOSS ' + BOSS_TYPES[e.bossType].name + ' Lv' + (e.level || 1);
     ctx.strokeStyle = 'rgba(0,0,0,0.9)'; ctx.lineWidth = 3;
     ctx.fillStyle = e.color;
@@ -3008,8 +3143,8 @@ function drawPlayer(p, isMe, st) {
     return;
   }
   const isSpectateBot = isMe && st.isSpectate;
-  const bodyCol = isSpectateBot ? '#b46bff' : (isMe ? '#5fbf7d' : '#6ba8ff');
-  const stroke = isSpectateBot ? '#6a2f9e' : (isMe ? '#1e5233' : '#1e3a8a');
+  const bodyCol = isSpectateBot ? '#b46bff' : (isMe ? '#00ff66' : '#00f3ff');
+  const stroke = isSpectateBot ? '#6a2f9e' : (isMe ? '#004d1f' : '#005f73');
   ctx.save(); ctx.translate(p.x, p.y);
   if (p.invisible > 0) ctx.globalAlpha = isMe ? 0.55 : 0.3;
   if (p.chargeState === 'charging') {
@@ -3053,7 +3188,7 @@ function drawPlayer(p, isMe, st) {
   }
   if (p.manaFlash > 0) {
     ctx.save(); ctx.globalAlpha = p.manaFlash*0.7;
-    ctx.strokeStyle = '#4dd9ff'; ctx.lineWidth = 4; ctx.setLineDash([8, 6]);
+    ctx.strokeStyle = '#00f3ff'; ctx.lineWidth = 4; ctx.setLineDash([8, 6]);
     ctx.beginPath(); ctx.arc(0, 0, 38, 0, TAU); ctx.stroke();
     ctx.setLineDash([]); ctx.restore();
   }
@@ -3069,18 +3204,18 @@ function drawPlayer(p, isMe, st) {
     const fade = Math.min(1, p.drainTimer/0.3);
     ctx.save();
     const grad = ctx.createRadialGradient(0, 0, 20, 0, 0, R);
-    grad.addColorStop(0, 'rgba(255,77,109,' + (0.35*fade) + ')');
-    grad.addColorStop(0.6, 'rgba(255,77,109,' + (0.12*fade) + ')');
-    grad.addColorStop(1, 'rgba(255,77,109,0)');
+    grad.addColorStop(0, 'rgba(255,0,85,' + (0.35*fade) + ')');
+    grad.addColorStop(0.6, 'rgba(255,0,85,' + (0.12*fade) + ')');
+    grad.addColorStop(1, 'rgba(255,0,85,0)');
     ctx.fillStyle = grad; ctx.beginPath(); ctx.arc(0, 0, R, 0, TAU); ctx.fill();
-    ctx.strokeStyle = 'rgba(255,77,109,' + (0.65*fade) + ')'; ctx.lineWidth = 2;
+    ctx.strokeStyle = 'rgba(255,0,85,' + (0.65*fade) + ')'; ctx.lineWidth = 2;
     ctx.setLineDash([6, 6]); ctx.beginPath(); ctx.arc(0, 0, R, 0, TAU); ctx.stroke();
     ctx.setLineDash([]); ctx.restore();
   }
   if (p.powerups.shield > 0) {
     ctx.save(); ctx.globalAlpha = 0.4 + 0.2*Math.sin(performance.now()*0.01);
-    ctx.strokeStyle = '#ffd93d'; ctx.lineWidth = 3;
-    ctx.shadowColor = '#ffd93d'; ctx.shadowBlur = 10;
+    ctx.strokeStyle = '#ffcc00'; ctx.lineWidth = 3;
+    ctx.shadowColor = '#ffcc00'; ctx.shadowBlur = 10;
     ctx.beginPath(); ctx.arc(0, 0, 32, 0, TAU); ctx.stroke();
     ctx.restore();
   }
@@ -3097,29 +3232,29 @@ function drawPlayer(p, isMe, st) {
   ctx.beginPath(); ctx.arc(0, 0, 10, 0, TAU); ctx.fill();
   ctx.strokeStyle = stroke; ctx.stroke();
   ctx.restore();
-  ctx.font = 'bold 11px system-ui'; ctx.textAlign = 'center';
-  ctx.fillStyle = isSpectateBot ? '#e0c6ff' : (isMe ? '#9df3c4' : '#8ecaff');
-  const nameTxt = (st.mode === 'pve' || st.isSpectate) ? p.name + ' Lv' + (p.level || 1) : p.name;
+  ctx.font = 'bold 12px "Orbitron"'; ctx.textAlign = 'center';
+  ctx.fillStyle = isSpectateBot ? '#e0c6ff' : (isMe ? '#00ff66' : '#00f3ff');
+  const nameTxt = (st.mode === 'pve' || st.isSpectate) ? p.name + ' LV' + (p.level || 1) : p.name;
   ctx.fillText(nameTxt, 0, -32);
-  const w = 40;
-  ctx.fillStyle = 'rgba(0,0,0,0.7)'; ctx.fillRect(-w/2, -24, w, 4);
+  const w = 44;
+  ctx.fillStyle = 'rgba(0,0,0,0.8)'; ctx.fillRect(-w/2, -24, w, 5);
   const hpPct = Math.max(0, p.hp/(p.maxHp || 100));
-  ctx.fillStyle = hpPct > 0.5 ? '#2ee07a' : hpPct > 0.25 ? '#ffd93d' : '#ff5b6e';
-  ctx.fillRect(-w/2, -24, w*hpPct, 4);
-  ctx.fillStyle = 'rgba(0,0,0,0.7)'; ctx.fillRect(-w/2, -18, w, 3);
+  ctx.fillStyle = hpPct > 0.5 ? '#00ff66' : hpPct > 0.25 ? '#ffcc00' : '#ff0055';
+  ctx.fillRect(-w/2, -24, w*hpPct, 5);
+  ctx.fillStyle = 'rgba(0,0,0,0.8)'; ctx.fillRect(-w/2, -18, w, 3);
   const mpPct = Math.max(0, p.mana/(p.maxMana || MANA_MAX));
-  ctx.fillStyle = '#4dd9ff';
+  ctx.fillStyle = '#00f3ff';
   ctx.fillRect(-w/2, -18, w*mpPct, 3);
   if (isMe && p.hp > 0 && !isSpectateBot && p.invisible <= 0) {
     ctx.save();
     ctx.globalAlpha = 0.35 + 0.15*Math.sin(performance.now()*0.005);
-    ctx.strokeStyle = '#9df3c4'; ctx.lineWidth = 1.5; ctx.setLineDash([8, 8]);
+    ctx.strokeStyle = '#00ff66'; ctx.lineWidth = 1.5; ctx.setLineDash([8, 8]);
     ctx.beginPath();
     ctx.moveTo(Math.cos(p.aim)*28, Math.sin(p.aim)*28);
     ctx.lineTo(Math.cos(p.aim)*160, Math.sin(p.aim)*160);
     ctx.stroke();
     ctx.setLineDash([]);
-    ctx.globalAlpha = 0.6; ctx.fillStyle = '#9df3c4';
+    ctx.globalAlpha = 0.6; ctx.fillStyle = '#00ff66';
     ctx.beginPath(); ctx.arc(Math.cos(p.aim)*160, Math.sin(p.aim)*160, 3, 0, TAU); ctx.fill();
     ctx.restore();
   }
@@ -3163,7 +3298,7 @@ function drawBeams(st) {
       ctx.beginPath(); ctx.arc(bm.x, bm.y, bm.radius, 0, TAU); ctx.fill();
       ctx.globalAlpha = 0.9;
       ctx.fillStyle = '#ff90c0';
-      ctx.font = 'bold 20px system-ui';
+      ctx.font = 'bold 20px "Orbitron"';
       ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
       ctx.fillText('💫', bm.x, bm.y);
     } else if (bm.teleportBurst) {
@@ -3213,7 +3348,7 @@ function drawBeams(st) {
       grad.addColorStop(1, 'rgba(80, 180, 255, 0)');
       ctx.fillStyle = grad;
       ctx.fillRect(0, -3, beamLen, 6);
-      ctx.shadowColor = '#4dd9ff'; ctx.shadowBlur = 12;
+      ctx.shadowColor = '#00f3ff'; ctx.shadowBlur = 12;
       ctx.fillStyle = 'rgba(200, 240, 255, 0.9)';
       ctx.fillRect(0, -1.5, beamLen, 3);
     }
@@ -3235,10 +3370,10 @@ function drawBullets(st) {
     }
     let glow, core;
     if (b.isFire) { glow = '#ff8c1a'; core = '#ffe0b0'; }
-    else if (b.isFreeze) { glow = '#4dd9ff'; core = '#e0f8ff'; }
+    else if (b.isFreeze) { glow = '#00f3ff'; core = '#e0f8ff'; }
     else if (b.pierce) { glow = '#b46bff'; core = '#e0c6ff'; }
-    else if (isPlayer) { glow = '#ffe066'; core = '#fff8cc'; }
-    else { glow = '#ff5b6e'; core = '#ffb0b8'; }
+    else if (isPlayer) { glow = '#ffcc00'; core = '#fff8cc'; }
+    else { glow = '#ff0055'; core = '#ffb0b8'; }
     const br = b.r || 6;
     ctx.globalAlpha = 0.4; ctx.fillStyle = glow;
     ctx.beginPath(); ctx.arc(b.x, b.y, br*1.7, 0, TAU); ctx.fill();
@@ -3293,9 +3428,9 @@ function drawNukeWarnings(st) {
     ctx.beginPath(); ctx.arc(ns.x, ns.y, ns.radius*t, 0, TAU); ctx.fill();
     ctx.globalAlpha = 1;
     ctx.fillStyle = '#88ff00'; ctx.shadowColor = '#88ff00'; ctx.shadowBlur = 25;
-    ctx.font = 'bold 48px system-ui'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.font = 'bold 48px "Orbitron"'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
     ctx.fillText('☢', ns.x, ns.y);
-    ctx.font = 'bold 26px system-ui'; ctx.shadowBlur = 15;
+    ctx.font = 'bold 26px "Orbitron"'; ctx.shadowBlur = 15;
     ctx.fillStyle = '#fff'; ctx.strokeStyle = '#000'; ctx.lineWidth = 4;
     ctx.strokeText(Math.ceil(ns.timer) + 's', ns.x, ns.y + 50);
     ctx.fillText(Math.ceil(ns.timer) + 's', ns.x, ns.y + 50);
@@ -3334,7 +3469,7 @@ function drawBossIndicators(st) {
     ctx.restore();
     const lx = ex - ux*45, ly = ey - uy*45;
     ctx.save();
-    ctx.font = 'bold 11px system-ui,sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.font = 'bold 11px "Orbitron"'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
     const label = BOSS_TYPES[boss.bossType].name + ' ' + Math.round(worldDist/10) + 'm';
     ctx.strokeStyle = 'rgba(0,0,0,0.9)'; ctx.lineWidth = 3;
     ctx.strokeText(label, lx, ly);
@@ -3355,7 +3490,6 @@ function drawGame(st) {
   cam.x += (targetX - cam.x)*0.15;
   cam.y += (targetY - cam.y)*0.15;
   let sx = 0, sy = 0;
-  /* ✅ FIX #9: dùng _frameDt để shake không phụ thuộc FPS */
   if (uiSettings.screenShake && shakeTime > 0) {
     shakeTime = Math.max(0, shakeTime - _frameDt);
     sx = (Math.random()-0.5)*shakeIntensity;
@@ -3379,18 +3513,17 @@ function drawGame(st) {
   ctx.restore();
   drawBossIndicators(st);
   if (hitFlash > 0) {
-    /* ✅ FIX #9: dùng _frameDt */
     hitFlash = Math.max(0, hitFlash - _frameDt * 3);
-    ctx.fillStyle = 'rgba(255, 30, 30, ' + (hitFlash*0.4) + ')';
+    ctx.fillStyle = 'rgba(255, 0, 85, ' + (hitFlash*0.4) + ')';
     ctx.fillRect(0, 0, W, H);
   }
   if (nukeFlash > 0) drawNukeFlash();
   if (st.announce) {
     ctx.save();
     ctx.globalAlpha = Math.min(1, st.announce.t);
-    ctx.font = 'bold 52px system-ui,sans-serif';
-    ctx.fillStyle = '#9df3c4'; ctx.textAlign = 'center';
-    ctx.shadowColor = '#2ee07a'; ctx.shadowBlur = 30;
+    ctx.font = 'bold 52px "Orbitron"';
+    ctx.fillStyle = '#00f3ff'; ctx.textAlign = 'center';
+    ctx.shadowColor = '#00f3ff'; ctx.shadowBlur = 30;
     ctx.fillText(st.announce.text, W/2, H*0.26);
     ctx.restore();
   }
@@ -3400,7 +3533,6 @@ function drawGame(st) {
 }
 
 function drawNukeFlash() {
-  /* ✅ FIX #9: dùng _frameDt */
   nukeFlash = Math.max(0, nukeFlash - _frameDt * 1.56);
   const alpha = Math.min(1, nukeFlash);
   ctx.save();
@@ -3411,10 +3543,10 @@ function drawNukeFlash() {
   ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
   ctx.shadowColor = '#88ff00'; ctx.shadowBlur = 40;
   const pulse = 1 + Math.sin(performance.now()*0.02)*0.1;
-  ctx.font = 'bold ' + Math.round(120*pulse) + 'px system-ui';
+  ctx.font = 'bold ' + Math.round(120*pulse) + 'px "Orbitron"';
   ctx.fillStyle = 'rgba(200, 255, 120, 0.95)';
   ctx.fillText('☢', W/2, H/2);
-  ctx.font = 'bold 22px system-ui'; ctx.fillStyle = '#c8ff80'; ctx.shadowBlur = 20;
+  ctx.font = 'bold 22px "Orbitron"'; ctx.fillStyle = '#c8ff80'; ctx.shadowBlur = 20;
   ctx.fillText('☢ NHIỄM PHÓNG XẠ ☢', W/2, H/2 + 90);
   ctx.restore();
 }
@@ -3429,15 +3561,14 @@ function drawWaveProgress(st) {
   const x = (W - w)/2, y = H - 58;
   ctx.save();
   ctx.fillStyle = 'rgba(0,0,0,0.55)';
-  rr(x - 5, y - 5, w + 10, 34, 9); ctx.fill();
-  ctx.fillStyle = '#101c24'; rr(x, y, w, 24, 6); ctx.fill();
+  rr(x - 5, y - 5, w + 10, 34, 4); ctx.fill();
+  ctx.fillStyle = 'rgba(0, 243, 255, 0.1)'; rr(x, y, w, 24, 2); ctx.fill();
+  ctx.strokeStyle = 'rgba(0, 243, 255, 0.3)'; ctx.lineWidth = 1; ctx.strokeRect(x, y, w, 24);
   const pct = total > 0 ? killed/total : 0;
-  const grad = ctx.createLinearGradient(x, 0, x + w, 0);
-  grad.addColorStop(0, '#2ee07a'); grad.addColorStop(1, '#9df3c4');
-  ctx.fillStyle = grad; rr(x, y, w*pct, 24, 6); ctx.fill();
-  ctx.fillStyle = '#fff'; ctx.font = 'bold 12px system-ui,sans-serif';
+  ctx.fillStyle = '#00f3ff'; rr(x, y, w*pct, 24, 2); ctx.fill();
+  ctx.fillStyle = '#fff'; ctx.font = 'bold 12px "Orbitron"';
   ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-  ctx.fillText('QUÁI: ' + killed + ' / ' + total + '   (còn ' + remaining + ')', W/2, y + 12);
+  ctx.fillText('TIẾN ĐỘ: ' + killed + ' / ' + total, W/2, y + 12);
   ctx.restore();
 }
 
@@ -3454,11 +3585,11 @@ function drawBossHealthBars(st) {
     const g2 = ctx.createLinearGradient(x, 0, x + w, 0);
     g2.addColorStop(0, boss.color); g2.addColorStop(1, '#fff');
     ctx.fillStyle = 'rgba(0,0,0,0.55)';
-    rr(x - 5, y - 5, w + 10, 26, 8); ctx.fill();
-    ctx.fillStyle = '#1a1015'; rr(x, y, w, 16, 5); ctx.fill();
+    rr(x - 5, y - 5, w + 10, 26, 4); ctx.fill();
+    ctx.fillStyle = 'rgba(255,0,85,0.2)'; rr(x, y, w, 16, 2); ctx.fill();
     ctx.fillStyle = g2;
-    rr(x, y, w*Math.max(0, boss.hp/boss.maxHp), 16, 5); ctx.fill();
-    ctx.fillStyle = '#ffe4e6'; ctx.font = 'bold 11px system-ui,sans-serif';
+    rr(x, y, w*Math.max(0, boss.hp/boss.maxHp), 16, 2); ctx.fill();
+    ctx.fillStyle = '#fff'; ctx.font = 'bold 11px "Orbitron"';
     ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
     ctx.fillText('BOSS ' + BOSS_TYPES[boss.bossType].name + ' Lv' + (boss.level || 1) + '   ' + Math.ceil(boss.hp) + ' / ' + Math.ceil(boss.maxHp), W/2, y + 8);
   }
