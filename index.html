@@ -8,7 +8,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;900&family=Rajdhani:wght@500;600;700&display=swap" rel="stylesheet">
 <style>
-:root{--joy-size:140px;--knob-size:64px;--joy-bottom:30px;--joy-edge:30px;--skill-size:64px;--c-neon:#00f3ff;--c-green:#00ff66;--c-red:#ff0055;--c-gold:#ffcc00;--c-purple:#b46bff;--bg-dark:#05080c;--panel-bg:rgba(10,20,30,0.7)}
+:root{--joy-size:120px;--knob-size:54px;--joy-bottom:30px;--joy-edge:20px;--skill-size:64px;--c-neon:#00f3ff;--c-green:#00ff66;--c-red:#ff0055;--c-gold:#ffcc00;--c-purple:#b46bff;--bg-dark:#05080c;--panel-bg:rgba(10,20,30,0.7)}
 *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 html,body{width:100%;height:100%;overflow:hidden;background:var(--bg-dark);font-family:'Rajdhani',system-ui,sans-serif;user-select:none;color:#dff5e8;overscroll-behavior:none;touch-action:none}
 body::before{content:'';position:fixed;inset:0;z-index:-1;background-image:linear-gradient(rgba(0,243,255,0.03) 1px,transparent 1px),linear-gradient(90deg,rgba(0,243,255,0.03) 1px,transparent 1px);background-size:50px 50px;background-position:center;pointer-events:none}
@@ -44,7 +44,6 @@ button:active{transform:scale(0.97)}
 .btn-change-name:hover{color:#fff;border-color:#fff}
 #hud{position:fixed;inset:0;pointer-events:none;font-family:'Orbitron',sans-serif}
 #hudLeft{position:fixed;left:20px;bottom:20px;display:flex;flex-direction:column;gap:8px;transform-origin:left bottom}
-@media (pointer:coarse),(max-width:768px){#hudLeft{bottom:auto;top:100px;transform-origin:left top}}
 .hpbar,.manabar,.xpbar{position:relative;background:rgba(0,0,0,0.6);border:1px solid rgba(0,243,255,0.3);border-radius:2px;overflow:hidden;box-shadow:0 0 10px rgba(0,0,0,0.8)}
 .hpbar{width:260px;height:22px;border-color:rgba(255,0,85,0.4)}
 .manabar{width:220px;height:14px;margin-top:2px;border-color:rgba(0,243,255,0.4)}
@@ -126,6 +125,45 @@ button:active{transform:scale(0.97)}
 .tp-toggle.on{background:rgba(0,255,102,0.15);border-color:var(--c-green);color:var(--c-green)}
 @media (max-width:600px){#testPanel{width:calc(100vw - 40px)}}
 @media (max-height:700px){:root{--skill-size:48px;--joy-size:110px;--knob-size:50px}#skillBar{width:150px;gap:8px;bottom:20px}#hudLeft{transform:scale(0.8)}}
+
+/* ===== FIX GIAO DIỆN MOBILE ===== */
+@media (pointer: coarse), (max-width: 768px) {
+  #minimap {
+    width: 140px !important;
+    height: 140px !important;
+    top: 10px !important;
+    right: 10px !important;
+    left: auto !important;
+    border-width: 1px;
+  }
+  #hudLeft {
+    bottom: auto !important;
+    top: 10px !important;
+    left: 10px !important;
+    transform-origin: top left;
+    transform: scale(0.75);
+  }
+  #scoreBox {
+    top: 160px !important;
+    right: 10px !important;
+    padding: 10px;
+    transform: scale(0.9);
+    transform-origin: top right;
+  }
+  #enemiesLeftBox {
+    top: 10px !important;
+    padding: 4px 12px;
+  }
+  #enemiesLeftBox b {
+    font-size: 18px;
+  }
+}
+
+/* Ẩn Joystick trên máy tính (Chuột) */
+@media (pointer: fine) {
+  #touchControls { display: none !important; }
+  #joyLeft, #joyRight { display: none !important; }
+}
 </style>
 </head>
 <body>
@@ -213,11 +251,11 @@ button:active{transform:scale(0.97)}
 </div>
 <div id="settingsPanel" class="hidden">
   <div style="font-family:'Orbitron',sans-serif;font-size:16px;font-weight:900;letter-spacing:2px;color:var(--c-neon);text-align:center;margin-bottom:10px">HỆ THỐNG</div>
-  <div class="st-row"><div class="st-label"><span>Minimap Size</span><span class="st-val" id="vMiniSize">220px</span></div><input type="range" id="rMiniSize" min="100" max="320" step="1" value="220"></div>
+  <div class="st-row"><div class="st-label"><span>Minimap Size</span><span class="st-val" id="vMiniSize">140px</span></div><input type="range" id="rMiniSize" min="100" max="320" step="1" value="140"></div>
   <div class="st-row"><div class="st-label"><span>Minimap X</span><span class="st-val" id="vMiniX">20px</span></div><input type="range" id="rMiniX" min="0" max="500" step="1" value="20"></div>
   <div class="st-row"><div class="st-label"><span>Minimap Y</span><span class="st-val" id="vMiniY">20px</span></div><input type="range" id="rMiniY" min="0" max="500" step="1" value="20"></div>
   <div class="st-row row"><span>Minimap Vị Trí</span><div class="st-btns"><button data-set="miniCorner" data-val="left">TRÁI</button><button data-set="miniCorner" data-val="right">PHẢI</button></div></div>
-  <div class="st-row"><div class="st-label"><span>Joystick Size</span><span class="st-val" id="vJoySize">140px</span></div><input type="range" id="rJoySize" min="80" max="240" step="1" value="140"></div>
+  <div class="st-row"><div class="st-label"><span>Joystick Size</span><span class="st-val" id="vJoySize">120px</span></div><input type="range" id="rJoySize" min="80" max="240" step="1" value="120"></div>
   <div class="st-row"><div class="st-label"><span>HUD Scale</span><span class="st-val" id="vHudScale">1.00</span></div><input type="range" id="rHudScale" min="0.6" max="1.8" step="0.05" value="1"></div>
   <div class="st-row row"><span>Gợi ý ngắm</span><div class="st-btns"><button data-set="aimHint" data-val="on">BẬT</button><button data-set="aimHint" data-val="off">TẮT</button></div></div>
   <div class="st-row row"><span>Hộp quái</span><div class="st-btns"><button data-set="enemiesLeft" data-val="on">BẬT</button><button data-set="enemiesLeft" data-val="off">TẮT</button></div></div>
@@ -252,8 +290,11 @@ button:active{transform:scale(0.97)}
 const DOM = {};
 ['hpFillP1','hpTextP1','manaFillP1','manaTextP1','shieldFillP1','manaBarP1','hpBarP1','xpFillP1','xpValP1','xpNeedP1','lvlValP1','scoreVal','waveVal','enemiesLeftBox','enemiesLeftVal','hpFillP2','hpTextP2','modeTag','p2Hud','xpBarWrapP1','lvlWrapP1','aimHint','overlay','ovTitle','ovP1','ovP2','hpBarP2','game','minimap','hud','powerupHud','touchControls','skillBar','pauseOverlay','btnResume','btnPauseSettings','btnExitGame','settingsPanel','btnMenu','btnSettings','nameScreen','menuScreen','inputName','btnEnterGame','nameMsg','btnChangeName','btnSettingsMenu','btnRestart','btnToMenu','btnPvE','btnSpectate','btnTest','btnEasy','btnNormal','btnHard','btnInsane','stLayout','stReset','stClose','menuUsername','menuHighScore','menuBotWins'].forEach(id => { DOM[id] = document.getElementById(id); });
 
-const UI_KEY='tankArenaUI_v6', NAME_KEY='tankArenaPlayerName', SCORES_KEY='tankArenaScores';
-const DEFAULT_UI={miniSize:220,miniRight:false,miniOffsetX:20,miniOffsetY:20,hudScale:1,joySize:140,joyBottom:30,joyEdge:30,aimHint:true,enemiesLeft:true,screenShake:true,sound:true,skillSize:64,customPos:{},itemSizes:{}};
+// FIX: Bump version lên v8 để xóa layout lỗi đã lưu trong cache
+const UI_KEY='tankArenaUI_v8', NAME_KEY='tankArenaPlayerName', SCORES_KEY='tankArenaScores';
+
+// FIX: Giảm kích thước mặc định
+const DEFAULT_UI={miniSize:140,miniRight:false,miniOffsetX:20,miniOffsetY:20,hudScale:1,joySize:120,joyBottom:30,joyEdge:20,aimHint:true,enemiesLeft:true,screenShake:true,sound:true,skillSize:64,customPos:{},itemSizes:{}};
 const TAU=Math.PI*2;
 const MANA_MAX=100,MANA_REGEN=32,MANA_COST_SHOT=4,MANA_COST_LASER=16,MANA_COST_BOMB=20;
 const MANA_COST_BOT_SHOT=3,MANA_REGEN_BOT=18;
@@ -283,20 +324,21 @@ const ctx=canvasEl.getContext('2d');
 let W=innerWidth,H=innerHeight;
 const DPR=Math.min(devicePixelRatio||1,(innerWidth>2000||innerHeight>1400)?1:1.5);
 let cam={x:0,y:0};
-const isTouchDevice=('ontouchstart'in window)||(navigator.maxTouchPoints>0);
+// FIX: Nhận diện chính xác thiết bị cảm ứng (tránh nhầm lẫn laptop màn hình cảm ứng)
+const isTouchDevice = window.matchMedia('(pointer: coarse)').matches || ('ontouchstart' in window);
 
 const minimapEl=DOM.minimap;
 const minimapCtx=minimapEl.getContext('2d');
-let MINI_SIZE=220;
+let MINI_SIZE=140;
 const MINI_DPR=Math.min(2,devicePixelRatio||1);
 function resizeMinimap(size){
-  size=parseFloat(size);if(isNaN(size)||size<=0)size=220;
+  size=parseFloat(size);if(isNaN(size)||size<=0)size=140;
   MINI_SIZE=size;
   minimapEl.width=MINI_SIZE*MINI_DPR;minimapEl.height=MINI_SIZE*MINI_DPR;
   minimapEl.style.width=MINI_SIZE+'px';minimapEl.style.height=MINI_SIZE+'px';
   minimapCtx.setTransform(MINI_DPR,0,0,MINI_DPR,0,0);
 }
-resizeMinimap(uiSettings.miniSize||220);
+resizeMinimap(uiSettings.miniSize||140);
 
 let audioCtx=null;
 const SND_MAP={shoot:{t:'square',f1:400,f2:100,g:0.05,d:0.1},hit:{t:'sawtooth',f1:200,f2:50,g:0.1,d:0.1},hurt:{t:'triangle',f1:100,f2:30,g:0.2,d:0.2},pickup:{t:'sine',f1:600,f2:1200,g:0.1,d:0.2},levelup:{t:'square',f1:400,f2:1600,g:0.15,d:0.4},boom:{t:'sawtooth',f1:80,f2:20,g:0.3,d:0.5},laser:{t:'sawtooth',f1:1200,f2:200,g:0.12,d:0.3},curse:{t:'sawtooth',f1:180,f2:60,g:0.18,d:0.35},win:{t:'square',f1:800,f2:200,g:0.25,d:0.7},lose:{t:'sawtooth',f1:200,f2:40,g:0.25,d:0.8},mana:{t:'sine',f1:300,f2:900,g:0.08,d:0.15},nomana:{t:'square',f1:120,f2:80,g:0.12,d:0.15},roar:{t:'sawtooth',f1:150,f2:40,g:0.3,d:0.6},charge:{t:'square',f1:200,f2:900,g:0.15,d:0.5},fire:{t:'sawtooth',f1:400,f2:100,g:0.15,d:0.4},freeze:{t:'sine',f1:1200,f2:200,g:0.15,d:0.4},drain:{t:'triangle',f1:600,f2:100,g:0.15,d:0.5},split:{t:'square',f1:300,f2:80,g:0.18,d:0.3},teleport:{t:'sine',f1:800,f2:200,g:0.15,d:0.3},spawn:{t:'square',f1:200,f2:400,g:0.1,d:0.2},skill:{t:'sine',f1:500,f2:1500,g:0.15,d:0.3},invis:{t:'sine',f1:1500,f2:400,g:0.14,d:0.4}};
@@ -326,8 +368,8 @@ const DEFAULT_LAYOUT={hud:{x:0.02,y:0.66},mini:{x:0.02,y:0.02},joyLeft:{x:0.02,y
 
 function getDefaultSizeForItem(id){
   if(id.startsWith('skill'))return 64;
-  if(id==='joyLeft'||id==='joyRight')return 140;
-  if(id==='mini')return 220;
+  if(id==='joyLeft'||id==='joyRight')return 120;
+  if(id==='mini')return 140;
   if(id==='hud')return 1;
   return 64;
 }
@@ -336,8 +378,8 @@ function getItemSize(id){
   let v=sz[id];
   if(v===undefined){
     if(id.startsWith('skill'))v=uiSettings.skillSize||64;
-    else if(id==='joyLeft'||id==='joyRight')v=uiSettings.joySize||140;
-    else if(id==='mini')v=uiSettings.miniSize||220;
+    else if(id==='joyLeft'||id==='joyRight')v=uiSettings.joySize||120;
+    else if(id==='mini')v=uiSettings.miniSize||140;
     else if(id==='hud')v=uiSettings.hudScale||1;
     else v=64;
   }
@@ -360,7 +402,11 @@ function applyCustomSizes(){
     if(knob){knob.style.width=k+'px';knob.style.height=k+'px';}
   });
   const miniS=getItemSize('mini');
-  if(miniS!==MINI_SIZE)resizeMinimap(miniS);
+  // Tự động thu nhỏ minimap nếu màn hình quá bé
+  const maxMini = Math.min(window.innerWidth * 0.35, window.innerHeight * 0.35, 200);
+  const finalMiniS = Math.min(miniS, maxMini);
+  if(finalMiniS!==MINI_SIZE)resizeMinimap(finalMiniS);
+
   const hudS=getItemSize('hud');
   const hudLeft=document.getElementById('hudLeft');
   if(hudLeft)hudLeft.style.transform='scale('+hudS+')';
@@ -383,7 +429,7 @@ function applyCustomPositions(){
     else{hudLeft.style.left='';hudLeft.style.top='';hudLeft.style.bottom='';hudLeft.style.transformOrigin='';}
   }
   if(cp.mini){minimapEl.style.left=(cp.mini.x*100)+'vw';minimapEl.style.top=(cp.mini.y*100)+'vh';minimapEl.style.right='auto';}
-  else{minimapEl.style.top=uiSettings.miniOffsetY+'px';if(uiSettings.miniRight){minimapEl.style.left='auto';minimapEl.style.right=uiSettings.miniOffsetX+'px';}else{minimapEl.style.right='auto';minimapEl.style.left=uiSettings.miniOffsetX+'px';}}
+  else{minimapEl.style.top='';minimapEl.style.left='';minimapEl.style.right='';}
   ['joyLeft','joyRight'].forEach(id=>{
     const el=document.getElementById(id);if(!el)return;
     const pos=cp[id];
@@ -601,8 +647,17 @@ function show(name){
   if(name==='game'){
     canvasEl.classList.remove('hidden');DOM.hud.classList.remove('hidden');
     DOM.powerupHud.classList.remove('hidden');minimapEl.classList.remove('hidden');
-    if(isTouchDevice){DOM.touchControls.classList.remove('hidden');document.getElementById('joyLeft').style.display='';document.getElementById('joyRight').style.display='';}
-    else{document.getElementById('joyLeft').style.display='none';document.getElementById('joyRight').style.display='none';}
+    
+    // FIX: Chỉ hiển thị joystick trên thiết bị di động
+    if(isTouchDevice && window.innerWidth <= 1024){
+      DOM.touchControls.classList.remove('hidden');
+      document.getElementById('joyLeft').style.display='';
+      document.getElementById('joyRight').style.display='';
+    }else{
+      DOM.touchControls.classList.add('hidden');
+      document.getElementById('joyLeft').style.display='none';
+      document.getElementById('joyRight').style.display='none';
+    }
     DOM.skillBar.classList.remove('hidden');
     if(uiSettings.aimHint&&!isTouchDevice&&!(state&&state.isSpectate))DOM.aimHint?.classList.remove('hidden');
   } else if(screens[name])screens[name].classList.remove('hidden');
@@ -2785,7 +2840,7 @@ function drawPlayer(p,isMe,st){
   ctx.restore();
   ctx.font='bold 12px "Orbitron"';ctx.textAlign='center';
   ctx.fillStyle=isSpectateBot?'#e0c6ff':(isMe?'#00ff66':(isTestBot?'#ffcc00':'#00f3ff'));
-  const nameTxt=(st.mode==='pve'||st.isSpectate||st.mode==='test')?p.name+' LV'+(p.level||1):p.name;
+  const nameTxt=(st.mode==='pve'||st.isSpectate||st.mode==='test')?p.name+' Lv.'+(p.level||1):p.name;
   ctx.fillText(nameTxt,0,-32);
   const w=44;
   ctx.fillStyle='rgba(0,0,0,0.8)';ctx.fillRect(-w/2,-24,w,5);
@@ -3102,7 +3157,6 @@ function drawNukeFlash(){
   ctx.restore();
 }
 
-/* ============ FIX: helper vẽ hình chữ nhật bo góc ============ */
 function rr(x,y,w,h,r){
   if(w<0){x+=w;w=-w;}
   if(h<0){y+=h;h=-h;}
@@ -3129,7 +3183,9 @@ function drawWaveProgress(st){
   const remaining=q.length+enemyCount;
   const total=st.waveTotal||1,killed=total-remaining;
   const w=Math.min(360,W-80);
-  const x=(W-w)/2,y=H-58;
+  const x=(W-w)/2;
+  // FIX: Dời thanh tiến độ lên trên thanh joystick trên mobile
+  const y=H - (isTouchDevice && window.innerWidth <= 1024 ? 160 : 58);
   ctx.save();
   ctx.fillStyle='rgba(0,0,0,0.55)';
   rr(x-5,y-5,w+10,34,4);ctx.fill();
