@@ -96,7 +96,9 @@
   @keyframes enemiesUrgent{0%,100%{box-shadow:0 0 22px rgba(255,91,110,.4)}50%{box-shadow:0 0 36px rgba(255,91,110,.95)}}
   #aimHint{position:fixed;bottom:100px;left:50%;transform:translateX(-50%);padding:6px 12px;border-radius:8px;background:rgba(10,20,26,.85);border:1px solid #26485a;color:#7a9a92;font-size:10px;font-weight:700;letter-spacing:1px;pointer-events:none;z-index:5}
   #minimap{position:fixed;top:20px;left:20px;z-index:15;pointer-events:none;border:2px solid #26485a;border-radius:10px;background:rgba(8,16,22,.92);box-shadow:0 0 20px rgba(46,224,122,.35),inset 0 0 20px rgba(46,224,122,.08)}
+  /* ✅ FIX #8: Khi minimap phải, scoreBox dịch sang trái để không đè */
   body.mini-right #enemiesLeftBox{right:auto;left:16px}
+  body.mini-right #scoreBox{text-align:left;margin-right:200px}
   #settingsPanel .st-row{display:flex;flex-direction:column;gap:2px;font-size:12px;color:#cfe9d8;letter-spacing:.5px}
   #settingsPanel .st-row.row{flex-direction:row;justify-content:space-between;align-items:center;gap:8px}
   #settingsPanel .st-label{display:flex;justify-content:space-between;font-size:12px;color:#cfe9d8;letter-spacing:.5px}
@@ -264,6 +266,7 @@ const MAX_XP_ORBS = 300, MAX_PARTICLES = 120, MAX_BULLETS = 220, MAX_EBULLETS = 
 const INVIS_DURATION = 4;
 
 let state = null, lastTime = performance.now(), paused = false, wasPausedBySettings = false;
+let _frameDt = 0.016; /* ✅ FIX #9: dt toàn cục cho flash/shake */
 const myId = 'PLAYER';
 let uiSettings = Object.assign({}, DEFAULT_UI);
 try { Object.assign(uiSettings, JSON.parse(localStorage.getItem(UI_KEY) || '{}')); } catch(_) {}
@@ -759,8 +762,12 @@ function show(name) {
   if (name === 'game') {
     canvasEl.classList.remove('hidden'); DOM.hud.classList.remove('hidden');
     DOM.powerupHud.classList.remove('hidden'); minimapEl.classList.remove('hidden');
-    if (isTouchDevice) DOM.touchControls.classList.remove('hidden');
-    else {
+    if (isTouchDevice) {
+      DOM.touchControls.classList.remove('hidden');
+      /* ✅ FIX #7: reset display để joystick không bị ẩn vĩnh viễn */
+      document.getElementById('joyLeft').style.display = '';
+      document.getElementById('joyRight').style.display = '';
+    } else {
       document.getElementById('joyLeft').style.display = 'none';
       document.getElementById('joyRight').style.display = 'none';
     }
@@ -875,7 +882,6 @@ const BOT_CFG = {
 };
 const DIFF_NAME = {easy:'DỄ', normal:'BÌNH THƯỜNG', hard:'KHÁ', insane:'SIÊU KHÓ'};
 
-// ====== SKILLS (tên tiếng Việt) ======
 const BOSS_SKILLS = [
   {key:'charge',    name:'LAO TỚI',       color:'#b46bff', icon:'🐂', cd:10, cost:15},
   {key:'flame',     name:'PHUN LỬA',      color:'#ff8c1a', icon:'🔥', cd:8,  cost:20},
@@ -903,7 +909,6 @@ const PU_GOOD = ['laser','bomb','shield','speed','pierce','tripleshot','magnet']
 const PU_COLOR = {laser:'#ffdd00',bomb:'#ff8c1a',shield:'#ffd93d',speed:'#2ee07a',pierce:'#b46bff',tripleshot:'#ff66b2',magnet:'#4dd9ff',curse:'#ff5b6e',slow:'#4dd9ff',burn:'#ff8c1a',confuse:'#b46bff',freeze:'#4dd9ff',jam:'#ff5b6e'};
 const PU_ICON = {laser:'⚡',bomb:'💣',shield:'🛡',speed:'⚡',pierce:'➤',tripleshot:'⋔',magnet:'🧲',curse:'☠',slow:'🐌',burn:'🔥',confuse:'🌀',freeze:'❄',jam:'✖'};
 
-// ====== BOSS_TYPES (tên tiếng Anh) ======
 const BOSS_TYPES = [
   {name:'BULL',   color:'#b46bff', stroke:'#6a2f9e', r:50, hp:2400, speed:95, dmg:32, xp:40, skillKey:'charge'},
   {name:'FLAME',  color:'#ff8c1a', stroke:'#a04d00', r:48, hp:2100, speed:88, dmg:26, xp:40, skillKey:'flame'},
@@ -1000,8 +1005,8 @@ function killEnemy(e, ownerId) {
       state.pickups.push({type:'xp', x:e.x + rand(-20,20), y:e.y + rand(-20,20), xpValue:xpPerOrb, bob:Math.random()*10, life:30, vx:rand(-80,80), vy:rand(-80,80)});
     }
     if (Math.random() < (e.isBoss ? 0.9 : 0.15)) spawnPowerup(e.x + rand(-30,30), e.y + rand(-30,30));
-    // ✅ FIXED: boss rơi đúng skill của nó
-    if (e.isBoss && state.mode === 'pve' && Math.random() < 0.5) {
+    /* ✅ FIX #10: Boss drop skill 75% (đúng spec) */
+    if (e.isBoss && state.mode === 'pve' && Math.random() < 0.75) {
       const bossSkillKey = BOSS_TYPES[e.bossType]?.skillKey;
       if (bossSkillKey && BOSS_SKILL_LOOKUP[bossSkillKey] && !me.skills.includes(bossSkillKey)) {
         me.skills.push(bossSkillKey);
@@ -1105,7 +1110,6 @@ const SKILL_HANDLERS = {
       spawnParticles(me.x, me.y, '#9a7aff', 30, 400);
     }
   },
-  // ✅ NEW: teleport skill cho player
   teleport(me, aim, st) {
     const hw = st.arena.w/2 - me.r, hh = st.arena.h/2 - me.r;
     const oldX = me.x, oldY = me.y;
@@ -1153,7 +1157,7 @@ function triggerSkill(skillKey, casterId) {
   if (me.mana < sk.cost) { me.manaFlash = 1; state.events.push('nomana'); return; }
   me.mana -= sk.cost;
   me.skillCooldowns[skillKey] = sk.cd * me.skillCdMultiplier;
-  state.events.push('skill');
+  /* ✅ FIX #5: bỏ state.events.push('skill') ở đây — chỉ push khi !silent */
   let aim = me.aim || 0;
   if (!me.isBot && isTouchDevice && touch.aimActive) {
     const al = Math.hypot(touch.aimX, touch.aimY);
@@ -1162,6 +1166,7 @@ function triggerSkill(skillKey, casterId) {
   SKILL_HANDLERS[skillKey]?.(me, aim, state);
   const silent = me.isBot && !state.isSpectate;
   if (!silent) {
+    state.events.push('skill');
     const fx = SKILL_FX[skillKey];
     if (fx) {
       playSound(fx.snd);
@@ -1200,7 +1205,9 @@ const BOSS_HANDLERS = {
       }
     } else if (e.chargeState === 'charging') {
       e.chargeDirX = ux; e.chargeDirY = uy;
-      e.x += Math.cos(st.time*40); e.y += Math.sin(st.time*40);
+      /* ✅ FIX #3: nhân dt để wobble không phụ thuộc FPS */
+      e.x += Math.cos(st.time*40) * dt * 60;
+      e.y += Math.sin(st.time*40) * dt * 60;
       if ((e.chargeTimer -= dt) <= 0) { e.chargeState = 'dashing'; e.chargeTimer = 0.5; playSound('roar'); }
     } else if (e.chargeState === 'dashing') {
       e.x += e.chargeDirX * 900 * dt; e.y += e.chargeDirY * 900 * dt;
@@ -1360,8 +1367,9 @@ const BOSS_HANDLERS = {
   8(e, target, dt, st, ux, uy) {
     if (e.teleportState === 'warning') {
       e.teleportTimer -= dt;
-      e.x += Math.cos(st.time * 60) * 1.5;
-      e.y += Math.sin(st.time * 60) * 1.5;
+      /* ✅ FIX #3: nhân dt */
+      e.x += Math.cos(st.time * 60) * 1.5 * dt * 60;
+      e.y += Math.sin(st.time * 60) * 1.5 * dt * 60;
       if (e.teleportTimer <= 0) {
         const hw = st.arena.w/2 - e.r, hh = st.arena.h/2 - e.r;
         const oldX = e.x, oldY = e.y;
@@ -1428,7 +1436,8 @@ function initGame(mode, difficulty) {
     state.players[myId].bulletSpeed = 1300;
     state.players[myId].x = -350;
     state.players['BOT'].x = 350;
-    grantRandomSkills(state.players[myId], 3);
+    /* ✅ FIX #6: Loại split khỏi pool player PvP (ally không hoạt động trong PvP) */
+    grantRandomSkills(state.players[myId], 3, ['split']);
     grantRandomSkills(state.players['BOT'], 3, ['split']);
     state.announce = {text:'VS ' + BOT_CFG[difficulty].name + ' (SKILL NGẪU NHIÊN)', t:2.5};
     DOM.modeTag.textContent = '⚔️ ' + DIFF_NAME[difficulty].toUpperCase();
@@ -1597,7 +1606,6 @@ DOM.btnNormal.onclick = () => startGame('bot', 'normal');
 DOM.btnHard.onclick = () => startGame('bot', 'hard');
 DOM.btnInsane.onclick = () => startGame('bot', 'insane');
 
-// ✅ OPTIMIZED: cache skill buttons, tránh querySelectorAll mỗi frame
 const _skillBtnCache = [];
 function updateSkillBarUI() {
   _skillBtnCache.length = 0;
@@ -1911,6 +1919,7 @@ function gameLoop(now) {
   _lastLoopTs = now;
   const dt = Math.min((now - lastTime)/1000, 0.1);
   lastTime = now;
+  _frameDt = dt; /* ✅ FIX #9 */
   state.time += dt;
   if (state.announce) { state.announce.t -= dt; if (state.announce.t <= 0) state.announce = null; }
   const isPvE = state.mode === 'pve';
@@ -1962,11 +1971,15 @@ function gameLoop(now) {
       if (state.waveClearDelay <= 0) { state.wave++; startNewWave(); }
     }
   }
-  const me = state.players[myId];
-  if (me) {
-    for (const k in me.skillCooldowns) if (me.skillCooldowns[k] > 0) me.skillCooldowns[k] = Math.max(0, me.skillCooldowns[k] - dt);
-    updateSkillCooldownUI();
+  /* ✅ FIX #1: giảm CD skill cho TẤT CẢ players (kể cả bot PvP) */
+  for (const pid in state.players) {
+    const p = state.players[pid];
+    if (p.hp <= 0) continue;
+    for (const k in p.skillCooldowns) {
+      if (p.skillCooldowns[k] > 0) p.skillCooldowns[k] = Math.max(0, p.skillCooldowns[k] - dt);
+    }
   }
+  updateSkillCooldownUI();
   for (const id in state.players) updatePlayer(state.players[id], id, dt, isPvE);
   updateBullets(dt, isPvE);
   if (isPvE) { updateEnemies(dt); updateEBullets(dt); }
@@ -2019,14 +2032,15 @@ function updatePlayer(p, id, dt, isPvE) {
   const regen = p.isBot ? MANA_REGEN_BOT : MANA_REGEN;
   const cursePenalty = (p.powerups.curse > 0) ? 0.5 : 1;
   p.mana = Math.min(p.maxMana, p.mana + regen*cursePenalty*dt);
-  if (p.chargeState && p.chargeState !== 'idle') { updateCharge(p, id, dt); return; }
+
+  /* ✅ FIX #4: DoT (burn/nukeBurn/drain) chạy TRƯỚC charge-check */
   if (p.powerups.burn > 0) {
     p.burnTick = (p.burnTick || 0) + dt;
     if (p.burnTick >= 0.5) {
       p.burnTick = 0; p.hp -= 1.5;
       spawnParticles(p.x + rand(-10,10), p.y + rand(-10,10), '#ff3a1a', 2, 80);
       state.events.push({type:'hurt', target:p.id});
-      if (p.hp <= 0) p.hp = 0;
+      if (p.hp <= 0) { p.hp = 0; return; }
     }
   } else p.burnTick = 0;
   if (p.nukeBurn > 0) {
@@ -2038,7 +2052,7 @@ function updatePlayer(p, id, dt, isPvE) {
       p.hp -= burnDmg;
       spawnParticles(p.x + rand(-10,10), p.y + rand(-10,10), '#88ff00', 3, 100);
       state.events.push({type:'hurt', target:p.id});
-      if (p.hp <= 0) p.hp = 0;
+      if (p.hp <= 0) { p.hp = 0; return; }
     }
     if (p.nukeBurn < 0) p.nukeBurn = 0;
   }
@@ -2064,6 +2078,11 @@ function updatePlayer(p, id, dt, isPvE) {
     if (totalDrain > 0) p.hp = Math.min(p.maxHp, p.hp + totalDrain*0.6);
     if (p.drainTimer <= 0) p.drainTimer = 0;
   }
+
+  /* Chỉ sau DoT mới check charge */
+  if (p.hp <= 0) return;
+  if (p.chargeState && p.chargeState !== 'idle') { updateCharge(p, id, dt); return; }
+
   let inX = p.input.x, inY = p.input.y;
   if (isFrozen) { inX = 0; inY = 0; }
   if (p.powerups.confuse > 0) { inX = -inX; inY = -inY; }
@@ -2135,7 +2154,9 @@ function updateCharge(p, id, dt) {
       if (al > 0.2) chargeAim = Math.atan2(touch.aimY, touch.aimX);
     }
     p.chargeDirX = Math.cos(chargeAim); p.chargeDirY = Math.sin(chargeAim);
-    p.x += Math.cos(state.time*40)*1.5; p.y += Math.sin(state.time*40)*1.5;
+    /* ✅ FIX #3: nhân dt cho wobble charging */
+    p.x += Math.cos(state.time*40) * 1.5 * dt * 60;
+    p.y += Math.sin(state.time*40) * 1.5 * dt * 60;
     if (!p._chargeShootCd) p._chargeShootCd = 0.6;
     p._chargeShootCd -= dt;
     if (p._chargeShootCd <= 0 && state.bullets.length < MAX_BULLETS) {
@@ -2264,11 +2285,13 @@ function updateBullets(dt, isPvE) {
   }
 }
 
+/* ✅ FIX #2: snapshot array để tránh double-process khi splice */
 function updateEnemies(dt) {
-  for (let ei = state.enemies.length - 1; ei >= 0; ei--) {
-    const e = state.enemies[ei];
+  const snapshot = state.enemies.slice();
+  for (let si = snapshot.length - 1; si >= 0; si--) {
+    const e = snapshot[si];
     if (!e || e.hp <= 0) continue;
-    if (state.enemies[ei] !== e) continue;
+    if (state.enemies.indexOf(e) === -1) continue;
     if (e.spawnAnim > 0) { e.spawnAnim -= dt; e.wobble += dt*8; continue; }
     e.wobble += dt*4;
     if (e.hitFlash > 0) e.hitFlash = Math.max(0, e.hitFlash - dt);
@@ -2540,37 +2563,46 @@ function processEvents() {
   state.events = [];
 }
 
+/* ✅ FIX #11: cache text để tránh set DOM mỗi frame */
+const _hudCache = {};
+function setHudText(el, key, val) {
+  if (!el) return;
+  if (_hudCache[key] === val) return;
+  _hudCache[key] = val;
+  el.textContent = val;
+}
+
 function updateHUD(st) {
   if (!st) return;
   const me = st.players[myId]; if (!me) return;
   DOM.hpFillP1.style.width = (Math.max(0, me.hp/me.maxHp)*100) + '%';
-  DOM.hpTextP1.textContent = Math.max(0, Math.ceil(me.hp)) + ' / ' + Math.ceil(me.maxHp);
+  setHudText(DOM.hpTextP1, 'hp', Math.max(0, Math.ceil(me.hp)) + ' / ' + Math.ceil(me.maxHp));
   DOM.manaFillP1.style.width = (Math.max(0, me.mana/me.maxMana)*100) + '%';
-  DOM.manaTextP1.textContent = 'MANA ' + Math.floor(me.mana) + ' / ' + me.maxMana;
+  setHudText(DOM.manaTextP1, 'mana', 'MANA ' + Math.floor(me.mana) + ' / ' + me.maxMana);
   if (me.powerups.shield > 0 && me.shieldHp > 0) DOM.shieldFillP1.style.width = Math.min(100, (me.shieldHp/me.maxHp)*100) + '%';
   else DOM.shieldFillP1.style.width = '0%';
   if (me.manaFlash > 0 || me.mana < 20) DOM.manaBarP1.classList.add('low');
   else DOM.manaBarP1.classList.remove('low');
   DOM.xpFillP1.style.width = Math.min(100, ((me.xp || 0)/xpNeeded(me.level))*100) + '%';
-  DOM.xpValP1.textContent = me.xp || 0;
-  DOM.xpNeedP1.textContent = xpNeeded(me.level);
-  DOM.lvlValP1.textContent = me.level;
-  DOM.scoreVal.textContent = me.score || 0;
-  DOM.waveVal.textContent = st.wave || 1;
+  setHudText(DOM.xpValP1, 'xpVal', me.xp || 0);
+  setHudText(DOM.xpNeedP1, 'xpNeed', xpNeeded(me.level));
+  setHudText(DOM.lvlValP1, 'lvl', me.level);
+  setHudText(DOM.scoreVal, 'score', me.score || 0);
+  setHudText(DOM.waveVal, 'wave', st.wave || 1);
   const showEnemies = uiSettings.enemiesLeft && st.mode === 'pve' && !st.isSpectate;
   if (showEnemies) {
     DOM.enemiesLeftBox.classList.remove('hidden');
     let enemyCount = 0;
     for (const e of st.enemies) if (!e.isAlly) enemyCount++;
     const remaining = (st.waveSpawnQueue?.length || 0) + enemyCount;
-    DOM.enemiesLeftVal.textContent = remaining;
+    setHudText(DOM.enemiesLeftVal, 'enemiesLeft', remaining);
     DOM.enemiesLeftBox.classList.toggle('urgent', remaining > 0 && remaining <= 3);
     DOM.enemiesLeftBox.classList.toggle('clear', remaining === 0);
   } else DOM.enemiesLeftBox.classList.add('hidden');
   const p2 = st.players['BOT'];
   if (p2) {
     DOM.hpFillP2.style.width = (Math.max(0, p2.hp/p2.maxHp)*100) + '%';
-    DOM.hpTextP2.textContent = p2.name + ' · ' + Math.max(0, Math.ceil(p2.hp)) + ' / ' + Math.ceil(p2.maxHp);
+    setHudText(DOM.hpTextP2, 'hpP2', p2.name + ' · ' + Math.max(0, Math.ceil(p2.hp)) + ' / ' + Math.ceil(p2.maxHp));
   }
 }
 function updatePowerupHUD(st) {
@@ -3323,8 +3355,9 @@ function drawGame(st) {
   cam.x += (targetX - cam.x)*0.15;
   cam.y += (targetY - cam.y)*0.15;
   let sx = 0, sy = 0;
+  /* ✅ FIX #9: dùng _frameDt để shake không phụ thuộc FPS */
   if (uiSettings.screenShake && shakeTime > 0) {
-    shakeTime = Math.max(0, shakeTime - 0.016);
+    shakeTime = Math.max(0, shakeTime - _frameDt);
     sx = (Math.random()-0.5)*shakeIntensity;
     sy = (Math.random()-0.5)*shakeIntensity;
   } else if (!uiSettings.screenShake) shakeTime = 0;
@@ -3346,7 +3379,8 @@ function drawGame(st) {
   ctx.restore();
   drawBossIndicators(st);
   if (hitFlash > 0) {
-    hitFlash -= 0.05;
+    /* ✅ FIX #9: dùng _frameDt */
+    hitFlash = Math.max(0, hitFlash - _frameDt * 3);
     ctx.fillStyle = 'rgba(255, 30, 30, ' + (hitFlash*0.4) + ')';
     ctx.fillRect(0, 0, W, H);
   }
@@ -3366,7 +3400,8 @@ function drawGame(st) {
 }
 
 function drawNukeFlash() {
-  nukeFlash = Math.max(0, nukeFlash - 0.025);
+  /* ✅ FIX #9: dùng _frameDt */
+  nukeFlash = Math.max(0, nukeFlash - _frameDt * 1.56);
   const alpha = Math.min(1, nukeFlash);
   ctx.save();
   const flashAlpha = 0.35 + 0.25*Math.sin(performance.now()*0.02);
