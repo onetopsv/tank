@@ -1626,89 +1626,94 @@ function computeBotInput(bot,player,pvx,pvy){
 let _lastLoopTs=0;
 function gameLoop(now){
   if(!state||state.over)return;
-  if(paused){lastTime=now;requestAnimationFrame(gameLoop);return;}
-  if(now-_lastLoopTs<16){requestAnimationFrame(gameLoop);return;}
-  _lastLoopTs=now;
-  const dt=Math.min((now-lastTime)/1000,0.1);
-  lastTime=now;_frameDt=dt;state.time+=dt;
-  if(state.announce){state.announce.t-=dt;if(state.announce.t<=0)state.announce=null;}
-  const isPvE=state.mode==='pve'||state.mode==='test';
-  const isTest=state.mode==='test';
-  if(isTest&&TEST.invincible){const me=state.players[myId];if(me&&me.hp<=0)me.hp=1;}
-  if(state.isSpectate){
-    const me=state.players[myId];
-    me.input=computePvEBotInput(me,state);
-    autoCastSkills(me,state);
-  }else if(isTest){
-    state.players[myId].input=getInputs();
-    const me=state.players[myId];
-    for(const id in state.players){
-      if(id===myId)continue;
-      const b=state.players[id];
-      if(!b.isBot||b.hp<=0){b.input={x:0,y:0,aim:b.aim||0,shoot:false};continue;}
-      if(me.hp<=0){b.input={x:0,y:0,aim:b.aim||0,shoot:false};continue;}
-      const pvx=dt>0?(me.x-me._prevX)/dt:0;
-      const pvy=dt>0?(me.y-me._prevY)/dt:0;
-      b.input=computeBotInput(b,me,pvx,pvy);
-      autoCastSkills(b,state);
-    }
-  }else{
-    state.players[myId].input=getInputs();
-    if(state.mode==='bot'){
-      const bot=state.players['BOT'],player=state.players[myId];
-      const pvx=dt>0?(player.x-player._prevX)/dt:0;
-      const pvy=dt>0?(player.y-player._prevY)/dt:0;
-      if(bot.hp>0&&player.hp>0){bot.input=computeBotInput(bot,player,pvx,pvy);autoCastSkills(bot,state);}
-      else bot.input={x:0,y:0,aim:bot.aim||0,shoot:false};
-    }
-  }
-  let aliveCount=0,aliveId=null;
-  for(const id in state.players)if(state.players[id].hp>0){aliveCount++;aliveId=id;}
-  if(isPvE){
-    if(aliveCount===0){
-      state.over=true;
+  try{
+    if(paused){lastTime=now;requestAnimationFrame(gameLoop);return;}
+    if(now-_lastLoopTs<16){requestAnimationFrame(gameLoop);return;}
+    _lastLoopTs=now;
+    const dt=Math.min((now-lastTime)/1000,0.1);
+    lastTime=now;_frameDt=dt;state.time+=dt;
+    if(state.announce){state.announce.t-=dt;if(state.announce.t<=0)state.announce=null;}
+    const isPvE=state.mode==='pve'||state.mode==='test';
+    const isTest=state.mode==='test';
+    if(isTest&&TEST.invincible){const me=state.players[myId];if(me&&me.hp<=0)me.hp=1;}
+    if(state.isSpectate){
       const me=state.players[myId];
-      if(state.isSpectate)showOverlay('BOT ĐÃ CHẾT','var(--c-red)','Điểm: <b>'+me.score+'</b>','Cấp: '+me.level+' · Màn '+state.wave);
-      else if(isTest)showOverlay('ĐÃ CHẾT','var(--c-red)','Điểm: <b>'+me.score+'</b>','Test mode · Cấp: '+me.level);
-      else{recordPvEScore(me.score);showOverlay('GAME OVER','var(--c-red)','Điểm: <b>'+me.score+'</b>','Cấp: '+me.level+' · Màn '+state.wave);}
+      me.input=computePvEBotInput(me,state);
+      autoCastSkills(me,state);
+    }else if(isTest){
+      state.players[myId].input=getInputs();
+      const me=state.players[myId];
+      for(const id in state.players){
+        if(id===myId)continue;
+        const b=state.players[id];
+        if(!b.isBot||b.hp<=0){b.input={x:0,y:0,aim:b.aim||0,shoot:false};continue;}
+        if(me.hp<=0){b.input={x:0,y:0,aim:b.aim||0,shoot:false};continue;}
+        const pvx=dt>0?(me.x-me._prevX)/dt:0;
+        const pvy=dt>0?(me.y-me._prevY)/dt:0;
+        b.input=computeBotInput(b,me,pvx,pvy);
+        autoCastSkills(b,state);
+      }
+    }else{
+      state.players[myId].input=getInputs();
+      if(state.mode==='bot'){
+        const bot=state.players['BOT'],player=state.players[myId];
+        const pvx=dt>0?(player.x-player._prevX)/dt:0;
+        const pvy=dt>0?(player.y-player._prevY)/dt:0;
+        if(bot.hp>0&&player.hp>0){bot.input=computeBotInput(bot,player,pvx,pvy);autoCastSkills(bot,state);}
+        else bot.input={x:0,y:0,aim:bot.aim||0,shoot:false};
+      }
+    }
+    let aliveCount=0,aliveId=null;
+    for(const id in state.players)if(state.players[id].hp>0){aliveCount++;aliveId=id;}
+    if(isPvE){
+      if(aliveCount===0){
+        state.over=true;
+        const me=state.players[myId];
+        if(state.isSpectate)showOverlay('BOT ĐÃ CHẾT','var(--c-red)','Điểm: <b>'+me.score+'</b>','Cấp: '+me.level+' · Màn '+state.wave);
+        else if(isTest)showOverlay('ĐÃ CHẾT','var(--c-red)','Điểm: <b>'+me.score+'</b>','Test mode · Cấp: '+me.level);
+        else{recordPvEScore(me.score);showOverlay('GAME OVER','var(--c-red)','Điểm: <b>'+me.score+'</b>','Cấp: '+me.level+' · Màn '+state.wave);}
+        return;
+      }
+    }else if(aliveCount<=1){
+      state.over=true;state.winner=aliveId;
+      const diffTxt='Độ khó: '+DIFF_NAME[state.difficulty];
+      if(state.winner===myId){playSound('win');recordBotWin();showOverlay('CHIẾN THẮNG','var(--c-green)','Đã hạ gục <b>'+BOT_CFG[state.difficulty].name+'</b>',diffTxt);}
+      else{playSound('lose');showOverlay('THẤT BẠI','var(--c-red)','<b>'+BOT_CFG[state.difficulty].name+'</b> đã hạ gục bạn',diffTxt);}
       return;
     }
-  }else if(aliveCount<=1){
-    state.over=true;state.winner=aliveId;
-    const diffTxt='Độ khó: '+DIFF_NAME[state.difficulty];
-    if(state.winner===myId){playSound('win');recordBotWin();showOverlay('CHIẾN THẮNG','var(--c-green)','Đã hạ gục <b>'+BOT_CFG[state.difficulty].name+'</b>',diffTxt);}
-    else{playSound('lose');showOverlay('THẤT BẠI','var(--c-red)','<b>'+BOT_CFG[state.difficulty].name+'</b> đã hạ gục bạn',diffTxt);}
-    return;
-  }
-  if(isPvE&&!isTest){
-    if(state.waveActive)updateWaveSpawning(dt);
-    else if(state.waveClearDelay>0){state.waveClearDelay-=dt;if(state.waveClearDelay<=0){state.wave++;startNewWave();}}
-  }
-  for(const pid in state.players){
-    const p=state.players[pid];
-    if(p.hp<=0)continue;
-    for(const k in p.skillCooldowns){if(p.skillCooldowns[k]>0)p.skillCooldowns[k]=Math.max(0,p.skillCooldowns[k]-dt);}
-  }
-  updateSkillCooldownUI();
-  for(const id in state.players)updatePlayer(state.players[id],id,dt,isPvE);
-  updateBullets(dt,isPvE);
-  if(isPvE){updateEnemies(dt);updateEBullets(dt);}
-  updateNukeStrikes(dt);
-  updatePickups(dt);
-  if(state.mode==='bot'){
-    state.pickupTimer-=dt;
-    if(state.pickupTimer<=0&&state.pickups.length<4){
-      state.pickupTimer=3+Math.random()*2;
-      const a=Math.random()*TAU,r2=Math.random()*(state.arena.r-100);
-      spawnPowerup(Math.cos(a)*r2,Math.sin(a)*r2);
+    if(isPvE&&!isTest){
+      if(state.waveActive)updateWaveSpawning(dt);
+      else if(state.waveClearDelay>0){state.waveClearDelay-=dt;if(state.waveClearDelay<=0){state.wave++;startNewWave();}}
     }
+    for(const pid in state.players){
+      const p=state.players[pid];
+      if(p.hp<=0)continue;
+      for(const k in p.skillCooldowns){if(p.skillCooldowns[k]>0)p.skillCooldowns[k]=Math.max(0,p.skillCooldowns[k]-dt);}
+    }
+    updateSkillCooldownUI();
+    for(const id in state.players)updatePlayer(state.players[id],id,dt,isPvE);
+    updateBullets(dt,isPvE);
+    if(isPvE){updateEnemies(dt);updateEBullets(dt);}
+    updateNukeStrikes(dt);
+    updatePickups(dt);
+    if(state.mode==='bot'){
+      state.pickupTimer-=dt;
+      if(state.pickupTimer<=0&&state.pickups.length<4){
+        state.pickupTimer=3+Math.random()*2;
+        const a=Math.random()*TAU,r2=Math.random()*(state.arena.r-100);
+        spawnPowerup(Math.cos(a)*r2,Math.sin(a)*r2);
+      }
+    }
+    updateParticlesAndBeams(dt);
+    processEvents();
+    updateHUD(state);
+    updatePowerupHUD(state);
+    drawGame(state);
+    requestAnimationFrame(gameLoop);
+  }catch(err){
+    console.error('[GameLoop]',err);
+    requestAnimationFrame(gameLoop);
   }
-  updateParticlesAndBeams(dt);
-  processEvents();
-  updateHUD(state);
-  updatePowerupHUD(state);
-  drawGame(state);
-  requestAnimationFrame(gameLoop);
 }
 
 function updateWaveSpawning(dt){
@@ -3095,6 +3100,25 @@ function drawNukeFlash(){
   ctx.font='bold 22px "Orbitron"';ctx.fillStyle='#c8ff80';ctx.shadowBlur=20;
   ctx.fillText('☢ NHIỄM PHÓNG XẠ ☢',W/2,H/2+90);
   ctx.restore();
+}
+
+/* ============ FIX: helper vẽ hình chữ nhật bo góc ============ */
+function rr(x,y,w,h,r){
+  if(w<0){x+=w;w=-w;}
+  if(h<0){y+=h;h=-h;}
+  if(w<2*r)r=w/2;
+  if(h<2*r)r=h/2;
+  ctx.beginPath();
+  ctx.moveTo(x+r,y);
+  ctx.lineTo(x+w-r,y);
+  ctx.quadraticCurveTo(x+w,y,x+w,y+r);
+  ctx.lineTo(x+w,y+h-r);
+  ctx.quadraticCurveTo(x+w,y+h,x+w-r,y+h);
+  ctx.lineTo(x+r,y+h);
+  ctx.quadraticCurveTo(x,y+h,x,y+h-r);
+  ctx.lineTo(x,y+r);
+  ctx.quadraticCurveTo(x,y,x+r,y);
+  ctx.closePath();
 }
 
 function drawWaveProgress(st){
