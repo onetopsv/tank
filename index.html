@@ -108,39 +108,17 @@
   #btnRestart:hover { background: var(--c-green); color: #000; box-shadow: 0 0 20px var(--c-green); }
   #btnToMenu { border-color: #fff; }
   #btnToMenu:hover { background: #fff; color: #000; }
-
-  /* ================= TEST PANEL ================= */
-  #testPanel {
-    position: fixed; top: 80px; right: 20px; width: 320px;
-    max-height: calc(100vh - 100px);
-    background: rgba(10, 20, 30, 0.95);
-    backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
-    border: 2px solid var(--c-purple); border-radius: 6px; z-index: 45;
-    display: flex; flex-direction: column; font-family: 'Rajdhani', sans-serif;
-    color: #dff5e8; box-shadow: 0 0 30px rgba(180, 107, 255, 0.4);
-  }
+  .pause-btn{padding:15px 30px;background:transparent;font-size:16px;cursor:pointer;font-family:'Orbitron',sans-serif;font-weight:700;letter-spacing:2px;clip-path:polygon(10px 0,100% 0,100% calc(100% - 10px),calc(100% - 10px) 100%,0 100%,0 10px);transition:all 0.2s;border:1px solid;}
+  .pause-btn:hover{transform:translateY(-2px) scale(1.02);}
+  #testPanel {position: fixed; top: 80px; right: 20px; width: 320px;max-height: calc(100vh - 100px);background: rgba(10, 20, 30, 0.95);backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);border: 2px solid var(--c-purple); border-radius: 6px; z-index: 45;display: flex; flex-direction: column; font-family: 'Rajdhani', sans-serif;color: #dff5e8; box-shadow: 0 0 30px rgba(180, 107, 255, 0.4);}
   #testPanel.collapsed .tp-body { display: none; }
-  .tp-header {
-    display: flex; justify-content: space-between; align-items: center;
-    padding: 10px 14px; border-bottom: 1px solid rgba(180,107,255,0.3);
-    font-family: 'Orbitron', sans-serif; font-size: 13px; font-weight: 700;
-    color: var(--c-purple); letter-spacing: 1px; cursor: pointer; user-select: none;
-  }
-  .tp-header button {
-    background: transparent; border: 1px solid var(--c-purple);
-    color: var(--c-purple); width: 24px; height: 24px;
-    border-radius: 3px; font-size: 14px; cursor: pointer; padding: 0;
-  }
+  .tp-header {display: flex; justify-content: space-between; align-items: center;padding: 10px 14px; border-bottom: 1px solid rgba(180,107,255,0.3);font-family: 'Orbitron', sans-serif; font-size: 13px; font-weight: 700;color: var(--c-purple); letter-spacing: 1px; cursor: pointer; user-select: none;}
+  .tp-header button {background: transparent; border: 1px solid var(--c-purple);color: var(--c-purple); width: 24px; height: 24px;border-radius: 3px; font-size: 14px; cursor: pointer; padding: 0;}
   .tp-body { overflow-y: auto; padding: 8px; display: flex; flex-direction: column; gap: 8px; scrollbar-width: thin; }
   .tp-section { background: rgba(0,0,0,0.3); border: 1px solid rgba(180,107,255,0.2); border-radius: 4px; padding: 8px; }
   .tp-title { font-family: 'Orbitron', sans-serif; font-size: 11px; font-weight: 700; color: var(--c-purple); letter-spacing: 1px; margin-bottom: 6px; }
   .tp-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 4px; }
-  .tp-grid button {
-    padding: 5px 4px; font-size: 10px; background: rgba(0,243,255,0.08);
-    border: 1px solid rgba(0,243,255,0.3); color: #dff5e8;
-    border-radius: 3px; cursor: pointer; font-family: inherit;
-    white-space: nowrap; overflow: hidden; text-overflow: ellipsis; transition: 0.15s;
-  }
+  .tp-grid button {padding: 5px 4px; font-size: 10px; background: rgba(0,243,255,0.08);border: 1px solid rgba(0,243,255,0.3); color: #dff5e8;border-radius: 3px; cursor: pointer; font-family: inherit;white-space: nowrap; overflow: hidden; text-overflow: ellipsis; transition: 0.15s;}
   .tp-grid button:hover { background: rgba(0,243,255,0.25); }
   .tp-grid button.danger { border-color: var(--c-red); color: var(--c-red); background: rgba(255,0,85,0.1); }
   .tp-grid button.danger:hover { background: var(--c-red); color: #000; }
@@ -153,7 +131,6 @@
   .tp-toggle { flex: 1; padding: 5px 8px; background: rgba(255,0,85,0.15); border: 1px solid var(--c-red); color: var(--c-red); border-radius: 3px; cursor: pointer; font-size: 10px; font-family: 'Orbitron', sans-serif; letter-spacing: 1px; }
   .tp-toggle.on { background: rgba(0,255,102,0.15); border-color: var(--c-green); color: var(--c-green); }
   @media (max-width: 600px) { #testPanel { width: calc(100vw - 40px); } }
-
   @media (max-height:700px) {
     :root { --skill-size: 48px; --joy-size: 110px; --knob-size: 50px; }
     #skillBar { width: 150px; gap: 8px; bottom: 20px; }
@@ -232,7 +209,6 @@
 </div>
 <div id="skillBar" class="hidden"></div>
 
-<!-- TEST PANEL -->
 <div id="testPanel" class="hidden">
   <div class="tp-header" id="tpHeader">
     <span>🧪 TEST PANEL</span>
@@ -293,9 +269,13 @@
 
 <div id="pauseOverlay" class="hidden">
   <div style="font-size:60px; filter: drop-shadow(0 0 20px var(--c-neon));">⏸</div>
-  <h1 style="font-size: 40px; letter-spacing: 5px;">TẠM DỪNG</h1>
-  <p style="font-size:16px; opacity:.8; color:#88a;">HỆ THỐNG ĐANG CHỜ LỆNH...</p>
-  <button id="btnResume" class="ov-btns" style="padding:15px 40px; border:1px solid var(--c-neon); background:transparent; color:var(--c-neon); font-size:16px; clip-path: polygon(10px 0, 100% 0, 100% calc(100% - 10px), calc(100% - 10px) 100%, 0 100%, 0 10px);">TIẾP TỤC</button>
+  <h1 style="font-size: 40px; letter-spacing: 5px; margin: 0;">TẠM DỪNG</h1>
+  <p style="font-size:16px; opacity:.8; color:#88a; margin-bottom:10px;">HỆ THỐNG ĐANG CHỜ LỆNH...</p>
+  <div style="display:flex;flex-direction:column;gap:12px;width:min(300px,80vw);">
+    <button id="btnResume" class="pause-btn" style="border-color:var(--c-neon);color:var(--c-neon);">▶ TIẾP TỤC</button>
+    <button id="btnPauseSettings" class="pause-btn" style="border-color:var(--c-gold);color:var(--c-gold);">⚙ CÀI ĐẶT</button>
+    <button id="btnExitGame" class="pause-btn" style="border-color:var(--c-red);color:var(--c-red);">✖ THOÁT GAME</button>
+  </div>
 </div>
 
 <div id="overlay" class="hidden">
@@ -312,7 +292,7 @@
 (function(){
 'use strict';
 const DOM = {};
-['hpFillP1','hpTextP1','manaFillP1','manaTextP1','shieldFillP1','manaBarP1','hpBarP1','xpFillP1','xpValP1','xpNeedP1','lvlValP1','scoreVal','waveVal','enemiesLeftBox','enemiesLeftVal','hpFillP2','hpTextP2','modeTag','p2Hud','xpBarWrapP1','lvlWrapP1','aimHint','overlay','ovTitle','ovP1','ovP2','hpBarP2','game','minimap','hud','powerupHud','touchControls','skillBar','pauseOverlay','btnResume','settingsPanel','btnMenu','btnSettings','nameScreen','menuScreen','inputName','btnEnterGame','nameMsg','btnChangeName','btnSettingsMenu','btnRestart','btnToMenu','btnPvE','btnSpectate','btnTest','btnEasy','btnNormal','btnHard','btnInsane','stLayout','stReset','stClose','menuUsername','menuHighScore','menuBotWins'].forEach(id => { DOM[id] = document.getElementById(id); });
+['hpFillP1','hpTextP1','manaFillP1','manaTextP1','shieldFillP1','manaBarP1','hpBarP1','xpFillP1','xpValP1','xpNeedP1','lvlValP1','scoreVal','waveVal','enemiesLeftBox','enemiesLeftVal','hpFillP2','hpTextP2','modeTag','p2Hud','xpBarWrapP1','lvlWrapP1','aimHint','overlay','ovTitle','ovP1','ovP2','hpBarP2','game','minimap','hud','powerupHud','touchControls','skillBar','pauseOverlay','btnResume','btnPauseSettings','btnExitGame','settingsPanel','btnMenu','btnSettings','nameScreen','menuScreen','inputName','btnEnterGame','nameMsg','btnChangeName','btnSettingsMenu','btnRestart','btnToMenu','btnPvE','btnSpectate','btnTest','btnEasy','btnNormal','btnHard','btnInsane','stLayout','stReset','stClose','menuUsername','menuHighScore','menuBotWins'].forEach(id => { DOM[id] = document.getElementById(id); });
 
 const UI_KEY = 'tankArenaUI';
 const NAME_KEY = 'tankArenaPlayerName';
@@ -326,7 +306,6 @@ const MAX_XP_ORBS = 300, MAX_PARTICLES = 120, MAX_BULLETS = 220, MAX_EBULLETS = 
 let INVIS_DURATION = 4;
 let ALLY_LIFE = 7;
 
-// TEST config
 const TEST = {
   powerupDuration: 8,
   invisDuration: 4,
@@ -548,8 +527,29 @@ function syncSliders() {
     el.value = uiSettings[def.key]; lbl.textContent = def.fmt(uiSettings[def.key]);
   });
 }
+
+const DEFAULT_LAYOUT = {
+  hud:{x:0.02,y:0.66}, mini:{x:0.02,y:0.02}, joyLeft:{x:0.02,y:0.68}, joyRight:{x:0.78,y:0.68},
+  skill0:{x:0.88,y:0.40}, skill1:{x:0.88,y:0.47}, skill2:{x:0.88,y:0.54},
+  skill3:{x:0.88,y:0.61}, skill4:{x:0.88,y:0.68}, skill5:{x:0.88,y:0.75}, skill6:{x:0.88,y:0.82}, skill7:{x:0.82,y:0.82}
+};
+
 function applyCustomPositions() {
   const cp = uiSettings.customPos || {};
+  const isLandscapeMobile = window.innerHeight <= 520 && isTouchDevice;
+  if (isLandscapeMobile) {
+    const hudLeft = document.getElementById('hudLeft');
+    if (hudLeft) { hudLeft.style.left = ''; hudLeft.style.top = ''; hudLeft.style.bottom = ''; }
+    minimapEl.style.left = ''; minimapEl.style.top = ''; minimapEl.style.right = '';
+    ['joyLeft','joyRight'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) { el.style.left = ''; el.style.top = ''; el.style.bottom = ''; el.style.right = ''; }
+    });
+    if (DOM.skillBar) DOM.skillBar.querySelectorAll('.skill-btn').forEach(btn => {
+      btn.style.position = ''; btn.style.left = ''; btn.style.top = ''; btn.style.right = ''; btn.style.bottom = '';
+    });
+    return;
+  }
   const hudLeft = document.getElementById('hudLeft');
   if (hudLeft) {
     if (cp.hud) {
@@ -603,12 +603,6 @@ function applyUI() {
   refreshSettingsButtons(); syncSliders();
 }
 
-const DEFAULT_LAYOUT = {
-  hud:{x:0.02,y:0.66}, mini:{x:0.02,y:0.02}, joyLeft:{x:0.02,y:0.68}, joyRight:{x:0.78,y:0.68},
-  skill0:{x:0.88,y:0.40}, skill1:{x:0.88,y:0.47}, skill2:{x:0.88,y:0.54},
-  skill3:{x:0.88,y:0.61}, skill4:{x:0.88,y:0.68}, skill5:{x:0.88,y:0.75}, skill6:{x:0.88,y:0.82}, skill7:{x:0.82,y:0.82}
-};
-
 function refreshSettingsButtons() {
   document.querySelectorAll('#settingsPanel [data-set]').forEach(b => {
     const key = b.dataset.set, val = b.dataset.val;
@@ -629,6 +623,159 @@ function openSettings() {
 function closeSettings() {
   DOM.settingsPanel.classList.add('hidden');
   if (wasPausedBySettings) { wasPausedBySettings = false; resumeGame(); }
+}
+
+/* ================= LAYOUT EDITOR ================= */
+function openLayoutEditor() {
+  if (document.getElementById('layoutEditor')) return;
+  const snap = {skillSize:uiSettings.skillSize, miniSize:uiSettings.miniSize, joySize:uiSettings.joySize, hudScale:uiSettings.hudScale};
+  const cp = uiSettings.customPos || {};
+  const positions = {};
+  Object.keys(DEFAULT_LAYOUT).forEach(k => { positions[k] = cp[k] ? {...cp[k]} : {...DEFAULT_LAYOUT[k]}; });
+  const overlay = document.createElement('div');
+  overlay.id = 'layoutEditor';
+  overlay.style.cssText = `position:fixed;inset:0;z-index:200;background:radial-gradient(circle at 50% 40%,#0e1e26,#05080c 70%);overflow:hidden;touch-action:none;user-select:none;font-family:system-ui,sans-serif;`;
+  const hint = document.createElement('div');
+  hint.style.cssText = `position:absolute;top:16px;left:50%;transform:translateX(-50%);padding:8px 18px;border-radius:10px;background:rgba(10,20,26,0.92);border:2px solid #4dd9ff;color:#9df3f4;font-size:12px;font-weight:700;pointer-events:none;z-index:5;text-align:center;max-width:92vw;`;
+  hint.innerHTML = '🖐️ Kéo các khối đến vị trí mong muốn';
+  overlay.appendChild(hint);
+  const joySize = uiSettings.joySize, knobSize = Math.round(joySize*0.46);
+  const miniSize = uiSettings.miniSize, hudScale = uiSettings.hudScale;
+  const elements = {};
+  function createDraggable(id, innerHTML) {
+    const el = document.createElement('div');
+    el.dataset.le = id;
+    const pos = positions[id] || {x:0.5, y:0.5};
+    el.style.cssText = `position:absolute;left:${pos.x*100}vw;top:${pos.y*100}vh;cursor:grab;touch-action:none;z-index:3;`;
+    el.innerHTML = innerHTML;
+    overlay.appendChild(el);
+    elements[id] = {el, pos:{...pos}, dragged:false};
+  }
+  createDraggable('hud', `<div style="transform:scale(${hudScale});transform-origin:left top;width:min(240px,45vw);pointer-events:none;"><div style="height:18px;background:#101c24;border:2px solid #26485a;position:relative;"><div style="position:absolute;top:0;left:0;height:100%;width:75%;background:#2ee07a;"></div></div><div style="font-size:12px;margin-top:3px;color:#dff5e8;">75 / 100</div></div>`);
+  createDraggable('mini', `<div style="width:${miniSize}px;height:${miniSize}px;border:2px solid #26485a;border-radius:50%;background:rgba(8,16,22,0.92);position:relative;overflow:hidden;"><div style="position:absolute;inset:10px;border:1.5px solid rgba(255,80,80,0.65);border-radius:50%;"></div><div style="position:absolute;top:50%;left:50%;width:10px;height:10px;margin:-5px;background:#2ee07a;border-radius:50%;"></div></div>`);
+  createDraggable('joyLeft', `<div style="width:${joySize}px;height:${joySize}px;border-radius:50%;background:rgba(46,224,122,0.10);border:2px solid rgba(46,224,122,0.55);position:relative;"><div style="position:absolute;width:${knobSize}px;height:${knobSize}px;border-radius:50%;background:rgba(46,224,122,0.75);border:2px solid #2ee07a;top:50%;left:50%;transform:translate(-50%,-50%);"></div></div>`);
+  createDraggable('joyRight', `<div style="width:${joySize}px;height:${joySize}px;border-radius:50%;background:rgba(255,91,110,0.10);border:2px solid rgba(255,91,110,0.55);position:relative;"><div style="position:absolute;width:${knobSize}px;height:${knobSize}px;border-radius:50%;background:rgba(255,91,110,0.75);border:2px solid #ff5b6e;top:50%;left:50%;transform:translate(-50%,-50%);"></div></div>`);
+  const skillIcons = ['🐂','🔥','❄','🩸','🧬','⚡','☢','👻'];
+  const skillColors = ['#b46bff','#ff8c1a','#4dd9ff','#ff4d6d','#ff66b2','#ffdd00','#88ff00','#9a7aff'];
+  for (let i = 0; i < 8; i++) {
+    createDraggable('skill' + i, `<div style="width:var(--skill-size);height:var(--skill-size);border-radius:50%;background:rgba(10,20,26,0.9);border:3px solid ${skillColors[i]};color:${skillColors[i]};font-size:calc(var(--skill-size) * 0.35);font-weight:900;display:flex;align-items:center;justify-content:center;pointer-events:none;">${skillIcons[i]}</div>`);
+  }
+  let dragging = null;
+  Object.entries(elements).forEach(([id, info]) => {
+    const el = info.el;
+    el.addEventListener('pointerdown', e => {
+      e.preventDefault(); e.stopPropagation();
+      dragging = {info, startX:e.clientX, startY:e.clientY, startPosX:info.pos.x, startPosY:info.pos.y};
+      info.dragged = true; el.style.zIndex = 10;
+      try { el.setPointerCapture(e.pointerId); } catch(_){}
+    });
+    el.addEventListener('pointermove', e => {
+      if (!dragging || dragging.info !== info) return;
+      e.preventDefault();
+      const dx = (e.clientX - dragging.startX) / window.innerWidth;
+      const dy = (e.clientY - dragging.startY) / window.innerHeight;
+      info.pos.x = Math.max(0, Math.min(1, dragging.startPosX + dx));
+      info.pos.y = Math.max(0, Math.min(1, dragging.startPosY + dy));
+      el.style.left = (info.pos.x*100) + 'vw';
+      el.style.top = (info.pos.y*100) + 'vh';
+    });
+    const endDrag = e => {
+      if (!dragging || dragging.info !== info) return;
+      el.style.zIndex = 3; dragging = null;
+      try { el.releasePointerCapture(e.pointerId); } catch(_){}
+    };
+    el.addEventListener('pointerup', endDrag);
+    el.addEventListener('pointercancel', endDrag);
+  });
+  const SIZE_TARGETS = {
+    skill:{key:'skillSize',min:40,max:120,step:2,unit:'px',fmt:v=>v.toFixed(0)},
+    mini:{key:'miniSize',min:80,max:320,step:5,unit:'px',fmt:v=>v.toFixed(0)},
+    joy:{key:'joySize',min:80,max:240,step:5,unit:'px',fmt:v=>v.toFixed(0)},
+    hud:{key:'hudScale',min:0.6,max:1.8,step:0.05,unit:'×',fmt:v=>v.toFixed(2)}
+  };
+  let currentTarget = 'skill';
+  const sizePanel = document.createElement('div');
+  sizePanel.style.cssText = `position:absolute;bottom:90px;left:50%;transform:translateX(-50%);display:none;flex-direction:column;gap:10px;z-index:30;padding:14px 16px;background:rgba(10,20,26,0.98);border:2px solid #ffd93d;border-radius:12px;width:min(340px, 92vw);`;
+  sizePanel.innerHTML = `<div style="display:flex;gap:6px;justify-content:center;flex-wrap:wrap"><button class="le-tsize active" data-t="skill" style="padding:6px;font-size:11px;">SKILL</button><button class="le-tsize" data-t="mini" style="padding:6px;font-size:11px;">MINIMAP</button><button class="le-tsize" data-t="joy" style="padding:6px;font-size:11px;">JOYSTICK</button><button class="le-tsize" data-t="hud" style="padding:6px;font-size:11px;">HUD</button></div><div style="display:flex;align-items:center;gap:10px;padding:0 4px"><input type="range" id="leSizeSlider" min="40" max="120" step="2" value="64" style="flex:1"><span id="leSizeVal" style="font-size:12px;font-weight:800;color:#fff;min-width:52px;text-align:right;">64px</span></div>`;
+  overlay.appendChild(sizePanel);
+  const sizeSlider = sizePanel.querySelector('#leSizeSlider'), sizeVal = sizePanel.querySelector('#leSizeVal');
+  const tsButtons = sizePanel.querySelectorAll('.le-tsize');
+  function updateSliderForTarget() {
+    const cfg = SIZE_TARGETS[currentTarget];
+    sizeSlider.min = cfg.min; sizeSlider.max = cfg.max; sizeSlider.step = cfg.step;
+    sizeSlider.value = uiSettings[cfg.key];
+    sizeVal.textContent = cfg.fmt(uiSettings[cfg.key]) + cfg.unit;
+  }
+  function applySize(target, val) {
+    const cfg = SIZE_TARGETS[target];
+    uiSettings[cfg.key] = val;
+    if (target === 'skill') {
+      document.documentElement.style.setProperty('--skill-size', val + 'px');
+      Object.keys(elements).forEach(k => {
+        if (!k.startsWith('skill')) return;
+        const btn = elements[k].el.firstElementChild;
+        if (btn) { btn.style.width = val+'px'; btn.style.height = val+'px'; btn.style.fontSize = Math.round(val*0.35)+'px'; }
+      });
+    } else if (target === 'mini') {
+      const mockMini = elements.mini.el.firstElementChild;
+      if (mockMini) { mockMini.style.width = val+'px'; mockMini.style.height = val+'px'; }
+      resizeMinimap(val);
+    } else if (target === 'joy') {
+      const knob = Math.round(val*0.46);
+      document.documentElement.style.setProperty('--joy-size', val + 'px');
+      document.documentElement.style.setProperty('--knob-size', knob + 'px');
+      ['joyLeft','joyRight'].forEach(k => {
+        const outer = elements[k].el.firstElementChild; if (!outer) return;
+        outer.style.width = val+'px'; outer.style.height = val+'px';
+        const kn = outer.firstElementChild;
+        if (kn) { kn.style.width = knob+'px'; kn.style.height = knob+'px'; }
+      });
+    } else if (target === 'hud') {
+      const mockHud = elements.hud.el.firstElementChild;
+      if (mockHud) mockHud.style.transform = 'scale(' + val + ')';
+    }
+  }
+  tsButtons.forEach(btn => btn.addEventListener('click', e => {
+    e.preventDefault(); e.stopPropagation();
+    tsButtons.forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    currentTarget = btn.dataset.t;
+    updateSliderForTarget();
+  }));
+  sizeSlider.addEventListener('input', () => {
+    const val = parseFloat(sizeSlider.value);
+    const cfg = SIZE_TARGETS[currentTarget];
+    sizeVal.textContent = cfg.fmt(val) + cfg.unit;
+    applySize(currentTarget, val);
+  });
+  updateSliderForTarget();
+  const toolbar = document.createElement('div');
+  toolbar.style.cssText = `position:absolute;bottom:20px;left:50%;transform:translateX(-50%);display:flex;gap:8px;z-index:30;padding:12px;flex-wrap:wrap;justify-content:center;background:rgba(10,20,26,0.96);border:2px solid #26485a;border-radius:12px;`;
+  toolbar.innerHTML = `<button id="leSizeBtn" style="padding:10px;background:#0d3a44;border:2px solid #4dd9ff;color:#9df3f4;border-radius:8px;font-size:11px;font-weight:800;">📏 SIZE</button><button id="leReset" style="padding:10px;background:#2a1800;border:2px solid #ff8c1a;color:#ffd93d;border-radius:8px;font-size:11px;font-weight:800;">↺ RESET</button><button id="leCancel" style="padding:10px;background:#1a1a1a;border:2px solid #888;color:#ccc;border-radius:8px;font-size:11px;font-weight:800;">HỦY</button><button id="leSave" style="padding:10px;background:#12463a;border:2px solid #2ee07a;color:#9df3c4;border-radius:8px;font-size:11px;font-weight:800;">💾 LƯU</button>`;
+  overlay.appendChild(toolbar);
+  document.body.appendChild(overlay);
+  document.getElementById('leSizeBtn').onclick = () => { sizePanel.style.display = sizePanel.style.display === 'none' ? 'flex' : 'none'; };
+  document.getElementById('leReset').onclick = () => {
+    Object.entries(DEFAULT_LAYOUT).forEach(([id, pos]) => {
+      const info = elements[id]; if (!info) return;
+      info.pos = {...pos};
+      info.el.style.left = (pos.x*100)+'vw'; info.el.style.top = (pos.y*100)+'vh';
+      info.dragged = true;
+    });
+    applySize('skill', 64); applySize('mini', 170); applySize('joy', 140); applySize('hud', 1);
+    updateSliderForTarget();
+  };
+  document.getElementById('leCancel').onclick = () => {
+    uiSettings.skillSize = snap.skillSize; uiSettings.miniSize = snap.miniSize;
+    uiSettings.joySize = snap.joySize; uiSettings.hudScale = snap.hudScale;
+    overlay.remove(); applyUI();
+  };
+  document.getElementById('leSave').onclick = () => {
+    const newCustomPos = {...(uiSettings.customPos || {})};
+    Object.entries(elements).forEach(([id, info]) => { if (info.dragged) newCustomPos[id] = {x:info.pos.x, y:info.pos.y}; });
+    uiSettings.customPos = newCustomPos;
+    saveUI(); applyUI(); overlay.remove();
+  };
 }
 
 SLIDER_DEFS.forEach(def => {
@@ -699,6 +846,7 @@ DOM.btnChangeName.onclick = showNameScreen;
 DOM.btnSettingsMenu.onclick = openSettings;
 DOM.btnSettings.onclick = openSettings;
 DOM.stClose.onclick = closeSettings;
+DOM.stLayout.onclick = openLayoutEditor;
 DOM.stReset.onclick = () => { uiSettings = {...DEFAULT_UI, customPos:{}}; saveUI(); applyUI(); };
 DOM.settingsPanel.querySelectorAll('[data-set]').forEach(btn => {
   btn.onclick = () => {
@@ -876,6 +1024,16 @@ function spawnParticles(x, y, color, count, speed) {
     state.particles.push({x, y, vx:Math.cos(a)*sp, vy:Math.sin(a)*sp, life:0.35 + Math.random()*0.35, maxLife:0.7, color, r:2 + Math.random()*3});
   }
 }
+
+/* ===== ALLY HELPERS ===== */
+function removeAlly(e, effects) {
+  if (!state || !e) return;
+  const idx = state.enemies.indexOf(e);
+  if (idx === -1) return;
+  state.enemies.splice(idx, 1);
+  if (effects !== false) spawnParticles(e.x, e.y, e.color || '#2ee07a', 14, 220);
+}
+
 function killEnemy(e, ownerId) {
   if (!state || !e) return;
   const idx = state.enemies.indexOf(e);
@@ -1087,6 +1245,10 @@ function bossContact(e, target, dt, st) {
     if (target.shieldHp <= 0) { target.powerups.shield = 0; target.shieldHp = 0; }
   } else {
     target.hp -= dmg;
+    if (target.isAlly && target.hp <= 0) {
+      removeAlly(target);
+      return;
+    }
     if (Math.random() < 0.1) st.events.push({type:'hurt', target:target.id});
   }
 }
@@ -1109,8 +1271,12 @@ const BOSS_HANDLERS = {
       e.x += e.chargeDirX * 900 * dt; e.y += e.chargeDirY * 900 * dt;
       if (target.hp > 0 && dist(e.x, e.y, target.x, target.y) < e.r + 22) {
         target.hp -= e.dmg * 0.4;
-        st.events.push({type:'hurt', target:target.id});
-        if (!target.isBot) applyKnockback(target, e.chargeDirX, e.chargeDirY, 800);
+        if (target.isAlly && target.hp <= 0) {
+          removeAlly(target);
+        } else {
+          st.events.push({type:'hurt', target:target.id});
+          if (!target.isBot) applyKnockback(target, e.chargeDirX, e.chargeDirY, 800);
+        }
       }
       if ((e.chargeTimer -= dt) <= 0) { e.chargeState = 'recover'; e.chargeTimer = 0.6; }
     } else if ((e.chargeTimer -= dt) <= 0) {
@@ -1171,10 +1337,7 @@ const BOSS_HANDLERS = {
     }
   },
   4(e, target, dt, st, ux, uy, d) {
-    // Movement
     e.x += ux * e.speed * 0.6 * dt; e.y += uy * e.speed * 0.6 * dt;
-
-    // Shooting
     e._shootCd = (e._shootCd || 0) - dt;
     if (e._shootCd <= 0 && d < 700 && st.ebullets.length < MAX_EBULLETS) {
       e._shootCd = 1.5;
@@ -1185,18 +1348,14 @@ const BOSS_HANDLERS = {
       }
       playSound('fire');
     }
-
-    // KIỂM TRA: còn con non nào sống không?
     let hasAliveChildren = false;
     for (const other of st.enemies) {
       if (other.parentBoss === e && other.hp > 0) { hasAliveChildren = true; break; }
     }
     if (hasAliveChildren) {
-      e._spawnCd = 3; // reset đồng hồ trong lúc con non còn sống
+      e._spawnCd = 3;
       return;
     }
-
-    // Đếm 3 giây sau khi TẤT CẢ con non đã chết rồi mới spawn lứa mới
     if ((e._spawnCd -= dt) > 0 || st.enemies.length >= MAX_ENEMIES - 3) return;
     e._spawnCd = 3;
     for (let k = 0; k < 3; k++) {
@@ -1333,6 +1492,7 @@ function updateBoss(e, target, dt, st) {
   const ux = dx/d, uy = dy/d;
   e.angle = Math.atan2(uy, ux);
   BOSS_HANDLERS[e.bossType]?.(e, target, dt, st, ux, uy, d);
+  if (state.enemies.indexOf(e) === -1) return;
   bossContact(e, target, dt, st);
   const hw = st.arena.w/2 - e.r, hh = st.arena.h/2 - e.r;
   e.x = clamp(e.x, -hw, hw); e.y = clamp(e.y, -hh, hh);
@@ -1361,7 +1521,6 @@ function initGame(mode, difficulty) {
     DOM.xpBarWrapP1.style.display = 'none'; DOM.lvlWrapP1.style.display = 'none';
     DOM.p2Hud.classList.remove('hidden');
   } else if (mode === 'test') {
-    // TEST MODE: god-like player for easier testing
     const me = state.players[myId];
     me.x = 0; me.y = 0;
     me.maxHp = 500; me.hp = 500;
@@ -1552,7 +1711,6 @@ DOM.btnNormal.onclick = () => startGame('bot', 'normal');
 DOM.btnHard.onclick = () => startGame('bot', 'hard');
 DOM.btnInsane.onclick = () => startGame('bot', 'insane');
 
-// ================= TEST PANEL LOGIC =================
 function spawnTestEnemy(typeIdx) {
   if (!state || state.over) return;
   const me = state.players[myId]; if (!me) return;
@@ -1618,7 +1776,6 @@ function spawnTestAlly() {
 }
 
 function buildTestPanel() {
-  // Boss grid
   const bossGrid = document.getElementById('tpBossGrid');
   if (bossGrid) {
     bossGrid.innerHTML = '';
@@ -1631,7 +1788,6 @@ function buildTestPanel() {
       bossGrid.appendChild(btn);
     });
   }
-  // Enemy grid
   const enemyGrid = document.getElementById('tpEnemyGrid');
   if (enemyGrid) {
     enemyGrid.innerHTML = '';
@@ -1644,7 +1800,6 @@ function buildTestPanel() {
       enemyGrid.appendChild(btn);
     });
   }
-  // Bot grid
   const botGrid = document.getElementById('tpBotGrid');
   if (botGrid) {
     botGrid.innerHTML = '';
@@ -1658,7 +1813,6 @@ function buildTestPanel() {
       botGrid.appendChild(btn);
     });
   }
-  // Powerup grid
   const puGrid = document.getElementById('tpPowerupGrid');
   if (puGrid) {
     puGrid.innerHTML = '';
@@ -1672,7 +1826,6 @@ function buildTestPanel() {
       puGrid.appendChild(btn);
     });
   }
-  // Player grid
   const playerGrid = document.getElementById('tpPlayerGrid');
   if (playerGrid) {
     playerGrid.innerHTML = '';
@@ -1691,7 +1844,6 @@ function buildTestPanel() {
       playerGrid.appendChild(btn);
     });
   }
-  // Utility grid
   const utilGrid = document.getElementById('tpUtilGrid');
   if (utilGrid) {
     utilGrid.innerHTML = '';
@@ -1711,7 +1863,6 @@ function buildTestPanel() {
       utilGrid.appendChild(btn);
     });
   }
-  // Timing sliders
   const sliderDefs = [
     {id:'tpDurPU', valId:'tpDurPUVal', key:'powerupDuration', suffix:'s', step:1, onChange: v => TEST.powerupDuration = v},
     {id:'tpDurInvis', valId:'tpDurInvisVal', key:'invisDuration', suffix:'s', step:1, onChange: v => TEST.invisDuration = v},
@@ -1734,7 +1885,6 @@ function buildTestPanel() {
       s.onChange(v);
     };
   });
-  // Invincible toggle
   const invBtn = document.getElementById('tpInvincible');
   if (invBtn) {
     invBtn.classList.toggle('on', TEST.invincible);
@@ -1747,7 +1897,6 @@ function buildTestPanel() {
   }
 }
 
-// Panel header toggle
 document.getElementById('tpHeader')?.addEventListener('click', () => {
   const panel = document.getElementById('testPanel');
   const icon = document.getElementById('tpToggleIcon');
@@ -2073,7 +2222,6 @@ function gameLoop(now) {
   const isPvE = state.mode === 'pve' || state.mode === 'test';
   const isTest = state.mode === 'test';
 
-  // Invincible revive for test mode
   if (isTest && TEST.invincible) {
     const me = state.players[myId];
     if (me && me.hp <= 0) me.hp = 1;
@@ -2085,7 +2233,6 @@ function gameLoop(now) {
     autoCastSkills(me, state);
   } else if (isTest) {
     state.players[myId].input = getInputs();
-    // Update test bots (any player that's not myId and is bot)
     const me = state.players[myId];
     for (const id in state.players) {
       if (id === myId) continue;
@@ -2435,7 +2582,6 @@ function updateBullets(dt, isPvE) {
         }
       }
     }
-    // PvP bullet collision (bot mode + test mode)
     if (!consumed && (state.mode === 'bot' || state.mode === 'test')) {
       for (const pid in state.players) {
         if (pid === b.owner) continue;
@@ -2458,8 +2604,13 @@ function updateEnemies(dt) {
   const snapshot = state.enemies.slice();
   for (let si = snapshot.length - 1; si >= 0; si--) {
     const e = snapshot[si];
-    if (!e || e.hp <= 0) continue;
+    if (!e) continue;
     if (state.enemies.indexOf(e) === -1) continue;
+    if (e.isAlly && e.hp <= 0) {
+      removeAlly(e);
+      continue;
+    }
+    if (e.hp <= 0) continue;
     if (e.spawnAnim > 0) { e.spawnAnim -= dt; e.wobble += dt*8; continue; }
     e.wobble += dt*4;
     if (e.hitFlash > 0) e.hitFlash = Math.max(0, e.hitFlash - dt);
@@ -2505,20 +2656,24 @@ function updateEnemies(dt) {
 }
 
 function updateAlly(e, dt) {
+  if (e.hp <= 0) { removeAlly(e); return; }
   e.allyLife -= dt;
-  if (e.allyLife <= 0 || e.hp <= 0) {
-    spawnParticles(e.x, e.y, e.color, 14, 220);
-    const i = state.enemies.indexOf(e);
-    if (i !== -1) state.enemies.splice(i, 1);
-    return;
-  }
+  if (e.allyLife <= 0) { removeAlly(e); return; }
   let nearest = null, minD = Infinity;
   for (const en of state.enemies) {
     if (en === e || en.isAlly || en.invisible > 0) continue;
     const dd = dist(e.x, e.y, en.x, en.y);
     if (dd < minD) { minD = dd; nearest = en; }
   }
-  if (!nearest) return;
+  if (!nearest) {
+    if (!e._wanderDir || Math.random() < 0.02) e._wanderDir = Math.random() * TAU;
+    e.x += Math.cos(e._wanderDir) * 40 * dt;
+    e.y += Math.sin(e._wanderDir) * 40 * dt;
+    const hw = state.arena.w / 2 - e.r, hh = state.arena.h / 2 - e.r;
+    e.x = clamp(e.x, -hw, hw);
+    e.y = clamp(e.y, -hh, hh);
+    return;
+  }
   const dx = nearest.x - e.x, dy = nearest.y - e.y;
   const d = Math.hypot(dx, dy) || 1;
   const nx = dx / d, ny = dy / d;
@@ -2622,11 +2777,13 @@ function updateEBullets(dt) {
       }
     }
     if (!hit) {
-      for (const al of state.enemies) {
+      for (let ai = state.enemies.length - 1; ai >= 0; ai--) {
+        const al = state.enemies[ai];
         if (!al.isAlly || al.hp <= 0) continue;
         if (dist(al.x, al.y, b.x, b.y) < al.r + b.r) {
           al.hp -= b.dmg; al.hitFlash = 0.12;
           spawnParticles(al.x, al.y, '#2ee07a', 4, 150);
+          if (al.hp <= 0) removeAlly(al);
           hit = true; break;
         }
       }
@@ -2841,6 +2998,14 @@ function getDigitFromEvent(e) {
 }
 addEventListener('keydown', e => {
   if (!e.key) return;
+  if (e.key === 'Escape') {
+    if (!DOM.settingsPanel.classList.contains('hidden')) { e.preventDefault(); closeSettings(); return; }
+    if (state && !state.over) {
+      e.preventDefault();
+      if (paused) resumeGame(); else pauseGame();
+      return;
+    }
+  }
   keys[e.key.toLowerCase()] = true;
   if (e.repeat) return;
   const num = getDigitFromEvent(e);
@@ -3686,13 +3851,23 @@ DOM.btnToMenu.onclick = () => {
 };
 DOM.btnMenu.onclick = () => {
   if (!state) return;
-  if (state.over || confirm('Thoát về menu?')) {
+  if (state.over) {
     state = null; hideOverlay(); paused = false;
     DOM.pauseOverlay.classList.add('hidden');
     showMenu();
+  } else {
+    pauseGame();
   }
 };
 if (DOM.btnResume) DOM.btnResume.onclick = resumeGame;
+DOM.btnPauseSettings.onclick = openSettings;
+DOM.btnExitGame.onclick = () => {
+  state = null; hideOverlay(); paused = false;
+  DOM.pauseOverlay.classList.add('hidden');
+  DOM.settingsPanel.classList.add('hidden');
+  wasPausedBySettings = false;
+  showMenu();
+};
 
 document.addEventListener('visibilitychange', () => {
   if (document.hidden && state && !state.over && !paused) {
