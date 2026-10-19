@@ -287,15 +287,22 @@ const isTouchDevice=('ontouchstart'in window)||(navigator.maxTouchPoints>0);
 
 const minimapEl=DOM.minimap;
 const minimapCtx=minimapEl.getContext('2d');
-let MINI_SIZE=uiSettings.miniSize||220;
+let MINI_SIZE=220;
 const MINI_DPR=Math.min(2,devicePixelRatio||1);
-function resizeMinimap(size){MINI_SIZE=size;minimapEl.width=MINI_SIZE*MINI_DPR;minimapEl.height=MINI_SIZE*MINI_DPR;minimapEl.style.width=MINI_SIZE+'px';minimapEl.style.height=MINI_SIZE+'px';minimapCtx.setTransform(MINI_DPR,0,0,MINI_DPR,0,0);}
-resizeMinimap(MINI_SIZE);
+function resizeMinimap(size){
+  size=parseFloat(size);if(isNaN(size)||size<=0)size=220;
+  MINI_SIZE=size;
+  minimapEl.width=MINI_SIZE*MINI_DPR;minimapEl.height=MINI_SIZE*MINI_DPR;
+  minimapEl.style.width=MINI_SIZE+'px';minimapEl.style.height=MINI_SIZE+'px';
+  minimapCtx.setTransform(MINI_DPR,0,0,MINI_DPR,0,0);
+}
+resizeMinimap(uiSettings.miniSize||220);
 
 let audioCtx=null;
 const SND_MAP={shoot:{t:'square',f1:400,f2:100,g:0.05,d:0.1},hit:{t:'sawtooth',f1:200,f2:50,g:0.1,d:0.1},hurt:{t:'triangle',f1:100,f2:30,g:0.2,d:0.2},pickup:{t:'sine',f1:600,f2:1200,g:0.1,d:0.2},levelup:{t:'square',f1:400,f2:1600,g:0.15,d:0.4},boom:{t:'sawtooth',f1:80,f2:20,g:0.3,d:0.5},laser:{t:'sawtooth',f1:1200,f2:200,g:0.12,d:0.3},curse:{t:'sawtooth',f1:180,f2:60,g:0.18,d:0.35},win:{t:'square',f1:800,f2:200,g:0.25,d:0.7},lose:{t:'sawtooth',f1:200,f2:40,g:0.25,d:0.8},mana:{t:'sine',f1:300,f2:900,g:0.08,d:0.15},nomana:{t:'square',f1:120,f2:80,g:0.12,d:0.15},roar:{t:'sawtooth',f1:150,f2:40,g:0.3,d:0.6},charge:{t:'square',f1:200,f2:900,g:0.15,d:0.5},fire:{t:'sawtooth',f1:400,f2:100,g:0.15,d:0.4},freeze:{t:'sine',f1:1200,f2:200,g:0.15,d:0.4},drain:{t:'triangle',f1:600,f2:100,g:0.15,d:0.5},split:{t:'square',f1:300,f2:80,g:0.18,d:0.3},teleport:{t:'sine',f1:800,f2:200,g:0.15,d:0.3},spawn:{t:'square',f1:200,f2:400,g:0.1,d:0.2},skill:{t:'sine',f1:500,f2:1500,g:0.15,d:0.3},invis:{t:'sine',f1:1500,f2:400,g:0.14,d:0.4}};
 function initAudio(){try{const AC=window.AudioContext||window.webkitAudioContext;if(!AC)return;if(!audioCtx)audioCtx=new AC();if(audioCtx.state==='suspended'){const r=audioCtx.resume();r?.catch?.(()=>{});}}catch(_){audioCtx=null;}}
 function playSound(type){if(!uiSettings.sound||!audioCtx||typeof type!=='string')return;const m=SND_MAP[type];if(!m)return;const osc=audioCtx.createOscillator(),gain=audioCtx.createGain();osc.connect(gain);gain.connect(audioCtx.destination);const now=audioCtx.currentTime;osc.type=m.t;osc.frequency.setValueAtTime(m.f1,now);osc.frequency.exponentialRampToValueAtTime(m.f2,now+m.d);gain.gain.setValueAtTime(m.g,now);gain.gain.exponentialRampToValueAtTime(0.001,now+m.d);osc.start(now);osc.stop(now+m.d);}
+
 let shakeTime=0,shakeIntensity=0,hitFlash=0,nukeFlash=0;
 function triggerHitEffect(){shakeTime=0.3;shakeIntensity=15;hitFlash=1;DOM.hpBarP1?.classList.add('hurt');setTimeout(()=>DOM.hpBarP1?.classList.remove('hurt'),200);}
 
@@ -305,6 +312,7 @@ const getPlayerData=(name)=>{const s=getScores();return s[name]||{highScore:0,bo
 function ensurePlayerData(name){const s=getScores();if(!s[name]){s[name]={highScore:0,botWins:0};saveScores(s);}}
 function recordPvEScore(score){const s=getScores();if(!s[currentUser])s[currentUser]={highScore:0,botWins:0};if(score>(s[currentUser].highScore||0)){s[currentUser].highScore=score;saveScores(s);}}
 function recordBotWin(){const s=getScores();if(!s[currentUser])s[currentUser]={highScore:0,botWins:0};s[currentUser].botWins=(s[currentUser].botWins||0)+1;saveScores(s);}
+
 let currentUser='';
 try{currentUser=localStorage.getItem(NAME_KEY)||'';}catch(_){}
 const screens={name:DOM.nameScreen,menu:DOM.menuScreen};
@@ -325,12 +333,16 @@ function getDefaultSizeForItem(id){
 }
 function getItemSize(id){
   const sz=uiSettings.itemSizes||{};
-  if(sz[id]!==undefined)return sz[id];
-  if(id.startsWith('skill'))return uiSettings.skillSize||64;
-  if(id==='joyLeft'||id==='joyRight')return uiSettings.joySize||140;
-  if(id==='mini')return uiSettings.miniSize||220;
-  if(id==='hud')return uiSettings.hudScale||1;
-  return 64;
+  let v=sz[id];
+  if(v===undefined){
+    if(id.startsWith('skill'))v=uiSettings.skillSize||64;
+    else if(id==='joyLeft'||id==='joyRight')v=uiSettings.joySize||140;
+    else if(id==='mini')v=uiSettings.miniSize||220;
+    else if(id==='hud')v=uiSettings.hudScale||1;
+    else v=64;
+  }
+  v=parseFloat(v);
+  return isNaN(v)?64:v;
 }
 function applyCustomSizes(){
   if(DOM.skillBar){
@@ -3089,8 +3101,9 @@ function drawWaveProgress(st){
   if((st.mode!=='pve'&&st.mode!=='test')||!st.waveActive)return;
   let enemyCount=0;
   for(const e of st.enemies)if(!e.isAlly)enemyCount++;
-  const remaining=st.waveSpawnQueue.length+enemyCount;
-  const total=st.waveTotal,killed=total-remaining;
+  const q=st.waveSpawnQueue||[];
+  const remaining=q.length+enemyCount;
+  const total=st.waveTotal||1,killed=total-remaining;
   const w=Math.min(360,W-80);
   const x=(W-w)/2,y=H-58;
   ctx.save();
@@ -3132,10 +3145,13 @@ function drawBossHealthBars(st){
 function drawMinimap(st){
   if(!st||!minimapCtx)return;
   const mctx=minimapCtx,mw=MINI_SIZE,mh=MINI_SIZE;
+  if(mw<=0)return;
   mctx.clearRect(0,0,mw,mh);
   const arena=st.arena;if(!arena)return;
   const R=arena.r;
+  if(!R||!isFinite(R))return;
   const pad=8,innerR=(mw-pad*2)/2;
+  if(innerR<=0)return;
   const scale=innerR/R;
   const cxm=mw/2,cym=mh/2;
   const toMini=(wx,wy)=>({x:cxm+wx*scale,y:cym+wy*scale});
