@@ -316,7 +316,7 @@ function chunkData(cx,cz){
   const r=rng((cx*73856093)^(cz*19349663)^0x9e3779b9),b=[],n=10+Math.floor(r()*6);
   for(let t=0;t<n*8&&b.length<n;t++){
     const big=r()<.4,w=big?130+r()*150:60+r()*80,dd=big?130+r()*150:60+r()*80,h=big?180+r()*r()*280:70+r()*r()*200;
-    const x=cx*CS+100+w/2+r()*(CS-200-w),z=cz*CS+100+dd/2+r()*(CS-200-dd),ruin=r()<.45,ci=Math.floor(r()*5),s=r();
+    const x=cx*CS+100+w/2+r()*(CS-200-w),z=cz*CS+100+dd/2+r()*(CS-200-dd),ruin=r()<.88,ci=Math.floor(r()*5),s=r();
     if(Math.hypot(x,z)<650+Math.max(w,dd))continue;
     let ok=true;for(const q of b)if(Math.abs(x-q.x)<(w/2+q.hw)+25&&Math.abs(z-q.z)<(dd/2+q.hd)+25){ok=false;break;}
     if(ok)b.push({x,z,hw:w/2,hd:dd/2,h,ruin,ci,s,hp:300+w*dd/60,dead:false});
@@ -994,7 +994,7 @@ addEventListener('keydown',e=>{
   if(n>=1&&n<=9&&S.me.skills[n-1]){e.preventDefault();cast(S.me,S.me.skills[n-1]);}
 });
 addEventListener('keyup',e=>{if(e.key)keys[e.key.toLowerCase()]=false;});
-cv.addEventListener('mousemove',e=>{mouse.x=e.clientX;mouse.y=e.clientY;if(isFP())mouse.dx=(mouse.dx||0)+(e.movementX||0);});
+cv.addEventListener('mousemove',e=>{mouse.x=e.clientX;mouse.y=e.clientY;if(isFP()){mouse.dx=(mouse.dx||0)+(e.movementX||0);mouse.dy=(mouse.dy||0)+(e.movementY||0);}});
 cv.addEventListener('mousedown',e=>{if(e.button===0&&!(S&&S.spectate)){mouse.down=true;if(isFP()&&!isTouch&&document.pointerLockElement!==cv&&cv.requestPointerLock)cv.requestPointerLock();}});
 addEventListener('mouseup',()=>mouse.down=false);
 cv.addEventListener('contextmenu',e=>e.preventDefault());
@@ -1017,8 +1017,8 @@ function getInput(){
   {const w=viewRot(mx,my);mx=w.x;my=w.y;}
   const me=S.me;let aim=me.aim,shoot=false;
   if(isFP()){
-    if(touch.aimOn){aim=me.aim+touch.ax*.05;shoot=touch.shoot;}
-    else if(!isTouch){aim=me.aim+(mouse.dx||0)*.0028;mouse.dx=0;shoot=mouse.down||keys[' '];}
+    if(touch.aimOn){aim=me.aim+touch.ax*.05;pitch=clamp(pitch-touch.ay*.03,-1.25,1.25);shoot=touch.shoot;}
+    else if(!isTouch){aim=me.aim+(mouse.dx||0)*.0028;pitch=clamp(pitch-(mouse.dy||0)*.0028,-1.25,1.25);mouse.dx=0;mouse.dy=0;shoot=mouse.down||keys[' '];}
   }else if(touch.aimOn&&Math.hypot(touch.ax,touch.ay)>.2){const v=viewRot(touch.ax,touch.ay);aim=Math.atan2(v.y,v.x);shoot=touch.shoot;}
   else if(!isTouch){const h=mouseWorld();if(h)aim=Math.atan2(h.z-me.y,h.x-me.x);shoot=mouse.down||keys[' '];}
   return{x:mx,y:my,aim,shoot};
@@ -1094,12 +1094,12 @@ glResize();
 
 /* ----- góc nhìn (V đổi góc · Q/E xoay camera) ----- */
 const VIEWS=[{n:'TRÊN CAO',d:430,h:560,l:0},{n:'NGHIÊNG THẤP',d:520,h:300,l:60},{n:'SÁT XE',d:300,h:170,l:130},{n:'TOÀN CẢNH',d:760,h:1150,l:0},{n:'GÓC NHÌN THỨ NHẤT',d:300,h:170,l:130,fp:true}];
-let viewIdx=(cfg.view|0)%VIEWS.length,viewYaw=-Math.PI/2,viewYawT=-Math.PI/2;
+let viewIdx=(cfg.view|0)%VIEWS.length,viewYaw=-Math.PI/2,viewYawT=-Math.PI/2,pitch=0;
 const vp={d:VIEWS[viewIdx].d,h:VIEWS[viewIdx].h,l:VIEWS[viewIdx].l};
 function viewRot(x,y){const c=Math.cos(viewYaw),s=Math.sin(viewYaw);return{x:-c*y-s*x,y:-s*y+c*x};}
 function isFP(){return !!VIEWS[viewIdx].fp;}
 function cycleView(){
-  viewIdx=(viewIdx+1)%VIEWS.length;cfg.view=viewIdx;store.set('ta2_cfg',cfg);
+  viewIdx=(viewIdx+1)%VIEWS.length;pitch=0;cfg.view=viewIdx;store.set('ta2_cfg',cfg);
   if(!isFP()&&document.pointerLockElement)document.exitPointerLock();
   if(S)ann('🎥 '+VIEWS[viewIdx].n+' · F5',1.4);
 }
@@ -1306,6 +1306,39 @@ function mergeBoxes(list){
   g.setAttribute('color',new THREE.Float32BufferAttribute(C,3));
   g.setIndex(I);return g;
 }
+function shade(c,f){return(Math.min(255,((c>>16)&255)*f|0)<<16)|(Math.min(255,((c>>8)&255)*f|0)<<8)|Math.min(255,(c&255)*f|0);}
+/* nhà đổ nát: thân vỡ thành nhiều khối cao thấp, góc sập, lỗ thủng, sàn bê tông gãy, cốt thép, gạch vụn, vết cháy */
+function ruinBody(b,rb,B,Wn,col){
+  const hw=b.hw,hd=b.hd,h=b.h,nx=Math.max(2,Math.min(6,Math.round(hw*2/42))),nz=Math.max(2,Math.min(6,Math.round(hd*2/42))),cw=hw*2/nx,cd=hd*2/nz;
+  const ci=rb()<.5?0:nx-1,cj=rb()<.5?0:nz-1,rad=.35+rb()*.3,hs=[];
+  for(let i=0;i<nx;i++){hs[i]=[];for(let j=0;j<nz;j++){
+    const d=Math.hypot((i-ci)/nx,(j-cj)/nz);let k=.5+rb()*.5;
+    if(d<rad)k=.07+rb()*.2;else if(rb()<.14)k=.25+rb()*.25;
+    const ch=h*k;hs[i][j]=ch;
+    const sh=.62+rb()*.38;
+    B.push({x:b.x-hw+(i+.5)*cw,y:ch/2,z:b.z-hd+(j+.5)*cd,sx:cw+.3,sy:ch,sz:cd+.3,c:shade(col,sh)});
+    if(ch>25){ /* mép gãy lởm chởm + cốt thép + sàn gãy */
+      B.push({x:b.x-hw+(i+.5)*cw+(rb()-.5)*cw*.4,y:ch+3+rb()*5,z:b.z-hd+(j+.5)*cd+(rb()-.5)*cd*.4,sx:cw*(.3+rb()*.4),sy:6+rb()*9,sz:cd*(.3+rb()*.4),c:shade(col,.5),ry:rb()*2,rx:(rb()-.5)*.5,rz:(rb()-.5)*.5});
+      if(rb()<.5)B.push({x:b.x-hw+(i+.5)*cw,y:ch+1.5,z:b.z-hd+(j+.5)*cd,sx:cw*1.15,sy:3,sz:cd*1.15,c:0x3b3f45,rx:(rb()-.5)*.35,rz:(rb()-.5)*.35});
+      const nr=1+Math.floor(rb()*4);
+      for(let q=0;q<nr;q++){const L=18+rb()*40;B.push({x:b.x-hw+(i+rb())*cw,y:ch+L*.4,z:b.z-hd+(j+rb())*cd,sx:.9,sy:L,sz:.9,c:0x6a3a1f,rx:(rb()-.5)*.9,rz:(rb()-.5)*.9});}
+    }
+  }}
+  const topAt=(u,v)=>{const i=Math.max(0,Math.min(nx-1,Math.floor((u+1)/2*nx))),j=Math.max(0,Math.min(nz-1,Math.floor((v+1)/2*nz)));return hs[i][j];};
+  const nh=5+Math.floor(rb()*5);
+  for(let i=0;i<nh;i++){
+    const side=Math.floor(rb()*4),u=rb()*1.7-.85,w=14+rb()*28,hh=14+rb()*26;
+    const top=side<2?topAt(side?1:-1,u):topAt(u,side===3?1:-1);
+    let y=14+rb()*Math.max(4,h*.45);if(y+hh/2>top-3)y=top-hh/2-3;if(y<hh/2+6)continue;
+    wallBox(Wn,b,side,u,y,w,hh,0x050607,1.8);
+    if(rb()<.3)wallBox(Wn,b,side,u,y-hh*.25,w*.6,hh*.3,0xff6a14,2.2); /* lửa âm ỉ trong lỗ */
+    wallBox(B,b,side,u,y+hh/2+2,w+8,4,shade(col,.4),2.4); /* viền vỡ */
+  }
+  for(let i=0;i<6;i++){const side=Math.floor(rb()*4),u=rb()*1.8-.9,y=8+rb()*Math.min(h*.3,50);wallBox(Wn,b,side,u,y,16+rb()*40,12+rb()*30,0x07080a,1.3);} /* vết cháy */
+  for(let i=0;i<9;i++){const a=rb()*TAU,rr=Math.max(hw,hd)*(.8+rb()*.5)+rb()*30,s=10+rb()*30;
+    B.push({x:b.x+Math.cos(a)*rr,y:s*.35,z:b.z+Math.sin(a)*rr,sx:s,sy:s*.7,sz:s*1.2,c:rb()<.4?shade(col,.45):0x2a2c31,ry:rb()*3,rx:rb()*.5,rz:rb()*.5});}
+  B.push({x:b.x,y:3,z:b.z,sx:hw*2+55,sy:6,sz:hd*2+55,c:0x1b1d21});
+}
 function buildChunk(cx,cz){
   const r=rng((cx*83492791)^(cz*2654435761)^0x5bd1e995),B=[],Wn=[],d=chunkData(cx,cz),x0=cx*CS,z0=cz*CS;
   B.push({x:x0+CS/2,y:.6,z:z0,sx:CS,sy:1,sz:140,c:0x11161c},{x:x0,y:.6,z:z0+CS/2,sx:140,sy:1,sz:CS,c:0x11161c});
@@ -1323,15 +1356,12 @@ function buildChunk(cx,cz){
       for(let i=0;i<7;i++){const a=rb()*TAU,rr=rb()*Math.max(b.hw,b.hd),s=12+rb()*30;B.push({x:b.x+Math.cos(a)*rr,y:18+s/3,z:b.z+Math.sin(a)*rr,sx:s,sy:s*.8,sz:s*1.2,c:rb()<.3?0x3a2a22:0x2a2c31,ry:rb()*3,rx:rb()*.6,rz:rb()*.6});}
       continue;
     }
-    {const kc=KCOL[kindOf(b)];B.push({x:b.x,y:b.h/2,z:b.z,sx:b.hw*2,sy:b.h,sz:b.hd*2,c:kc[Math.floor(b.s*131)%kc.length]});}
-    decorate(b,rb,B,Wn);
-    if(b.ruin){
-      B.push({x:b.x+b.hw*.2,y:b.h+4,z:b.z,sx:b.hw*1.3,sy:10,sz:b.hd*1.4,c:0x14191f,rz:(b.s-.5)*.7});
-      for(let i=0;i<5;i++){const a=rb()*TAU,rr=Math.max(b.hw,b.hd)+20+rb()*50,s=14+rb()*34;B.push({x:b.x+Math.cos(a)*rr,y:s/2,z:b.z+Math.sin(a)*rr,sx:s,sy:s*.8,sz:s*1.2,c:0x2a2c31,ry:rb()*3,rx:rb()*.4});}
-    }
-    const nw=b.ruin?4:Math.min(20,Math.floor(b.hw*b.hd/700)+4);
+    const kc=KCOL[kindOf(b)],bc=kc[Math.floor(b.s*131)%kc.length];
+    if(b.ruin){ruinBody(b,rb,B,Wn,bc);decorate(Object.assign({},b,{h:b.h*.5}),rb,B,Wn);}
+    else{B.push({x:b.x,y:b.h/2,z:b.z,sx:b.hw*2,sy:b.h,sz:b.hd*2,c:bc});decorate(b,rb,B,Wn);}
+    const nw=b.ruin?3:Math.min(20,Math.floor(b.hw*b.hd/700)+4);
     for(let i=0;i<nw;i++){
-      const side=Math.floor(rb()*4),y=18+rb()*(b.h-30),col=WCOL[Math.floor(rb()*WCOL.length)];
+      const side=Math.floor(rb()*4),y=18+rb()*(b.ruin?Math.max(4,b.h*.4-14):b.h-30),col=WCOL[Math.floor(rb()*WCOL.length)];
       if(side<2){const sg=side?1:-1;Wn.push({x:b.x+sg*(b.hw+.6),y,z:b.z+(rb()-.5)*b.hd*1.6,sx:1,sy:18,sz:14,c:col});}
       else{const sg=side===3?1:-1;Wn.push({x:b.x+(rb()-.5)*b.hw*1.6,y,z:b.z+sg*(b.hd+.6),sx:14,sy:18,sz:1,c:col});}
     }
@@ -1733,7 +1763,7 @@ function draw(){
   if(isFP()){
     const a=me.aim;viewYaw=viewYawT=a;
     camera.position.set(me.x+Math.cos(a)*8+sx,30,me.y+Math.sin(a)*8+sy);
-    camera.lookAt(me.x+Math.cos(a)*300+sx,22,me.y+Math.sin(a)*300+sy);
+    const cp=Math.cos(pitch);camera.lookAt(me.x+Math.cos(a)*cp*300+sx,30+Math.sin(pitch)*300,me.y+Math.sin(a)*cp*300+sy);
   }else{
     camera.position.set(cam.x-fx2*vp.d+sx,vp.h,cam.y-fz2*vp.d+sy);
     camera.lookAt(cam.x+fx2*vp.l+sx,0,cam.y+fz2*vp.l+sy);
