@@ -113,6 +113,7 @@ h1{font-family:'Orbitron',sans-serif;font-weight:900;font-size:clamp(30px,7vw,60
     <div class="sr" id="waveRow"><span>ĐỘ KHÓ</span><b id="waveV">1</b></div>
     <div style="display:flex;gap:4px"><button id="btnPause" style="flex:1;color:#fff">☰</button><button class="openSet" style="flex:1;color:#fff">⚙</button></div>
     <div style="display:flex;gap:4px"><button id="btnView" style="flex:2;color:var(--neon)">🎥 GÓC NHÌN (F5)</button><button id="btnRotL" style="flex:1;color:#fff">⟲</button><button id="btnRotR" style="flex:1;color:#fff">⟳</button></div>
+    <div style="display:flex;gap:4px"><button id="btnLock" style="flex:1;color:var(--gold)" title="Khóa chuột vào tâm màn hình (Shift)">🔒 SHIFT</button></div>
   </div>
 </div>
 <div id="skills" class="hidden"></div>
@@ -872,6 +873,7 @@ addEventListener('keydown',e=>{
   if(!e.key)return;
   if(e.key==='F5'&&S){e.preventDefault();if(!e.repeat&&!S.over)cycleView();return;}
   if(e.key==='Escape'){if(!$('settings').classList.contains('hidden')){closeSettings();return;}if(S&&!S.over){paused?resume():pause();}return;}
+  if(e.key==='Shift'&&!e.repeat&&S&&!S.over&&!S.spectate){if(document.pointerLockElement!==cv)togglePointerLock();return;}
   keys[e.key.toLowerCase()]=true;
   if(!e.repeat&&e.key.toLowerCase()==='v'&&S&&!S.over)cycleView();
   if(e.repeat||!S||S.over||S.spectate)return;
@@ -1618,6 +1620,17 @@ $('btnPause').onclick=()=>{if(S&&!S.over)pause();};
 $('btnView').onclick=cycleView;
 $('btnRotL').onclick=()=>{viewYawT-=Math.PI/4;};
 $('btnRotR').onclick=()=>{viewYawT+=Math.PI/4;};
+function togglePointerLock(){
+  if(document.pointerLockElement===cv){try{document.exitPointerLock()}catch(e){}return;}
+  if(!isFP()){viewIdx=VIEWS.findIndex(v=>v.fp);if(viewIdx<0)viewIdx=VIEWS.length-1;cfg.view=viewIdx;store.set('ta2_cfg',cfg);if(S)ann('🎥 '+VIEWS[viewIdx].n+' · F5',1.4);}
+  try{const pr=cv.requestPointerLock();if(pr&&pr.catch)pr.catch(()=>{})}catch(e){}
+}
+$('btnLock').onclick=togglePointerLock;
+document.addEventListener('pointerlockchange',()=>{
+  const lk=document.pointerLockElement===cv;
+  $('btnLock').textContent=lk?'🔒 ĐANG KHÓA':'🔒 SHIFT';
+  $('btnLock').style.color=lk?'var(--red)':'var(--gold)';
+});
 $('bResume').onclick=resume;
 $('bExit').onclick=()=>{paused=false;showMenu();};
 $('bMenu').onclick=showMenu;
